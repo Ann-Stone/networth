@@ -1,0 +1,1 @@
+/* empty css             *//* empty css                 */import{a as o,e as s,f as a,i as l,o as n,M as r}from"./index-rBPr4GhW.js";const f=o({__name:"AssetView",setup(i){return(m,e)=>{const t=r;return n(),s("div",null,[e[0]||(e[0]=a("h1",{class:"text-2xl font-semibold text-gray-800 mb-6"},"資產概覽",-1)),l(t,{type:"info",title:"資產概覽頁面開發中",closable:!1})])}}});export{f as default};
