@@ -1,0 +1,73 @@
+.page {
+  padding: 30px 20px;
+
+  .position-right {
+    width: 100%;
+    text-align: right;
+  }
+
+  .float-left {
+    float: left;
+  }
+
+  .float-right {
+    float: right;
+  }
+
+  .input-tiny {
+    width: 50px;
+  }
+
+  .input-small {
+    width: 100px;
+  }
+
+  .input-medium {
+    width: 150px;
+  }
+
+  .input-large {
+    width: 200px;
+  }
+
+  .btn-medium {
+    width: 100px;
+  }
+
+  .btn-large {
+    width: 150px;
+  }
+
+  .el-table {
+    margin-top: 10px;
+    border-radius: 5px;
+
+    .table-header {
+      background-color: #fa0;
+      color: white;
+    }
+
+    .el-checkbox__input {
+      &.is-checked,
+      &.is-indeterminate {
+        .el-checkbox__inner {
+          background-color: #f28c00;
+          border-color: #f28c00;
+        }
+      }
+    }
+  }
+
+  .money {
+    letter-spacing: 1px;
+    font-weight: bold;
+
+    &.positive {
+      color: #409eff;
+    }
+
+    &.negative {
+      color: #f56c6c;
+    }
+  }
+}
