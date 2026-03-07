@@ -7,7 +7,7 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
-  base: '/net-worth/',
+  base: '/networth/',
   plugins: [
     vue(),
     tailwindcss(),
