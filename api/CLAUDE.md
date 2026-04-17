@@ -14,11 +14,13 @@ Each domain has its own model directory. Table models and their CRUD schemas liv
 
 ```
 app/models/
-  settings/           ← Account, CodeData, Budget, CreditCard, Alarm, InitialSetting
+  settings/           ← Account, CodeData, Budget, CreditCard, Alarm
   monthly_report/     ← Journal, AccountBalance, CreditCardBalance, *NetValueHistory
   assets/             ← Stock, Insurance, Estate, Loan, OtherAsset + journals
   dashboard/          ← FXRate, StockPriceHistory, TargetSetting
 ```
+
+> Note: the legacy `InitialSetting` table is intentionally not ported — see `refactoring-tickets/README.md` "Decision Log".
 
 **Model pattern:**
 ```python
@@ -93,9 +95,11 @@ app/
   services/            ← Business logic functions (flat, one file per domain or feature)
 migrations/            ← Alembic migration versions
 scripts/               ← One-off scripts (e.g., migrate_from_legacy.py)
-data/                  ← SQLite database file (networth.db)
+docs/                  ← Generated openapi.json + api-reference.md (committed)
 tests/                 ← pytest tests organized by domain
 ```
+
+> The production SQLite DB is NOT stored inside the repo. Default path is `~/.networth/networth.db`; users can override via `DATABASE_URL` in `.env` or env var. The `api/` directory must not contain `*.db` files — `.gitignore` enforces this.
 
 ### Router aggregation
 Each domain `routers/<domain>/__init__.py` creates a parent router and includes sub-routers:
@@ -152,8 +156,32 @@ No authentication. Single-user. SQLite database.
 ## Commands
 
 ```bash
-uv run dev                                    # Start uvicorn on port 9527
+uv run dev                                    # Start uvicorn on port 9528
 uv run alembic revision --autogenerate -m ""  # Generate migration
 uv run alembic upgrade head                   # Apply migrations
 uv run pytest                                 # Run tests
+uv run export-docs                            # Regenerate api/docs/openapi.json + api-reference.md
 ```
+
+---
+
+## API documentation discipline (contract-as-spec)
+
+The Swagger UI at `/docs` — and the committed `api/docs/openapi.json` / `api/docs/api-reference.md` — **are the API spec** consumed by the frontend refactor. This is non-negotiable discipline, enforced in BE-032 by a CI check.
+
+### Every endpoint MUST
+- Have `summary` and `description` on the route decorator (English).
+- Use Pydantic models for both request and response (never raw `dict`).
+- Declare `responses={...}` with error-code examples.
+- Annotate query params: `Annotated[T, Query(..., description="...", examples=[...])]`.
+
+### Every Pydantic field MUST
+- Use `Field(..., description="...", examples=[...])`.
+- Add `model_config = ConfigDict(json_schema_extra={"example": {...}})` to every schema class for a full-model example.
+
+### Contract boundary
+- Frontend-side AI agents consume `api/docs/api-reference.md` (primary) and `api/docs/openapi.json` (drill-down).
+- Frontend agents **do not** read `api/app/routers/**` or `api/app/models/**`. If the spec is missing something they need, fix the spec — don't let the reader reach into implementation.
+
+### Language policy
+All ticket content, OpenAPI descriptions, code comments, and generated docs are written in **English**. User-facing conversation uses Traditional Chinese only.

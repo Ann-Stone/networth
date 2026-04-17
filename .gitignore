@@ -30,3 +30,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Legacy Code & Management Files
+refactoring-tickets/
+account-book-view/
+account-book-API/
