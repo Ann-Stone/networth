@@ -1,4 +1,4 @@
-# Python
+.venv/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -7,22 +7,26 @@ __pycache__/
 dist/
 build/
 
-# Virtual environment
-.venv/
+# Database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Environment
 .env
 
-# Database
-data/*.db
+# Tooling caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
 
-# IDE
+# IDE / OS
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db
 
