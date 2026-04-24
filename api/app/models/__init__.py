@@ -4,3 +4,4 @@ Alembic's ``env.py`` imports this module; every domain sub-package must be
 re-exported here for autogenerate to discover the table classes.
 """
 from app.models import settings  # noqa: F401
+from app.models import monthly_report  # noqa: F401
