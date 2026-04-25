@@ -53,8 +53,8 @@ class CreditCardCreate(SQLModel):
     limit_date: int | None = Field(default=None, description="Payment due day", schema_extra={"examples": [20]})
     feedback_way: str | None = Field(default=None, description="Rewards method", schema_extra={"examples": ["cashback"]})
     fx_code: str = Field(..., description="Billing currency code", schema_extra={"examples": ["USD"]})
-    in_use: str = Field(..., description="Active flag", schema_extra={"examples": ["Y"]})
-    credit_card_index: int = Field(..., description="Dropdown order", schema_extra={"examples": [1]})
+    in_use: str = Field(default="Y", description="Active flag", schema_extra={"examples": ["Y"]})
+    credit_card_index: int | None = Field(default=None, description="Sort order; auto-filled with max+1 when omitted", schema_extra={"examples": [1]})
     note: str | None = Field(default=None, description="Free-form note", schema_extra={"examples": ["Primary card"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _CREDIT_CARD_EXAMPLE})

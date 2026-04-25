@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 
 from app.models.settings.account import Account, AccountCreate, AccountUpdate
 from app.models.settings.budget import Budget, BudgetUpdate
+from app.models.settings.credit_card import CreditCard, CreditCardCreate, CreditCardUpdate
 from app.models.monthly_report.journal import Journal
 from app.models.settings.code_data import (
     CodeData,
@@ -268,6 +269,63 @@ def bulk_update_budgets(session: Session, items: list[BudgetUpdate]) -> list[Bud
     for r in rows:
         session.refresh(r)
     return rows
+
+
+# ---------- CreditCard ----------
+
+
+def list_credit_cards(
+    session: Session,
+    card_name: str | None = None,
+    in_use: str | None = None,
+) -> list[CreditCard]:
+    statement = select(CreditCard)
+    if card_name:
+        statement = statement.where(CreditCard.card_name.contains(card_name))
+    if in_use:
+        statement = statement.where(CreditCard.in_use == in_use)
+    statement = statement.order_by(
+        CreditCard.credit_card_index.asc(), CreditCard.credit_card_id.asc()
+    )
+    return list(session.exec(statement).all())
+
+
+def create_credit_card(session: Session, data: CreditCardCreate) -> CreditCard:
+    if session.get(CreditCard, data.credit_card_id) is not None:
+        raise HTTPException(
+            status_code=409, detail=f"Duplicate credit_card_id: {data.credit_card_id}"
+        )
+    payload = data.model_dump()
+    if payload.get("credit_card_index") is None:
+        max_idx = session.exec(select(func.max(CreditCard.credit_card_index))).first() or 0
+        payload["credit_card_index"] = (max_idx or 0) + 1
+    card = CreditCard(**payload)
+    session.add(card)
+    session.commit()
+    session.refresh(card)
+    return card
+
+
+def update_credit_card(
+    session: Session, credit_card_id: str, data: CreditCardUpdate
+) -> CreditCard:
+    card = session.get(CreditCard, credit_card_id)
+    if card is None:
+        raise HTTPException(status_code=404, detail=f"Credit card not found: {credit_card_id}")
+    for k, v in data.model_dump(exclude_unset=True).items():
+        setattr(card, k, v)
+    session.add(card)
+    session.commit()
+    session.refresh(card)
+    return card
+
+
+def delete_credit_card(session: Session, credit_card_id: str) -> None:
+    card = session.get(CreditCard, credit_card_id)
+    if card is None:
+        raise HTTPException(status_code=404, detail=f"Credit card not found: {credit_card_id}")
+    session.delete(card)
+    session.commit()
 
 
 def copy_budget_from_previous(session: Session, next_year: int) -> list[Budget]:
