@@ -95,6 +95,16 @@ class BudgetCreate(SQLModel):
 
 
 class BudgetUpdate(SQLModel):
+    budget_year: str = Field(
+        ...,
+        description="Identifies the row along with category_code",
+        schema_extra={"examples": ["2026"]},
+    )
+    category_code: str = Field(
+        ...,
+        description="Identifies the row along with budget_year",
+        schema_extra={"examples": ["E01"]},
+    )
     category_name: str | None = Field(default=None, description="Category display name", schema_extra={"examples": ["Salary"]})
     code_type: str | None = Field(default=None, description="Code type", schema_extra={"examples": ["income"]})
     expected01: float | None = Field(default=None, description="Month 01 expected", schema_extra={"examples": [100000.0]})
@@ -110,7 +120,11 @@ class BudgetUpdate(SQLModel):
     expected11: float | None = Field(default=None, description="Month 11 expected", schema_extra={"examples": [100000.0]})
     expected12: float | None = Field(default=None, description="Month 12 expected", schema_extra={"examples": [200000.0]})
 
-    model_config = ConfigDict(json_schema_extra={"example": {"expected12": 250000.0}})
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"budget_year": "2026", "category_code": "E01", "expected12": 250000.0}
+        }
+    )
 
 
 class BudgetRead(SQLModel):

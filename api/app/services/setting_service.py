@@ -8,7 +8,8 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.models.settings.account import Account, AccountCreate, AccountUpdate
-from app.models.settings.budget import Budget
+from app.models.settings.budget import Budget, BudgetUpdate
+from app.models.monthly_report.journal import Journal
 from app.models.settings.code_data import (
     CodeData,
     CodeDataCreate,
@@ -225,3 +226,91 @@ def delete_sub_code(session: Session, code_id: str) -> None:
     code = _get_sub_code(session, code_id)
     session.delete(code)
     session.commit()
+
+
+# ---------- Budget ----------
+
+
+def list_budgets_by_year(session: Session, year: int) -> list[Budget]:
+    statement = (
+        select(Budget)
+        .where(Budget.budget_year == str(year))
+        .order_by(Budget.category_code.asc())
+    )
+    return list(session.exec(statement).all())
+
+
+def list_budget_year_range(session: Session) -> list[int]:
+    rows = session.exec(
+        select(Budget.budget_year).distinct().order_by(Budget.budget_year.asc())
+    ).all()
+    return [int(r) for r in rows]
+
+
+def bulk_update_budgets(session: Session, items: list[BudgetUpdate]) -> list[Budget]:
+    rows: list[Budget] = []
+    for item in items:
+        budget = session.get(Budget, (item.budget_year, item.category_code))
+        if budget is None:
+            session.rollback()
+            raise HTTPException(
+                status_code=404,
+                detail=f"Budget not found: {item.budget_year}/{item.category_code}",
+            )
+        update_data = item.model_dump(
+            exclude_unset=True, exclude={"budget_year", "category_code"}
+        )
+        for k, v in update_data.items():
+            setattr(budget, k, v)
+        session.add(budget)
+        rows.append(budget)
+    session.commit()
+    for r in rows:
+        session.refresh(r)
+    return rows
+
+
+def copy_budget_from_previous(session: Session, next_year: int) -> list[Budget]:
+    prev_year = str(next_year - 1)
+    next_year_str = str(next_year)
+
+    journals = session.exec(
+        select(Journal).where(Journal.spend_date.like(f"{prev_year}%"))
+    ).all()
+    if not journals:
+        return []
+
+    totals: dict[str, float] = {}
+    for j in journals:
+        totals[j.action_main_type] = totals.get(j.action_main_type, 0.0) + abs(j.spending or 0.0)
+
+    monthly_avg = {k: v / 12.0 for k, v in totals.items()}
+
+    code_map: dict[str, CodeData] = {
+        c.code_id: c
+        for c in session.exec(select(CodeData).where(CodeData.code_id.in_(monthly_avg.keys()))).all()
+    }
+
+    rows: list[Budget] = []
+    for category_code, avg in monthly_avg.items():
+        existing = session.get(Budget, (next_year_str, category_code))
+        if existing is not None:
+            for m in range(1, 13):
+                setattr(existing, f"expected{m:02d}", avg)
+            session.add(existing)
+            rows.append(existing)
+        else:
+            code = code_map.get(category_code)
+            new_row = Budget(
+                budget_year=next_year_str,
+                category_code=category_code,
+                category_name=code.name if code else category_code,
+                code_type=code.code_type if code else "",
+                **{f"expected{m:02d}": avg for m in range(1, 13)},
+            )
+            session.add(new_row)
+            rows.append(new_row)
+    session.commit()
+    for r in rows:
+        session.refresh(r)
+    return rows
