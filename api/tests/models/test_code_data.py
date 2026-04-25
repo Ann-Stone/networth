@@ -19,6 +19,7 @@ def test_code_data_table_fields() -> None:
         "code_id",
         "code_type",
         "name",
+        "parent_id",
         "code_group",
         "code_group_name",
         "in_use",

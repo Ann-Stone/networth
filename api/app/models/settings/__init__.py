@@ -7,6 +7,7 @@ from app.models.settings.code_data import (
     CodeDataCreate,
     CodeDataRead,
     CodeDataUpdate,
+    CodeWithSubs,
 )
 from app.models.settings.credit_card import (
     CreditCard,
@@ -32,6 +33,7 @@ __all__ = [
     "CodeDataCreate",
     "CodeDataRead",
     "CodeDataUpdate",
+    "CodeWithSubs",
     "CreditCard",
     "CreditCardCreate",
     "CreditCardRead",
