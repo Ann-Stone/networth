@@ -3,11 +3,13 @@ from __future__ import annotations
 
 from datetime import date
 
+from dateutil import parser as date_parser
 from fastapi import HTTPException
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlmodel import Session, select
 
 from app.models.settings.account import Account, AccountCreate, AccountUpdate
+from app.models.settings.alarm import Alarm, AlarmCreate, AlarmUpdate
 from app.models.settings.budget import Budget, BudgetUpdate
 from app.models.settings.credit_card import CreditCard, CreditCardCreate, CreditCardUpdate
 from app.models.monthly_report.journal import Journal
@@ -372,3 +374,61 @@ def copy_budget_from_previous(session: Session, next_year: int) -> list[Budget]:
     for r in rows:
         session.refresh(r)
     return rows
+
+
+# ---------- Alarm ----------
+
+
+def _normalize_due_date(value: str | None) -> str | None:
+    if value is None or value == "":
+        return None
+    try:
+        dt = date_parser.parse(value)
+    except (ValueError, TypeError) as e:
+        raise HTTPException(status_code=422, detail="Unparseable due_date") from e
+    return dt.strftime("%Y%m%d")
+
+
+def list_alarms(session: Session) -> list[Alarm]:
+    statement = select(Alarm).order_by(Alarm.alarm_id.asc())
+    return list(session.exec(statement).all())
+
+
+def list_alarms_by_date(session: Session, date: str) -> list[Alarm]:
+    statement = select(Alarm).where(
+        or_(Alarm.alarm_date == date, Alarm.alarm_date.like(f"%{date}"))
+    )
+    return list(session.exec(statement).all())
+
+
+def create_alarm(session: Session, data: AlarmCreate) -> Alarm:
+    payload = data.model_dump()
+    payload["due_date"] = _normalize_due_date(payload.get("due_date"))
+    alarm = Alarm(**payload)
+    session.add(alarm)
+    session.commit()
+    session.refresh(alarm)
+    return alarm
+
+
+def update_alarm(session: Session, alarm_id: int, data: AlarmUpdate) -> Alarm:
+    alarm = session.get(Alarm, alarm_id)
+    if alarm is None:
+        raise HTTPException(status_code=404, detail=f"Alarm not found: {alarm_id}")
+    update_data = data.model_dump(exclude_unset=True)
+    if "due_date" in update_data:
+        update_data["due_date"] = _normalize_due_date(update_data["due_date"])
+    for k, v in update_data.items():
+        setattr(alarm, k, v)
+    session.add(alarm)
+    session.commit()
+    session.refresh(alarm)
+    return alarm
+
+
+def delete_alarm(session: Session, alarm_id: int) -> None:
+    alarm = session.get(Alarm, alarm_id)
+    if alarm is None:
+        raise HTTPException(status_code=404, detail=f"Alarm not found: {alarm_id}")
+    session.delete(alarm)
+    session.commit()
