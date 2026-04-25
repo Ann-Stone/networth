@@ -73,12 +73,16 @@ class AccountCreate(SQLModel):
     name: str = Field(..., description="Account name", schema_extra={"examples": ["Chase Checking"]})
     account_type: str = Field(..., description="Account type", schema_extra={"examples": ["bank"]})
     fx_code: str = Field(..., description="Currency code", schema_extra={"examples": ["USD"]})
-    is_calculate: str = Field(..., description="Include in totals (Y/N)", schema_extra={"examples": ["Y"]})
-    in_use: str = Field(..., description="Active flag (Y/N)", schema_extra={"examples": ["Y"]})
-    discount: float = Field(..., description="Discount multiplier", schema_extra={"examples": [1.0]})
+    is_calculate: str = Field(default="Y", description="Include in totals (Y/N)", schema_extra={"examples": ["Y"]})
+    in_use: str = Field(default="Y", description="Active flag (Y/N)", schema_extra={"examples": ["Y"]})
+    discount: float = Field(default=1.0, description="Discount multiplier", schema_extra={"examples": [1.0]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Primary checking"]})
     owner: str | None = Field(default=None, description="Owner label", schema_extra={"examples": ["stone"]})
-    account_index: int = Field(..., description="Dropdown order", schema_extra={"examples": [1]})
+    account_index: int | None = Field(
+        default=None,
+        description="Optional sort order; auto-filled with max(account_index)+1 when omitted",
+        schema_extra={"examples": [10]},
+    )
 
     model_config = ConfigDict(json_schema_extra={"example": _ACCOUNT_CREATE_EXAMPLE})
 
