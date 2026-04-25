@@ -26,6 +26,7 @@ from app.models.monthly_report.insurance_net_value_history import (
 from app.models.monthly_report.journal import (
     Journal,
     JournalCreate,
+    JournalMonthRead,
     JournalRead,
     JournalUpdate,
 )
@@ -61,6 +62,7 @@ __all__ = [
     "InsuranceNetValueHistoryUpdate",
     "Journal",
     "JournalCreate",
+    "JournalMonthRead",
     "JournalRead",
     "JournalUpdate",
     "LoanBalance",

@@ -92,6 +92,23 @@ class JournalUpdate(SQLModel):
     model_config = ConfigDict(json_schema_extra={"example": {"note": "Updated note"}})
 
 
+class JournalMonthRead(SQLModel):
+    items: list["JournalRead"] = Field(
+        ...,
+        description="Journal entries for the month, ordered by spend_date",
+        schema_extra={"examples": [[_JOURNAL_EXAMPLE]]},
+    )
+    gain_loss: float = Field(
+        ...,
+        description="Net gain/loss for the month after FX conversion to base currency",
+        schema_extra={"examples": [1234.56]},
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"items": [_JOURNAL_EXAMPLE], "gain_loss": 1234.56}}
+    )
+
+
 class JournalRead(SQLModel):
     distinct_number: int = Field(..., description="Autoincrement PK", schema_extra={"examples": [1]})
     vesting_month: str = Field(..., description="YYYYMM", schema_extra={"examples": ["202604"]})
@@ -110,3 +127,6 @@ class JournalRead(SQLModel):
     note: str | None = Field(default=None, description="Free-form note", schema_extra={"examples": ["Lunch"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _JOURNAL_EXAMPLE})
+
+
+JournalMonthRead.model_rebuild()
