@@ -34,7 +34,7 @@ class OtherAssetCreate(SQLModel):
     asset_type: str = Field(..., description="Asset category type", schema_extra={"examples": ["stock"]})
     vesting_nation: str = Field(..., description="Vesting country code", schema_extra={"examples": ["US"]})
     in_use: str = Field(..., description="Active flag", schema_extra={"examples": ["Y"]})
-    asset_index: int = Field(..., description="Dropdown order", schema_extra={"examples": [1]})
+    asset_index: int | None = Field(default=None, description="Display order; server assigns max+1 if omitted", schema_extra={"examples": [1]})
 
     model_config = ConfigDict(json_schema_extra={"example": _EXAMPLE})
 
@@ -58,3 +58,9 @@ class OtherAssetRead(SQLModel):
     asset_index: int = Field(..., description="Dropdown order", schema_extra={"examples": [1]})
 
     model_config = ConfigDict(json_schema_extra={"example": _EXAMPLE})
+
+
+class OtherAssetItem(SQLModel):
+    asset_type: str = Field(..., description="Distinct asset_type value", schema_extra={"examples": ["stock"]})
+
+    model_config = ConfigDict(json_schema_extra={"example": {"asset_type": "stock"}})

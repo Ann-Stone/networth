@@ -5,8 +5,12 @@ preserved verbatim — BE-005 data migration depends on matching column names.
 """
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import ConfigDict
 from sqlmodel import Field, SQLModel
+
+StockExcuteType = Literal["buy", "sell", "stock", "cash"]
 
 
 _STOCK_JOURNAL_EXAMPLE = {
@@ -88,7 +92,7 @@ class StockDetail(SQLModel, table=True):
 
 class StockDetailCreate(SQLModel):
     stock_id: str = Field(..., description="FK to Stock_Journal.stock_id", schema_extra={"examples": ["STK-H-001"]})
-    excute_type: str = Field(..., description="buy / sell / dividend", schema_extra={"examples": ["buy"]})
+    excute_type: StockExcuteType = Field(..., description="Transaction type: buy/sell/stock/cash", schema_extra={"examples": ["buy"]})
     excute_amount: float = Field(..., description="Quantity traded", schema_extra={"examples": [10.0]})
     excute_price: float = Field(..., description="Price per share", schema_extra={"examples": [180.50]})
     excute_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20260418"]})
@@ -102,7 +106,7 @@ class StockDetailCreate(SQLModel):
 
 
 class StockDetailUpdate(SQLModel):
-    excute_type: str | None = Field(default=None, description="buy / sell / dividend", schema_extra={"examples": ["sell"]})
+    excute_type: StockExcuteType | None = Field(default=None, description="Transaction type", schema_extra={"examples": ["sell"]})
     excute_amount: float | None = Field(default=None, description="Quantity traded", schema_extra={"examples": [5.0]})
     excute_price: float | None = Field(default=None, description="Price per share", schema_extra={"examples": [185.0]})
     excute_date: str | None = Field(default=None, description="YYYYMMDD", schema_extra={"examples": ["20260420"]})

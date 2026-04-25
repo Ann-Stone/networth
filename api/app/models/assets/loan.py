@@ -1,8 +1,12 @@
 """Loan asset models: Loan (master) + LoanJournal (repayment detail)."""
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import ConfigDict
 from sqlmodel import Field, SQLModel
+
+LoanExcuteType = Literal["principal", "interest", "increment", "fee"]
 
 
 _LOAN_EXAMPLE = {
@@ -118,7 +122,7 @@ class LoanJournal(SQLModel, table=True):
 
 class LoanJournalCreate(SQLModel):
     loan_id: str = Field(..., description="FK to Loan.loan_id", schema_extra={"examples": ["LN-001"]})
-    loan_excute_type: str = Field(..., description="Execution type", schema_extra={"examples": ["repayment"]})
+    loan_excute_type: LoanExcuteType = Field(..., description="principal/interest/increment/fee", schema_extra={"examples": ["principal"]})
     excute_price: float = Field(..., description="Amount", schema_extra={"examples": [1500.0]})
     excute_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20260401"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["April payment"]})
@@ -129,7 +133,7 @@ class LoanJournalCreate(SQLModel):
 
 
 class LoanJournalUpdate(SQLModel):
-    loan_excute_type: str | None = Field(default=None, description="Execution type", schema_extra={"examples": ["repayment"]})
+    loan_excute_type: LoanExcuteType | None = Field(default=None, description="Execution type", schema_extra={"examples": ["principal"]})
     excute_price: float | None = Field(default=None, description="Amount", schema_extra={"examples": [1500.0]})
     excute_date: str | None = Field(default=None, description="YYYYMMDD", schema_extra={"examples": ["20260401"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Updated"]})
@@ -146,3 +150,12 @@ class LoanJournalRead(SQLModel):
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["April payment"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _LOAN_JOURNAL_EXAMPLE})
+
+
+class LoanSelectionRead(SQLModel):
+    loan_id: str = Field(..., description="Loan business ID", schema_extra={"examples": ["LN-001"]})
+    loan_name: str = Field(..., description="Loan display name", schema_extra={"examples": ["Mortgage"]})
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"loan_id": "LN-001", "loan_name": "Mortgage"}}
+    )

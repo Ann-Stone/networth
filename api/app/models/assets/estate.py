@@ -1,8 +1,13 @@
 """Estate (real-estate) asset models: Estate + EstateJournal."""
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import ConfigDict
 from sqlmodel import Field, SQLModel
+
+EstateStatus = Literal["idle", "live", "rent", "sold"]
+EstateExcuteType = Literal["tax", "fee", "insurance", "fix", "rent", "deposit"]
 
 
 _ESTATE_EXAMPLE = {
@@ -13,13 +18,13 @@ _ESTATE_EXAMPLE = {
     "asset_id": "AC-REAL-001",
     "obtain_date": "20200101",
     "loan_id": "LN-001",
-    "estate_status": "hold",
+    "estate_status": "live",
     "memo": "Primary residence",
 }
 _ESTATE_JOURNAL_EXAMPLE = {
     "distinct_number": 1,
     "estate_id": "EST-001",
-    "estate_excute_type": "purchase",
+    "estate_excute_type": "tax",
     "excute_price": 500000.0,
     "excute_date": "20200101",
     "memo": "Closing",
@@ -36,7 +41,7 @@ class Estate(SQLModel, table=True):
     asset_id: str = Field(..., description="Asset category ID", schema_extra={"examples": ["AC-REAL-001"]})
     obtain_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     loan_id: str | None = Field(default=None, description="Associated loan ID", schema_extra={"examples": ["LN-001"]})
-    estate_status: str = Field(..., description="Status (hold / sold / ...)", schema_extra={"examples": ["hold"]})
+    estate_status: str = Field(..., description="Status (idle / live / rent / sold)", schema_extra={"examples": ["live"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Primary residence"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _ESTATE_EXAMPLE})
@@ -50,7 +55,7 @@ class EstateCreate(SQLModel):
     asset_id: str = Field(..., description="Asset category ID", schema_extra={"examples": ["AC-REAL-001"]})
     obtain_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     loan_id: str | None = Field(default=None, description="Associated loan ID", schema_extra={"examples": ["LN-001"]})
-    estate_status: str = Field(..., description="Status", schema_extra={"examples": ["hold"]})
+    estate_status: EstateStatus = Field(..., description="Status", schema_extra={"examples": ["live"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Primary residence"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _ESTATE_EXAMPLE})
@@ -63,7 +68,7 @@ class EstateUpdate(SQLModel):
     asset_id: str | None = Field(default=None, description="Asset category ID", schema_extra={"examples": ["AC-REAL-001"]})
     obtain_date: str | None = Field(default=None, description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     loan_id: str | None = Field(default=None, description="Associated loan ID", schema_extra={"examples": ["LN-001"]})
-    estate_status: str | None = Field(default=None, description="Status", schema_extra={"examples": ["sold"]})
+    estate_status: EstateStatus | None = Field(default=None, description="Status", schema_extra={"examples": ["sold"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Updated"]})
 
     model_config = ConfigDict(json_schema_extra={"example": {"estate_status": "sold"}})
@@ -98,7 +103,7 @@ class EstateJournal(SQLModel, table=True):
 
 class EstateJournalCreate(SQLModel):
     estate_id: str = Field(..., description="FK to Estate.estate_id", schema_extra={"examples": ["EST-001"]})
-    estate_excute_type: str = Field(..., description="Transaction type", schema_extra={"examples": ["purchase"]})
+    estate_excute_type: EstateExcuteType = Field(..., description="tax/fee/insurance/fix/rent/deposit", schema_extra={"examples": ["tax"]})
     excute_price: float = Field(..., description="Amount", schema_extra={"examples": [500000.0]})
     excute_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Closing"]})
@@ -109,7 +114,7 @@ class EstateJournalCreate(SQLModel):
 
 
 class EstateJournalUpdate(SQLModel):
-    estate_excute_type: str | None = Field(default=None, description="Transaction type", schema_extra={"examples": ["sale"]})
+    estate_excute_type: EstateExcuteType | None = Field(default=None, description="Transaction type", schema_extra={"examples": ["fee"]})
     excute_price: float | None = Field(default=None, description="Amount", schema_extra={"examples": [550000.0]})
     excute_date: str | None = Field(default=None, description="YYYYMMDD", schema_extra={"examples": ["20260101"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Updated"]})

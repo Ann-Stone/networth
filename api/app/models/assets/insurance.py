@@ -1,8 +1,13 @@
 """Insurance asset models: Insurance (policy master) + InsuranceJournal (detail)."""
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import ConfigDict
 from sqlmodel import Field, SQLModel
+
+InsuranceExcuteType = Literal["pay", "cash", "return", "expect"]
+HasClosed = Literal["Y", "N"]
 
 
 _INSURANCE_EXAMPLE = {
@@ -57,7 +62,7 @@ class InsuranceCreate(SQLModel):
     pay_type: str = Field(..., description="Premium cadence", schema_extra={"examples": ["annual"]})
     pay_day: int = Field(..., description="Day of month", schema_extra={"examples": [15]})
     expected_spend: float = Field(..., description="Expected premium", schema_extra={"examples": [1200.0]})
-    has_closed: str = Field(..., description="Closed flag (Y/N)", schema_extra={"examples": ["N"]})
+    has_closed: HasClosed = Field(..., description="Closed flag (Y/N)", schema_extra={"examples": ["N"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _INSURANCE_EXAMPLE})
 
@@ -72,7 +77,7 @@ class InsuranceUpdate(SQLModel):
     pay_type: str | None = Field(default=None, description="Premium cadence", schema_extra={"examples": ["annual"]})
     pay_day: int | None = Field(default=None, description="Day of month", schema_extra={"examples": [15]})
     expected_spend: float | None = Field(default=None, description="Expected premium", schema_extra={"examples": [1200.0]})
-    has_closed: str | None = Field(default=None, description="Closed flag", schema_extra={"examples": ["Y"]})
+    has_closed: HasClosed | None = Field(default=None, description="Closed flag", schema_extra={"examples": ["Y"]})
 
     model_config = ConfigDict(json_schema_extra={"example": {"has_closed": "Y"}})
 
@@ -108,7 +113,7 @@ class InsuranceJournal(SQLModel, table=True):
 
 class InsuranceJournalCreate(SQLModel):
     insurance_id: str = Field(..., description="FK to Insurance.insurance_id", schema_extra={"examples": ["INS-001"]})
-    insurance_excute_type: str = Field(..., description="Execution type", schema_extra={"examples": ["premium"]})
+    insurance_excute_type: InsuranceExcuteType = Field(..., description="pay/cash/return/expect", schema_extra={"examples": ["pay"]})
     excute_price: float = Field(..., description="Amount", schema_extra={"examples": [1200.0]})
     excute_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20260115"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Annual premium"]})
@@ -119,7 +124,7 @@ class InsuranceJournalCreate(SQLModel):
 
 
 class InsuranceJournalUpdate(SQLModel):
-    insurance_excute_type: str | None = Field(default=None, description="Execution type", schema_extra={"examples": ["claim"]})
+    insurance_excute_type: InsuranceExcuteType | None = Field(default=None, description="Execution type", schema_extra={"examples": ["cash"]})
     excute_price: float | None = Field(default=None, description="Amount", schema_extra={"examples": [1200.0]})
     excute_date: str | None = Field(default=None, description="YYYYMMDD", schema_extra={"examples": ["20260115"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Updated"]})
