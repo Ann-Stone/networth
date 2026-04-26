@@ -1,4 +1,5 @@
 """Dashboard domain models."""
+from app.models.dashboard.budget import BudgetLine, BudgetRead, BudgetType
 from app.models.dashboard.fx_rate import FXRate, FXRateCreate, FXRateRead, FXRateUpdate
 from app.models.dashboard.stock_price_history import (
     StockPriceHistory,
@@ -6,6 +7,7 @@ from app.models.dashboard.stock_price_history import (
     StockPriceHistoryRead,
     StockPriceHistoryUpdate,
 )
+from app.models.dashboard.summary import SummaryPoint, SummaryRead, SummaryType
 from app.models.dashboard.target_setting import (
     TargetSetting,
     TargetSettingCreate,
@@ -14,6 +16,9 @@ from app.models.dashboard.target_setting import (
 )
 
 __all__ = [
+    "BudgetLine",
+    "BudgetRead",
+    "BudgetType",
     "FXRate",
     "FXRateCreate",
     "FXRateUpdate",
@@ -22,6 +27,9 @@ __all__ = [
     "StockPriceHistoryCreate",
     "StockPriceHistoryUpdate",
     "StockPriceHistoryRead",
+    "SummaryPoint",
+    "SummaryRead",
+    "SummaryType",
     "TargetSetting",
     "TargetSettingCreate",
     "TargetSettingUpdate",
