@@ -1,5 +1,7 @@
 """Dashboard domain models."""
+from app.models.dashboard.alarm_view import AlarmItem
 from app.models.dashboard.budget import BudgetLine, BudgetRead, BudgetType
+from app.models.dashboard.gift_view import GiftItem
 from app.models.dashboard.fx_rate import FXRate, FXRateCreate, FXRateRead, FXRateUpdate
 from app.models.dashboard.stock_price_history import (
     StockPriceHistory,
@@ -16,6 +18,8 @@ from app.models.dashboard.target_setting import (
 )
 
 __all__ = [
+    "AlarmItem",
+    "GiftItem",
     "BudgetLine",
     "BudgetRead",
     "BudgetType",
