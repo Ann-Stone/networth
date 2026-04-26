@@ -8,3 +8,4 @@ from app.models import monthly_report  # noqa: F401
 from app.models import assets  # noqa: F401
 from app.models import dashboard  # noqa: F401
 from app.models import reports  # noqa: F401
+from app.models import utilities  # noqa: F401
