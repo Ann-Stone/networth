@@ -21,7 +21,8 @@ class Settings(BaseSettings):
     invoice_app_id: str = ""
     invoice_skip_path: str = "config/invoice_skip.json"
     merchant_mapping_path: str = "config/merchant_mapping.json"
-    import_csv: str = ""
+    import_csv: str = "invoice.csv"
+    invoice_error_log: str = "logs/invoice_import_errors.log"
 
 
 settings = Settings()

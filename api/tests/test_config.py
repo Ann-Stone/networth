@@ -60,9 +60,31 @@ def test_invoice_fields_default_empty(
     assert s.invoice_card_no == ""
     assert s.invoice_password == ""
     assert s.invoice_app_id == ""
-    assert s.import_csv == ""
+    assert s.import_csv == "invoice.csv"
     assert s.invoice_skip_path == "config/invoice_skip.json"
     assert s.merchant_mapping_path == "config/merchant_mapping.json"
+
+
+def test_import_config_fields(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Import-related config fields default to expected values."""
+    for key in [
+        "INVOICE_SKIP_PATH",
+        "MERCHANT_MAPPING_PATH",
+        "IMPORT_CSV",
+        "INVOICE_ERROR_LOG",
+    ]:
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    cfg = _fresh_settings_cls()
+    s = cfg.Settings()
+
+    assert s.invoice_skip_path == "config/invoice_skip.json"
+    assert s.merchant_mapping_path == "config/merchant_mapping.json"
+    assert s.import_csv == "invoice.csv"
+    assert s.invoice_error_log == "logs/invoice_import_errors.log"
 
 
 def test_settings_singleton_import() -> None:

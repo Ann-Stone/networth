@@ -70,15 +70,17 @@ def test_validation_error_returns_envelope() -> None:
 
 
 def test_success_returns_envelope() -> None:
-    r = client.get("/utilities/ping")
+    r = client.get("/health")
     assert r.status_code == 200
     body = r.json()
-    assert body == {"status": 1, "data": {"pong": True}, "msg": "success"}
+    assert body["status"] == 1
+    assert body["msg"] == "success"
+    assert body["data"]["alive"] is True
 
 
 def test_cors_allows_any_origin() -> None:
     r = client.options(
-        "/utilities/ping",
+        "/health",
         headers={
             "Origin": "http://example",
             "Access-Control-Request-Method": "GET",
