@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from app.database import create_db_and_tables
 from app.routers.assets import router as assets_router
 from app.routers.dashboard import router as dashboard_router
+from app.routers.health import router as health_router
 from app.routers.monthly_report import router as monthly_report_router
 from app.routers.reports import router as reports_router
 from app.routers.settings import router as settings_router
@@ -72,3 +73,4 @@ app.include_router(assets_router)
 app.include_router(reports_router)
 app.include_router(dashboard_router)
 app.include_router(utilities_router)
+app.include_router(health_router)
