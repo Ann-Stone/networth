@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Balance Sheet - Eye-Comfort Warm Dark</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#8fa79b", // Muted sage green accent
+                        "accent-rose": "#b58d8d", // Dusty rose accent
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#1c1b1a", // Warm charcoal-coffee background
+                        "surface-dark": "#2a2826", // Lighter warm neutral for cards
+                        "cream": "#e8e4df", // Off-white/cream for reduced glare
+                        "muted-text": "#a8a29e", // Softened neutral text
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.4rem", "lg": "0.6rem", "xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-cream min-h-screen">
+<div class="relative flex flex-col min-h-screen w-full overflow-x-hidden">
+<!-- Header / Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-surface-dark px-6 py-4 lg:px-10 bg-background-light dark:bg-background-dark/80 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-primary">
+<div class="size-6 bg-primary/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">account_balance</span>
+</div>
+<h2 class="text-slate-900 dark:text-cream text-xl font-bold leading-tight tracking-tight">WarmBalance</h2>
+</div>
+<label class="hidden md:flex flex-col min-w-40 h-10 max-w-64">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full overflow-hidden bg-slate-100 dark:bg-surface-dark border border-transparent focus-within:border-primary/50">
+<div class="text-muted-text flex items-center justify-center pl-3">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="form-input flex w-full border-none bg-transparent focus:ring-0 text-sm placeholder:text-muted-text" placeholder="Search entries..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<nav class="hidden xl:flex items-center gap-8">
+<a class="text-slate-600 dark:text-muted-text hover:text-primary dark:hover:text-cream text-sm font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-slate-900 dark:text-cream text-sm font-semibold border-b-2 border-primary pb-1" href="#">Assets</a>
+<a class="text-slate-600 dark:text-muted-text hover:text-primary dark:hover:text-cream text-sm font-medium transition-colors" href="#">Liabilities</a>
+<a class="text-slate-600 dark:text-muted-text hover:text-primary dark:hover:text-cream text-sm font-medium transition-colors" href="#">Equity</a>
+<a class="text-slate-600 dark:text-muted-text hover:text-primary dark:hover:text-cream text-sm font-medium transition-colors" href="#">Reports</a>
+</nav>
+<div class="flex gap-2">
+<button class="flex items-center justify-center rounded-lg size-10 bg-slate-100 dark:bg-surface-dark text-slate-700 dark:text-cream hover:bg-slate-200 dark:hover:bg-primary/20 transition-all">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="flex items-center justify-center rounded-lg size-10 bg-slate-100 dark:bg-surface-dark text-slate-700 dark:text-cream hover:bg-slate-200 dark:hover:bg-primary/20 transition-all">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+</button>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-9 border-2 border-primary/20" data-alt="User profile avatar photo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDqgOupTFJm9aKmBBmnPGb-4nkawU6wH9MlOe6tA16OjxQ8sVSe18bF0RcbxmQUug9sVPAPfllDZDoQh8SRiaVu4v2llAejfGevbrwtuhWb7FmeGaVfI8n-48QPlV6VKIJVU2MqvcKKGkm9J-JZl_rjncXFA1A9-wT8b_cdQhAWVQrexFq2gxvfBWBtO8JSf9K9xs6xpsaLtpalZgAuqaa9rZK5me33OuHfqmbniZaO4Oh1bu4_1cbOzIpVueGwLj_ypcICB_qZE0q0");'></div>
+</div>
+</header>
+<div class="flex flex-1 flex-col lg:flex-row">
+<!-- Sidebar -->
+<aside class="w-full lg:w-64 border-r border-slate-200 dark:border-surface-dark p-6 flex flex-col gap-8 bg-slate-50 dark:bg-background-dark/50">
+<div class="flex flex-col gap-1">
+<h3 class="text-[10px] uppercase tracking-widest text-muted-text font-bold mb-2">Main Navigation</h3>
+<nav class="flex flex-col gap-1">
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/15 text-primary">
+<span class="material-symbols-outlined">dashboard</span>
+<p class="text-sm font-semibold">Overview</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-muted-text hover:bg-slate-200 dark:hover:bg-surface-dark transition-all cursor-pointer">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<p class="text-sm font-medium">Accounts</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-muted-text hover:bg-slate-200 dark:hover:bg-surface-dark transition-all cursor-pointer">
+<span class="material-symbols-outlined">trending_up</span>
+<p class="text-sm font-medium">Investments</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-muted-text hover:bg-slate-200 dark:hover:bg-surface-dark transition-all cursor-pointer">
+<span class="material-symbols-outlined">history</span>
+<p class="text-sm font-medium">History</p>
+</div>
+</nav>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="text-[10px] uppercase tracking-widest text-muted-text font-bold mb-2">Internal Audit</h3>
+<nav class="flex flex-col gap-1">
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-muted-text hover:bg-slate-200 dark:hover:bg-surface-dark transition-all cursor-pointer">
+<span class="material-symbols-outlined">description</span>
+<p class="text-sm font-medium">Tax Docs</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-muted-text hover:bg-slate-200 dark:hover:bg-surface-dark transition-all cursor-pointer">
+<span class="material-symbols-outlined">shield_person</span>
+<p class="text-sm font-medium">Compliance</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-muted-text hover:bg-slate-200 dark:hover:bg-surface-dark transition-all cursor-pointer">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium">Settings</p>
+</div>
+</nav>
+</div>
+<div class="mt-auto p-4 rounded-xl bg-surface-dark border border-primary/10">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary text-sm">visibility</span>
+<p class="text-xs font-semibold text-cream">Eye-Comfort Active</p>
+</div>
+<p class="text-[11px] text-muted-text leading-relaxed">Warm palette enabled to reduce fatigue during auditing sessions.</p>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col p-6 lg:p-10 gap-8 max-w-[1400px] mx-auto w-full">
+<!-- Page Title Section -->
+<div class="flex flex-wrap items-end justify-between gap-4">
+<div class="flex flex-col gap-1">
+<h1 class="text-slate-900 dark:text-cream text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight">Balance Sheet</h1>
+<p class="text-slate-500 dark:text-muted-text text-base">Summary of your financial position as of October 2023.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center justify-center rounded-lg h-11 px-5 border border-slate-300 dark:border-surface-dark bg-white dark:bg-surface-dark text-slate-700 dark:text-cream text-sm font-bold hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined mr-2 text-sm">filter_list</span>
+                            Adjust Dates
+                        </button>
+<button class="flex items-center justify-center rounded-lg h-11 px-5 bg-primary text-background-dark text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/10">
+<span class="material-symbols-outlined mr-2 text-sm">download</span>
+                            Export PDF
+                        </button>
+</div>
+</div>
+<!-- Metrics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="flex flex-col gap-3 rounded-xl p-8 bg-white dark:bg-surface-dark border border-slate-200 dark:border-primary/5 shadow-sm transition-transform hover:scale-[1.01]">
+<div class="flex justify-between items-start">
+<p class="text-slate-500 dark:text-muted-text text-sm font-semibold uppercase tracking-wider">Total Assets</p>
+<span class="material-symbols-outlined text-primary">account_balance</span>
+</div>
+<p class="text-slate-900 dark:text-cream text-3xl font-bold tabular-nums">$1,240,500.00</p>
+<div class="flex items-center gap-1.5 mt-2">
+<div class="flex items-center gap-1 text-primary bg-primary/10 px-2 py-0.5 rounded-full text-xs font-bold">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+                                2.4%
+                            </div>
+<span class="text-slate-400 dark:text-muted-text text-xs">vs last quarter</span>
+</div>
+</div>
+<div class="flex flex-col gap-3 rounded-xl p-8 bg-white dark:bg-surface-dark border border-slate-200 dark:border-primary/5 shadow-sm transition-transform hover:scale-[1.01]">
+<div class="flex justify-between items-start">
+<p class="text-slate-500 dark:text-muted-text text-sm font-semibold uppercase tracking-wider">Total Liabilities</p>
+<span class="material-symbols-outlined text-accent-rose">credit_card_off</span>
+</div>
+<p class="text-slate-900 dark:text-cream text-3xl font-bold tabular-nums">$420,000.00</p>
+<div class="flex items-center gap-1.5 mt-2">
+<div class="flex items-center gap-1 text-accent-rose bg-accent-rose/10 px-2 py-0.5 rounded-full text-xs font-bold">
+<span class="material-symbols-outlined text-[14px]">arrow_downward</span>
+                                1.2%
+                            </div>
+<span class="text-slate-400 dark:text-muted-text text-xs">vs last quarter</span>
+</div>
+</div>
+<div class="flex flex-col gap-3 rounded-xl p-8 bg-white dark:bg-surface-dark border border-slate-200 dark:border-primary/5 shadow-sm transition-transform hover:scale-[1.01]">
+<div class="flex justify-between items-start">
+<p class="text-slate-500 dark:text-muted-text text-sm font-semibold uppercase tracking-wider">Net Worth</p>
+<span class="material-symbols-outlined text-primary">stars</span>
+</div>
+<p class="text-slate-900 dark:text-cream text-3xl font-bold tabular-nums">$820,500.00</p>
+<div class="flex items-center gap-1.5 mt-2">
+<div class="flex items-center gap-1 text-primary bg-primary/10 px-2 py-0.5 rounded-full text-xs font-bold">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+                                4.8%
+                            </div>
+<span class="text-slate-400 dark:text-muted-text text-xs">overall growth</span>
+</div>
+</div>
+</div>
+<!-- Asset Allocation Section -->
+<div class="flex flex-col gap-6">
+<div class="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark pb-3">
+<h2 class="text-slate-900 dark:text-cream text-xl font-bold leading-tight tracking-tight">Asset Allocation</h2>
+<button class="text-primary text-sm font-bold hover:underline">View Details</button>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+<!-- Chart Placeholder Card -->
+<div class="bg-white dark:bg-surface-dark rounded-xl p-8 border border-slate-200 dark:border-primary/5 min-h-[400px] flex flex-col">
+<div class="flex justify-between mb-8">
+<h3 class="text-slate-800 dark:text-cream font-semibold">Distribution by Category</h3>
+<div class="flex gap-2">
+<span class="flex items-center gap-1.5 text-xs text-muted-text"><div class="size-2 rounded-full bg-primary"></div> Liquid</span>
+<span class="flex items-center gap-1.5 text-xs text-muted-text"><div class="size-2 rounded-full bg-accent-rose"></div> Real Estate</span>
+<span class="flex items-center gap-1.5 text-xs text-muted-text"><div class="size-2 rounded-full bg-slate-400"></div> Fixed</span>
+</div>
+</div>
+<div class="flex-1 w-full bg-slate-50 dark:bg-background-dark/40 rounded-lg border border-dashed border-slate-300 dark:border-primary/10 flex items-center justify-center">
+<div class="relative size-64">
+<!-- Simple CSS-based Ring representation -->
+<div class="absolute inset-0 rounded-full border-[24px] border-primary/20"></div>
+<div class="absolute inset-0 rounded-full border-[24px] border-transparent border-t-primary border-r-primary" style="transform: rotate(45deg);"></div>
+<div class="absolute inset-0 rounded-full border-[24px] border-transparent border-b-accent-rose" style="transform: rotate(-30deg);"></div>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<p class="text-3xl font-bold dark:text-cream">$1.24M</p>
+<p class="text-xs text-muted-text">Total value</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Data List Card -->
+<div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-primary/5 overflow-hidden">
+<div class="px-6 py-4 border-b border-slate-100 dark:border-background-dark/50 bg-slate-50 dark:bg-background-dark/20 flex justify-between items-center">
+<p class="text-sm font-bold text-slate-800 dark:text-cream">Top Asset Holdings</p>
+<span class="material-symbols-outlined text-muted-text text-sm cursor-pointer">more_horiz</span>
+</div>
+<div class="divide-y divide-slate-100 dark:divide-background-dark/50">
+<div class="px-6 py-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-primary/5 transition-colors">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">apartment</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-slate-900 dark:text-cream">Commercial Property - London</p>
+<p class="text-xs text-muted-text">Real Estate • Physical Asset</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-slate-900 dark:text-cream">$520,000.00</p>
+<p class="text-xs text-primary font-medium">+5.2%</p>
+</div>
+</div>
+<div class="px-6 py-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-primary/5 transition-colors">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">account_balance</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-slate-900 dark:text-cream">High-Yield Savings</p>
+<p class="text-xs text-muted-text">Cash &amp; Equivalents • Liquid</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-slate-900 dark:text-cream">$215,400.00</p>
+<p class="text-xs text-primary font-medium">+0.4%</p>
+</div>
+</div>
+<div class="px-6 py-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-primary/5 transition-colors">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">show_chart</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-slate-900 dark:text-cream">Vanguard S&amp;P 500 ETF</p>
+<p class="text-xs text-muted-text">Equity Portfolio • Investment</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-slate-900 dark:text-cream">$185,000.00</p>
+<p class="text-xs text-primary font-medium">+8.1%</p>
+</div>
+</div>
+<div class="px-6 py-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-primary/5 transition-colors">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">diamond</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-slate-900 dark:text-cream">Private Equity - Tech Fund</p>
+<p class="text-xs text-muted-text">Alternative • Illiquid</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-slate-900 dark:text-cream">$120,000.00</p>
+<p class="text-xs text-muted-text font-medium">0.0%</p>
+</div>
+</div>
+</div>
+<div class="p-4 bg-slate-50 dark:bg-background-dark/20 text-center">
+<button class="text-sm font-bold text-primary hover:text-primary/80 transition-all">Show All 14 Assets</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Summary Card -->
+<div class="mt-4 p-8 rounded-2xl bg-gradient-to-br from-surface-dark to-background-dark border border-primary/10 flex flex-col lg:flex-row items-center justify-between gap-8">
+<div class="flex items-center gap-6">
+<div class="size-16 rounded-full bg-primary/10 flex items-center justify-center border-4 border-background-dark">
+<span class="material-symbols-outlined text-3xl text-primary">health_and_safety</span>
+</div>
+<div>
+<h4 class="text-xl font-bold dark:text-cream mb-1">Financial Health Score: 84/100</h4>
+<p class="text-muted-text text-sm">You've reached a significant milestone in net worth growth this year. Keep it up!</p>
+</div>
+</div>
+<div class="flex gap-4 w-full lg:w-auto">
+<button class="flex-1 lg:flex-none px-8 py-3 rounded-lg bg-primary text-background-dark font-bold hover:opacity-90 transition-all">Audit Plan</button>
+<button class="flex-1 lg:flex-none px-8 py-3 rounded-lg border border-primary/30 text-primary font-bold hover:bg-primary/10 transition-all">Settings</button>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>
