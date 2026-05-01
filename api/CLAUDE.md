@@ -95,7 +95,12 @@ app/
   services/            ← Business logic functions (flat, one file per domain or feature)
 migrations/            ← Alembic migration versions
 scripts/               ← One-off scripts (e.g., migrate_from_legacy.py)
-docs/                  ← Generated openapi.json + api-reference.md (committed)
+docs/                  ← Generated split spec (committed):
+                          api-reference.md            (slim index)
+                          api-reference/<dom>/<sub>.md (per-sub-router markdown)
+                          openapi/<dom>/<sub>.json     (paths-only JSON slice)
+                          openapi/schemas/<Name>.json  (one per Pydantic model)
+                          openapi/_shared.json         (ApiError + framework)
 tests/                 ← pytest tests organized by domain
 ```
 
@@ -160,14 +165,15 @@ uv run dev                                    # Start uvicorn on port 9528
 uv run alembic revision --autogenerate -m ""  # Generate migration
 uv run alembic upgrade head                   # Apply migrations
 uv run pytest                                 # Run tests
-uv run export-docs                            # Regenerate api/docs/openapi.json + api-reference.md
+uv run export-docs                            # Regenerate api/docs/ split spec
+uv run export-docs --check                    # Fail if any committed file is out of date
 ```
 
 ---
 
 ## API documentation discipline (contract-as-spec)
 
-The Swagger UI at `/docs` — and the committed `api/docs/openapi.json` / `api/docs/api-reference.md` — **are the API spec** consumed by the frontend refactor. This is non-negotiable discipline, enforced in BE-032 by a CI check.
+The Swagger UI at `/docs` — and the committed split spec under `api/docs/api-reference.md`, `api/docs/api-reference/`, and `api/docs/openapi/` — **are the API spec** consumed by the frontend refactor. The single-file `api/docs/openapi.json` was retired when the split layout shipped (each output file is now capped at ~500 lines so the frontend granularization AI can pull just the slice it needs). This is non-negotiable discipline, enforced in BE-032 by a CI check (`uv run export-docs --check`).
 
 ### Every endpoint MUST
 - Have `summary` and `description` on the route decorator (English).
@@ -180,7 +186,7 @@ The Swagger UI at `/docs` — and the committed `api/docs/openapi.json` / `api/d
 - Add `model_config = ConfigDict(json_schema_extra={"example": {...}})` to every schema class for a full-model example.
 
 ### Contract boundary
-- Frontend-side AI agents consume `api/docs/api-reference.md` (primary) and `api/docs/openapi.json` (drill-down).
+- Frontend-side AI agents start at `api/docs/api-reference.md` (the slim index) and follow the table to the relevant `api-reference/<domain>/<sub-router>.md` slice. Drill-down is `openapi/<domain>/<sub-router>.json` plus the per-schema files it lists in `x-schema-files`.
 - Frontend agents **do not** read `api/app/routers/**` or `api/app/models/**`. If the spec is missing something they need, fix the spec — don't let the reader reach into implementation.
 
 ### Language policy

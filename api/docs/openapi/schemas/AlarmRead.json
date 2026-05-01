@@ -1,0 +1,77 @@
+{
+  "components": {
+    "schemas": {
+      "AlarmRead": {
+        "example": {
+          "alarm_date": "20260115",
+          "alarm_id": 1,
+          "alarm_type": "credit-card-charge",
+          "content": "Chase Sapphire autopay",
+          "due_date": "20260120"
+        },
+        "properties": {
+          "alarm_date": {
+            "description": "YYYYMMDD",
+            "examples": [
+              "20260115"
+            ],
+            "title": "Alarm Date",
+            "type": "string"
+          },
+          "alarm_id": {
+            "description": "Autoincrement PK",
+            "examples": [
+              1
+            ],
+            "title": "Alarm Id",
+            "type": "integer"
+          },
+          "alarm_type": {
+            "description": "Reminder category",
+            "examples": [
+              "credit-card-charge"
+            ],
+            "title": "Alarm Type",
+            "type": "string"
+          },
+          "content": {
+            "description": "Reminder text",
+            "examples": [
+              "Chase Sapphire autopay"
+            ],
+            "title": "Content",
+            "type": "string"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "YYYYMMDD",
+            "examples": [
+              "20260120"
+            ],
+            "title": "Due Date"
+          }
+        },
+        "required": [
+          "alarm_id",
+          "alarm_type",
+          "alarm_date",
+          "content"
+        ],
+        "title": "AlarmRead",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Networth API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0"
+}

@@ -6,7 +6,13 @@ from importlib.metadata import PackageNotFoundError, version
 from fastapi import APIRouter
 
 from app.models.utilities.health import HealthPayload
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 
 
 def _resolve_version() -> str:
@@ -29,7 +35,7 @@ router = APIRouter(tags=["health"])
         "Does not depend on the database."
     ),
     response_model=ApiResponse[HealthPayload],
-    responses={200: {"description": "Service is alive"}},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def health() -> ApiResponse[HealthPayload]:
     return ApiResponse(data=HealthPayload(alive=True, version=APP_VERSION))

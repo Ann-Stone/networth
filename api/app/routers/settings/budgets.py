@@ -6,7 +6,13 @@ from sqlmodel import Session
 
 from app.database import get_session
 from app.models.settings.budget import BudgetRead, BudgetUpdate
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.setting_service import (
     bulk_update_budgets,
     copy_budget_from_previous,
@@ -22,7 +28,7 @@ router = APIRouter(prefix="/budgets", tags=["settings:budgets"])
     summary="Available budget years",
     description="Return distinct budget_year values present in Budget, ascending.",
     response_model=ApiResponse[list[int]],
-    responses={},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def list_budget_year_range_endpoint(
     session: Session = Depends(get_session),
@@ -35,7 +41,10 @@ def list_budget_year_range_endpoint(
     summary="Budgets for a year",
     description="Return all Budget rows for the given year ordered by category_code.",
     response_model=ApiResponse[list[BudgetRead]],
-    responses={422: {"description": "Invalid year"}},
+    responses={
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def list_budgets_by_year_endpoint(
     year: int,
@@ -55,8 +64,9 @@ def list_budgets_by_year_endpoint(
     ),
     response_model=ApiResponse[list[BudgetRead]],
     responses={
-        404: {"description": "One or more budget rows not found"},
-        422: {"description": "Validation error"},
+        404: not_found_error("Budget rows"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def bulk_update_budgets_endpoint(
@@ -75,7 +85,10 @@ def bulk_update_budgets_endpoint(
         "amounts per action_main_type across 12 months, then upsert into Budget."
     ),
     response_model=ApiResponse[list[BudgetRead]],
-    responses={422: {"description": "Invalid year"}},
+    responses={
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def copy_budget_from_previous_endpoint(
     year: int,

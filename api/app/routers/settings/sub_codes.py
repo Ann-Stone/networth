@@ -6,7 +6,13 @@ from sqlmodel import Session
 
 from app.database import get_session
 from app.models.settings.code_data import CodeDataCreate, CodeDataRead, CodeDataUpdate
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.setting_service import (
     create_sub_code,
     delete_sub_code,
@@ -25,8 +31,9 @@ router = APIRouter(prefix="/sub-codes", tags=["settings:sub-codes"])
     ),
     response_model=ApiResponse[CodeDataRead],
     responses={
-        404: {"description": "Parent code not found"},
-        422: {"description": "Validation error"},
+        404: not_found_error("Parent code"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def create_sub_code_endpoint(
@@ -43,8 +50,9 @@ def create_sub_code_endpoint(
     description="Update a sub-code by code_id. Returns 404 if not found.",
     response_model=ApiResponse[CodeDataRead],
     responses={
-        404: {"description": "Sub-code not found"},
-        422: {"description": "Validation error"},
+        404: not_found_error("Sub-code"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def update_sub_code_endpoint(
@@ -61,7 +69,11 @@ def update_sub_code_endpoint(
     summary="Delete sub-code",
     description="Delete a sub-code by code_id. Returns 404 if not found. No cascading.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Sub-code not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Sub-code"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_sub_code_endpoint(
     code_id: str,

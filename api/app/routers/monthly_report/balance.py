@@ -8,7 +8,13 @@ from sqlmodel import Session
 
 from app.database import get_session
 from app.models.monthly_report.settlement import SettlementResult
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.settlement_service import settle
 
 router = APIRouter()
@@ -36,9 +42,9 @@ _VESTING_MONTH = Annotated[
     ),
     response_model=ApiResponse[SettlementResult],
     responses={
-        200: {"description": "Settlement complete"},
-        404: {"description": "Vesting month has no eligible data"},
-        500: {"description": "Settlement failed and was rolled back"},
+        422: VALIDATION_ERROR,
+        404: error_response("Vesting month has no eligible data", error_payload="Vesting month has no eligible data"),
+        500: INTERNAL_ERROR,
     },
 )
 def put_settle(

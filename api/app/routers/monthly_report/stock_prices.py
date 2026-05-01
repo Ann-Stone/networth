@@ -12,7 +12,13 @@ from app.models.monthly_report.stock_price import (
     StockPriceMonthRead,
     StockPriceRead,
 )
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.stock_service import insert_stock_price, list_month_stock_prices
 
 router = APIRouter()
@@ -39,8 +45,8 @@ _VESTING_MONTH = Annotated[
     ),
     response_model=ApiResponse[list[StockPriceMonthRead]],
     responses={
-        200: {"description": "Per-stock month close-price list"},
-        422: {"description": "Invalid vesting_month format"},
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def get_stock_prices_by_month(
@@ -60,9 +66,9 @@ def get_stock_prices_by_month(
     response_model=ApiResponse[StockPriceRead],
     status_code=201,
     responses={
-        201: {"description": "Stock price record created"},
-        422: {"description": "Validation error"},
-        502: {"description": "yfinance fetch failed"},
+        422: VALIDATION_ERROR,
+        502: error_response("yfinance fetch failed", error_payload="yfinance fetch failed"),
+        500: INTERNAL_ERROR,
     },
 )
 def post_stock_price(

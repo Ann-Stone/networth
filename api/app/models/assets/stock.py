@@ -40,7 +40,7 @@ class StockJournal(SQLModel, table=True):
     stock_code: str = Field(..., description="Ticker symbol", schema_extra={"examples": ["AAPL"]})
     stock_name: str = Field(..., description="Stock display name", schema_extra={"examples": ["Apple Inc."]})
     asset_id: str = Field(..., description="Asset category ID", schema_extra={"examples": ["AC-STK-001"]})
-    expected_spend: float = Field(..., description="Planned investment amount", schema_extra={"examples": [10000.0]})
+    expected_spend: float = Field(..., description="Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that)", schema_extra={"examples": [10000.0]})
 
     model_config = ConfigDict(json_schema_extra={"example": _STOCK_JOURNAL_EXAMPLE})
 
@@ -50,7 +50,7 @@ class StockJournalCreate(SQLModel):
     stock_code: str = Field(..., description="Ticker symbol", schema_extra={"examples": ["AAPL"]})
     stock_name: str = Field(..., description="Stock display name", schema_extra={"examples": ["Apple Inc."]})
     asset_id: str = Field(..., description="Asset category ID", schema_extra={"examples": ["AC-STK-001"]})
-    expected_spend: float = Field(..., description="Planned investment amount", schema_extra={"examples": [10000.0]})
+    expected_spend: float = Field(..., description="Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that)", schema_extra={"examples": [10000.0]})
 
     model_config = ConfigDict(json_schema_extra={"example": _STOCK_JOURNAL_EXAMPLE})
 
@@ -59,7 +59,7 @@ class StockJournalUpdate(SQLModel):
     stock_code: str | None = Field(default=None, description="Ticker symbol", schema_extra={"examples": ["AAPL"]})
     stock_name: str | None = Field(default=None, description="Stock display name", schema_extra={"examples": ["Apple Inc."]})
     asset_id: str | None = Field(default=None, description="Asset category ID", schema_extra={"examples": ["AC-STK-001"]})
-    expected_spend: float | None = Field(default=None, description="Planned investment amount", schema_extra={"examples": [12000.0]})
+    expected_spend: float | None = Field(default=None, description="Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that)", schema_extra={"examples": [12000.0]})
 
     model_config = ConfigDict(json_schema_extra={"example": {"expected_spend": 12000.0}})
 
@@ -69,7 +69,7 @@ class StockJournalRead(SQLModel):
     stock_code: str = Field(..., description="Ticker symbol", schema_extra={"examples": ["AAPL"]})
     stock_name: str = Field(..., description="Stock display name", schema_extra={"examples": ["Apple Inc."]})
     asset_id: str = Field(..., description="Asset category ID", schema_extra={"examples": ["AC-STK-001"]})
-    expected_spend: float = Field(..., description="Planned investment amount", schema_extra={"examples": [10000.0]})
+    expected_spend: float = Field(..., description="Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that)", schema_extra={"examples": [10000.0]})
 
     model_config = ConfigDict(json_schema_extra={"example": _STOCK_JOURNAL_EXAMPLE})
 

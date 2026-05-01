@@ -11,7 +11,13 @@ from app.models.settings.code_data import (
     CodeDataUpdate,
     CodeWithSubs,
 )
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.setting_service import (
     create_main_code,
     delete_main_code,
@@ -29,7 +35,7 @@ router = APIRouter(prefix="/codes", tags=["settings:codes"])
     summary="List main codes",
     description="List all main (top-level) codes ordered by code_index.",
     response_model=ApiResponse[list[CodeDataRead]],
-    responses={},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def list_codes_endpoint(session: Session = Depends(get_session)) -> ApiResponse[list[CodeDataRead]]:
     rows = list_main_codes(session)
@@ -41,7 +47,7 @@ def list_codes_endpoint(session: Session = Depends(get_session)) -> ApiResponse[
     summary="Full code tree",
     description="Return all main codes with their sub-codes nested under sub_codes.",
     response_model=ApiResponse[list[CodeWithSubs]],
-    responses={},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def list_codes_with_sub_endpoint(
     session: Session = Depends(get_session),
@@ -58,8 +64,9 @@ def list_codes_with_sub_endpoint(
     ),
     response_model=ApiResponse[CodeDataRead],
     responses={
-        409: {"description": "Duplicate code_id"},
-        422: {"description": "Validation error"},
+        409: error_response("Duplicate code_id", error_payload="Duplicate code_id"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def create_code_endpoint(
@@ -76,8 +83,9 @@ def create_code_endpoint(
     description="Update a main code by code_id. Returns 404 if not found.",
     response_model=ApiResponse[CodeDataRead],
     responses={
-        404: {"description": "Code not found"},
-        422: {"description": "Validation error"},
+        404: not_found_error("Code"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def update_code_endpoint(
@@ -94,7 +102,11 @@ def update_code_endpoint(
     summary="Delete main code",
     description="Delete a main code by code_id. Returns 404 if not found.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Code not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Code"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_code_endpoint(
     code_id: str,
@@ -109,7 +121,11 @@ def delete_code_endpoint(
     summary="List sub-codes of a parent",
     description="List sub-codes belonging to a main code, ordered by code_index.",
     response_model=ApiResponse[list[CodeDataRead]],
-    responses={404: {"description": "Parent code not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Parent code"),
+        500: INTERNAL_ERROR,
+    },
 )
 def list_sub_codes_endpoint(
     parent_id: str,

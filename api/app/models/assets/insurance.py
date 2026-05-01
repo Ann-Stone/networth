@@ -45,7 +45,7 @@ class Insurance(SQLModel, table=True):
     end_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20500101"]})
     pay_type: str = Field(..., description="Premium cadence (annual / monthly / ...)", schema_extra={"examples": ["annual"]})
     pay_day: int = Field(..., description="Day of month for premium withdrawal", schema_extra={"examples": [15]})
-    expected_spend: float = Field(..., description="Expected premium amount per cadence", schema_extra={"examples": [1200.0]})
+    expected_spend: float = Field(..., description="Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual')", schema_extra={"examples": [1200.0]})
     has_closed: str = Field(..., description="Closed flag (Y/N)", schema_extra={"examples": ["N"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _INSURANCE_EXAMPLE})
@@ -61,7 +61,7 @@ class InsuranceCreate(SQLModel):
     end_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20500101"]})
     pay_type: str = Field(..., description="Premium cadence", schema_extra={"examples": ["annual"]})
     pay_day: int = Field(..., description="Day of month", schema_extra={"examples": [15]})
-    expected_spend: float = Field(..., description="Expected premium", schema_extra={"examples": [1200.0]})
+    expected_spend: float = Field(..., description="Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual')", schema_extra={"examples": [1200.0]})
     has_closed: HasClosed = Field(..., description="Closed flag (Y/N)", schema_extra={"examples": ["N"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _INSURANCE_EXAMPLE})
@@ -76,7 +76,7 @@ class InsuranceUpdate(SQLModel):
     end_date: str | None = Field(default=None, description="YYYYMMDD", schema_extra={"examples": ["20500101"]})
     pay_type: str | None = Field(default=None, description="Premium cadence", schema_extra={"examples": ["annual"]})
     pay_day: int | None = Field(default=None, description="Day of month", schema_extra={"examples": [15]})
-    expected_spend: float | None = Field(default=None, description="Expected premium", schema_extra={"examples": [1200.0]})
+    expected_spend: float | None = Field(default=None, description="Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual')", schema_extra={"examples": [1200.0]})
     has_closed: HasClosed | None = Field(default=None, description="Closed flag", schema_extra={"examples": ["Y"]})
 
     model_config = ConfigDict(json_schema_extra={"example": {"has_closed": "Y"}})
@@ -92,7 +92,7 @@ class InsuranceRead(SQLModel):
     end_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20500101"]})
     pay_type: str = Field(..., description="Premium cadence", schema_extra={"examples": ["annual"]})
     pay_day: int = Field(..., description="Day of month", schema_extra={"examples": [15]})
-    expected_spend: float = Field(..., description="Expected premium", schema_extra={"examples": [1200.0]})
+    expected_spend: float = Field(..., description="Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual')", schema_extra={"examples": [1200.0]})
     has_closed: str = Field(..., description="Closed flag", schema_extra={"examples": ["N"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _INSURANCE_EXAMPLE})

@@ -8,7 +8,13 @@ from sqlmodel import Session
 
 from app.database import get_session
 from app.models.settings.alarm import AlarmCreate, AlarmRead, AlarmUpdate
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.setting_service import (
     create_alarm,
     delete_alarm,
@@ -25,7 +31,7 @@ router = APIRouter(prefix="/alarms", tags=["settings:alarms"])
     summary="List all alarms",
     description="List every alarm ordered by alarm_id ASC.",
     response_model=ApiResponse[list[AlarmRead]],
-    responses={},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def list_alarms_endpoint(
     session: Session = Depends(get_session),
@@ -44,7 +50,10 @@ def list_alarms_endpoint(
         "or ends with it (e.g. monthly day 26 matches)."
     ),
     response_model=ApiResponse[list[AlarmRead]],
-    responses={422: {"description": "Validation error"}},
+    responses={
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def list_alarms_by_date_endpoint(
     date: Annotated[
@@ -67,7 +76,10 @@ def list_alarms_by_date_endpoint(
         "(ISO 8601, YYYY-MM-DD, YYYYMMDD) and is persisted normalized as YYYYMMDD."
     ),
     response_model=ApiResponse[AlarmRead],
-    responses={422: {"description": "Validation error or unparseable due_date"}},
+    responses={
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def create_alarm_endpoint(
     payload: AlarmCreate,
@@ -86,8 +98,9 @@ def create_alarm_endpoint(
     ),
     response_model=ApiResponse[AlarmRead],
     responses={
-        404: {"description": "Alarm not found"},
-        422: {"description": "Validation error or unparseable due_date"},
+        404: not_found_error("Alarm"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def update_alarm_endpoint(
@@ -104,7 +117,11 @@ def update_alarm_endpoint(
     summary="Delete alarm",
     description="Delete an alarm by alarm_id. Returns 404 if not found.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Alarm not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Alarm"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_alarm_endpoint(
     alarm_id: int,

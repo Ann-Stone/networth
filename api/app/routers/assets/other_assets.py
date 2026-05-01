@@ -11,7 +11,13 @@ from app.models.assets.other_asset import (
     OtherAssetRead,
     OtherAssetUpdate,
 )
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.asset_service import (
     create_other_asset,
     delete_other_asset,
@@ -28,7 +34,7 @@ router = APIRouter()
     summary="List asset categories",
     description="Return all asset categories ordered by asset_index ascending (drives dropdown order).",
     response_model=ApiResponse[list[OtherAssetRead]],
-    responses={500: {"description": "Server error"}},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def list_other_assets_endpoint(
     session: Session = Depends(get_session),
@@ -42,7 +48,7 @@ def list_other_assets_endpoint(
     summary="List distinct asset types",
     description="Return the distinct asset_type values currently in use.",
     response_model=ApiResponse[list[OtherAssetItem]],
-    responses={},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def list_other_asset_items_endpoint(
     session: Session = Depends(get_session),
@@ -56,7 +62,11 @@ def list_other_asset_items_endpoint(
     summary="Create asset category",
     description="Create a new asset category. If asset_index is omitted, the server assigns max(asset_index)+1.",
     response_model=ApiResponse[OtherAssetRead],
-    responses={409: {"description": "Duplicate asset_id"}, 422: {"description": "Validation error"}},
+    responses={
+        409: error_response("Duplicate asset_id", error_payload="Duplicate asset_id"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def create_other_asset_endpoint(
     payload: OtherAssetCreate, session: Session = Depends(get_session)
@@ -70,7 +80,11 @@ def create_other_asset_endpoint(
     summary="Update asset category",
     description="Update an asset category by id; any omitted field is left unchanged.",
     response_model=ApiResponse[OtherAssetRead],
-    responses={404: {"description": "Asset not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: error_response("Asset not found", error_payload="Asset not found"),
+        500: INTERNAL_ERROR,
+    },
 )
 def update_other_asset_endpoint(
     asset_id: str,
@@ -86,7 +100,11 @@ def update_other_asset_endpoint(
     summary="Delete asset category",
     description="Delete an asset category by id.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Asset not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: error_response("Asset not found", error_payload="Asset not found"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_other_asset_endpoint(
     asset_id: str, session: Session = Depends(get_session)

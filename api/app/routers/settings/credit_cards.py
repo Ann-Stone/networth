@@ -12,7 +12,13 @@ from app.models.settings.credit_card import (
     CreditCardRead,
     CreditCardUpdate,
 )
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.setting_service import (
     create_credit_card,
     delete_credit_card,
@@ -31,7 +37,10 @@ router = APIRouter(prefix="/credit-cards", tags=["settings:credit-cards"])
         "and in_use. Ordered by credit_card_index ASC."
     ),
     response_model=ApiResponse[list[CreditCardRead]],
-    responses={422: {"description": "Validation error"}},
+    responses={
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def list_credit_cards_endpoint(
     card_name: Annotated[
@@ -59,8 +68,9 @@ def list_credit_cards_endpoint(
     ),
     response_model=ApiResponse[CreditCardRead],
     responses={
-        409: {"description": "Duplicate credit_card_id"},
-        422: {"description": "Validation error"},
+        409: error_response("Duplicate credit_card_id", error_payload="Duplicate credit_card_id"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def create_credit_card_endpoint(
@@ -77,8 +87,9 @@ def create_credit_card_endpoint(
     description="Update a credit card by credit_card_id. Returns 404 if not found.",
     response_model=ApiResponse[CreditCardRead],
     responses={
-        404: {"description": "Credit card not found"},
-        422: {"description": "Validation error"},
+        404: not_found_error("Credit card"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def update_credit_card_endpoint(
@@ -95,7 +106,11 @@ def update_credit_card_endpoint(
     summary="Delete credit card",
     description="Delete a credit card by credit_card_id. Returns 404 if not found.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Credit card not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Credit card"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_credit_card_endpoint(
     credit_card_id: str,

@@ -15,7 +15,13 @@ from app.models.assets.stock import (
     StockJournalRead,
     StockJournalUpdate,
 )
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.asset_service import (
     create_stock,
     create_stock_detail,
@@ -35,7 +41,11 @@ router = APIRouter()
     summary="List stock holdings",
     description="Return stock holdings filtered by asset_id.",
     response_model=ApiResponse[list[StockJournalRead]],
-    responses={400: {"description": "Invalid query"}},
+    responses={
+        422: VALIDATION_ERROR,
+        400: error_response("Invalid query", error_payload="Invalid query"),
+        500: INTERNAL_ERROR,
+    },
 )
 def list_stocks_endpoint(
     asset_id: Annotated[str, Query(..., description="Parent asset category id", examples=["AC-STK-001"])],
@@ -50,7 +60,11 @@ def list_stocks_endpoint(
     summary="Create stock holding",
     description="Create a new stock holding under an asset category.",
     response_model=ApiResponse[StockJournalRead],
-    responses={409: {"description": "Duplicate stock_id"}, 422: {"description": "Validation error"}},
+    responses={
+        409: error_response("Duplicate stock_id", error_payload="Duplicate stock_id"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def create_stock_endpoint(
     payload: StockJournalCreate,
@@ -65,7 +79,11 @@ def create_stock_endpoint(
     summary="Update stock holding",
     description="Update a stock holding by id; any omitted field is left unchanged.",
     response_model=ApiResponse[StockJournalRead],
-    responses={404: {"description": "Stock not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Stock"),
+        500: INTERNAL_ERROR,
+    },
 )
 def update_stock_endpoint(
     stock_id: str,
@@ -81,7 +99,11 @@ def update_stock_endpoint(
     summary="Delete stock holding",
     description="Delete a stock holding by id.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Stock not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Stock"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_stock_endpoint(
     stock_id: str,
@@ -96,7 +118,11 @@ def delete_stock_endpoint(
     summary="List stock transactions",
     description="Return all buy/sell/stock-dividend/cash-dividend transactions for a holding.",
     response_model=ApiResponse[list[StockDetailRead]],
-    responses={404: {"description": "Stock not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Stock"),
+        500: INTERNAL_ERROR,
+    },
 )
 def list_stock_details_endpoint(
     stock_id: str,
@@ -112,8 +138,9 @@ def list_stock_details_endpoint(
     description="Record a buy/sell/stock-dividend/cash-dividend transaction.",
     response_model=ApiResponse[StockDetailRead],
     responses={
-        404: {"description": "Stock not found"},
-        422: {"description": "Invalid excute_type"},
+        404: not_found_error("Stock"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def create_stock_detail_endpoint(
@@ -130,7 +157,11 @@ def create_stock_detail_endpoint(
     summary="Update stock transaction",
     description="Update a single stock transaction row.",
     response_model=ApiResponse[StockDetailRead],
-    responses={404: {"description": "Transaction not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: error_response("Transaction not found", error_payload="Transaction not found"),
+        500: INTERNAL_ERROR,
+    },
 )
 def update_stock_detail_endpoint(
     distinct_number: int,
@@ -146,7 +177,11 @@ def update_stock_detail_endpoint(
     summary="Delete stock transaction",
     description="Delete a single stock transaction row.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Transaction not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: error_response("Transaction not found", error_payload="Transaction not found"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_stock_detail_endpoint(
     distinct_number: int,

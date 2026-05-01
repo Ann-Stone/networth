@@ -14,7 +14,13 @@ from app.models.assets.loan import (
     LoanSelectionRead,
     LoanUpdate,
 )
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.asset_service import (
     create_loan,
     create_loan_detail,
@@ -36,7 +42,7 @@ router = APIRouter()
     summary="List loans",
     description="Return all loan liabilities ordered by loan_index.",
     response_model=ApiResponse[list[LoanRead]],
-    responses={500: {"description": "Server error"}},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def list_loans_endpoint(
     session: Session = Depends(get_session),
@@ -50,7 +56,7 @@ def list_loans_endpoint(
     summary="Loan dropdown options",
     description="Return id/name pairs for loan selection UIs.",
     response_model=ApiResponse[list[LoanSelectionRead]],
-    responses={},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def loan_selection_endpoint(
     session: Session = Depends(get_session),
@@ -64,7 +70,11 @@ def loan_selection_endpoint(
     summary="Create loan",
     description="Create a new loan liability; dates accept ISO 8601 and are stored as YYYYMMDD.",
     response_model=ApiResponse[LoanRead],
-    responses={409: {"description": "Duplicate loan_id"}, 422: {"description": "Validation error"}},
+    responses={
+        409: error_response("Duplicate loan_id", error_payload="Duplicate loan_id"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def create_loan_endpoint(
     payload: LoanCreate, session: Session = Depends(get_session)
@@ -78,7 +88,11 @@ def create_loan_endpoint(
     summary="Get loan",
     description="Return a single loan by id.",
     response_model=ApiResponse[LoanRead],
-    responses={404: {"description": "Loan not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Loan"),
+        500: INTERNAL_ERROR,
+    },
 )
 def get_loan_endpoint(
     loan_id: str, session: Session = Depends(get_session)
@@ -92,7 +106,11 @@ def get_loan_endpoint(
     summary="Update loan",
     description="Update a loan; repayed is server-computed and cannot be set via this endpoint.",
     response_model=ApiResponse[LoanRead],
-    responses={404: {"description": "Loan not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Loan"),
+        500: INTERNAL_ERROR,
+    },
 )
 def update_loan_endpoint(
     loan_id: str,
@@ -108,7 +126,11 @@ def update_loan_endpoint(
     summary="Delete loan",
     description="Delete a loan by id.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Loan not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Loan"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_loan_endpoint(
     loan_id: str, session: Session = Depends(get_session)
@@ -122,7 +144,11 @@ def delete_loan_endpoint(
     summary="List loan transactions",
     description="Return all repayment / interest / fee / increment transactions for a loan.",
     response_model=ApiResponse[list[LoanJournalRead]],
-    responses={404: {"description": "Loan not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Loan"),
+        500: INTERNAL_ERROR,
+    },
 )
 def list_loan_details_endpoint(
     loan_id: str, session: Session = Depends(get_session)
@@ -137,8 +163,9 @@ def list_loan_details_endpoint(
     description="Record a principal/interest/increment/fee transaction. Server auto-recalculates Loan.repayed on principal rows.",
     response_model=ApiResponse[LoanJournalRead],
     responses={
-        404: {"description": "Loan not found"},
-        422: {"description": "Invalid loan_excute_type"},
+        404: not_found_error("Loan"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def create_loan_detail_endpoint(
@@ -155,7 +182,11 @@ def create_loan_detail_endpoint(
     summary="Update loan transaction",
     description="Update a single loan transaction row; Loan.repayed auto-recalculates.",
     response_model=ApiResponse[LoanJournalRead],
-    responses={404: {"description": "Transaction not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: error_response("Transaction not found", error_payload="Transaction not found"),
+        500: INTERNAL_ERROR,
+    },
 )
 def update_loan_detail_endpoint(
     distinct_number: int,
@@ -171,7 +202,11 @@ def update_loan_detail_endpoint(
     summary="Delete loan transaction",
     description="Delete a single loan transaction row; Loan.repayed auto-recalculates.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Transaction not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: error_response("Transaction not found", error_payload="Transaction not found"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_loan_detail_endpoint(
     distinct_number: int, session: Session = Depends(get_session)

@@ -8,7 +8,13 @@ from sqlmodel import Session
 
 from app.database import get_session
 from app.models.settings.account import AccountCreate, AccountRead, AccountUpdate
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.setting_service import (
     create_account,
     delete_account,
@@ -25,7 +31,7 @@ router = APIRouter(prefix="/accounts", tags=["settings:accounts"])
     summary="List accounts",
     description="List accounts with optional filters on name, account_type, in_use.",
     response_model=ApiResponse[list[AccountRead]],
-    responses={422: {"description": "Validation error"}},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def list_accounts_endpoint(
     name: Annotated[str | None, Query(description="Name substring filter", examples=["Bank"])] = None,
@@ -42,7 +48,7 @@ def list_accounts_endpoint(
     summary="Active accounts for dropdown",
     description="Return in-use accounts ordered by account_index ASC for use in dropdowns.",
     response_model=ApiResponse[list[AccountRead]],
-    responses={},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def list_accounts_selection_endpoint(
     session: Session = Depends(get_session),
@@ -60,8 +66,12 @@ def list_accounts_selection_endpoint(
     ),
     response_model=ApiResponse[AccountRead],
     responses={
-        409: {"description": "Duplicate account_id"},
-        422: {"description": "Validation error (missing account_id)"},
+        409: error_response(
+            "Duplicate account_id",
+            error_payload="Account with account_id 'BANK-CHASE-01' already exists",
+        ),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def create_account_endpoint(
@@ -78,8 +88,9 @@ def create_account_endpoint(
     description="Update an account by autoincrement id. Returns 404 if id not found.",
     response_model=ApiResponse[AccountRead],
     responses={
-        404: {"description": "Account not found"},
-        422: {"description": "Validation error"},
+        404: not_found_error("Account"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def update_account_endpoint(
@@ -96,7 +107,7 @@ def update_account_endpoint(
     summary="Delete account",
     description="Delete an account by autoincrement id. Returns 404 if id not found.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Account not found"}},
+    responses={422: VALIDATION_ERROR, 404: not_found_error("Account"), 500: INTERNAL_ERROR},
 )
 def delete_account_endpoint(
     id: int,

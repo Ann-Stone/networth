@@ -63,19 +63,29 @@ def test_validate_discipline_flags_missing_summary_and_description() -> None:
     assert any("missing response_model" in e for e in errors)
 
 
-def test_render_markdown_has_domain_sections() -> None:
+def test_render_markdown_index_lists_every_domain() -> None:
     app = load_app()
     md = render_markdown(app.openapi())
-    for label in ("Settings", "Monthly Report", "Assets", "Reports", "Dashboard", "Utilities", "Health"):
-        assert f"## {label}" in md, label
-    assert "## Table of Contents" in md
+    for label in (
+        "Settings",
+        "Monthly Report",
+        "Assets",
+        "Reports",
+        "Dashboard",
+        "Utilities",
+        "Health",
+    ):
+        assert f"### {label}" in md, label
+    assert "## Index" in md
 
 
-def test_render_markdown_endpoint_block_shape() -> None:
+def test_render_markdown_index_links_to_subrouter_files() -> None:
     app = load_app()
     md = render_markdown(app.openapi())
-    assert "### GET /health" in md
-    assert "#### Response (200)" in md
+    # Sample a few expected sub-router links
+    assert "api-reference/settings/accounts.md" in md
+    assert "api-reference/assets/stocks.md" in md
+    assert "api-reference/health.md" in md
 
 
 def test_dump_markdown_trailing_newline(tmp_path: Path) -> None:
@@ -85,14 +95,22 @@ def test_dump_markdown_trailing_newline(tmp_path: Path) -> None:
     assert text.endswith("\n")
 
 
-def test_export_docs_writes_both_files(
+def test_export_docs_writes_split_layout(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(export_docs, "_output_dir", lambda: tmp_path)
     rc = main([])
     assert rc == 0
-    assert (tmp_path / "openapi.json").stat().st_size > 0
+    # Slim index
     assert (tmp_path / "api-reference.md").stat().st_size > 0
+    # Per-sub-router markdown + paths-only json present
+    assert (tmp_path / "api-reference" / "settings" / "accounts.md").stat().st_size > 0
+    assert (tmp_path / "openapi" / "settings" / "accounts.json").stat().st_size > 0
+    # Shared envelope schemas + per-schema files present
+    assert (tmp_path / "openapi" / "_shared.json").stat().st_size > 0
+    assert (tmp_path / "openapi" / "schemas" / "AccountRead.json").stat().st_size > 0
+    # Legacy single-file artifact must NOT be written
+    assert not (tmp_path / "openapi.json").exists()
 
 
 def test_export_docs_is_idempotent(
@@ -100,11 +118,45 @@ def test_export_docs_is_idempotent(
 ) -> None:
     monkeypatch.setattr(export_docs, "_output_dir", lambda: tmp_path)
     main([])
-    json_a = (tmp_path / "openapi.json").read_bytes()
-    md_a = (tmp_path / "api-reference.md").read_bytes()
+    snap_a = {p.relative_to(tmp_path).as_posix(): p.read_bytes() for p in sorted(tmp_path.rglob("*")) if p.is_file()}
     main([])
-    assert (tmp_path / "openapi.json").read_bytes() == json_a
-    assert (tmp_path / "api-reference.md").read_bytes() == md_a
+    snap_b = {p.relative_to(tmp_path).as_posix(): p.read_bytes() for p in sorted(tmp_path.rglob("*")) if p.is_file()}
+    assert snap_a == snap_b
+
+
+def test_every_subrouter_markdown_under_500_lines(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Soft contract: each sub-router markdown stays AI-readable in one shot."""
+    monkeypatch.setattr(export_docs, "_output_dir", lambda: tmp_path)
+    main([])
+    over = []
+    for fp in sorted((tmp_path / "api-reference").rglob("*.md")):
+        n = len(fp.read_text(encoding="utf-8").splitlines())
+        if n > 500:
+            over.append(f"{fp.relative_to(tmp_path)}: {n} lines")
+    assert not over, "markdown files over 500 lines:\n" + "\n".join(over)
+
+
+def test_subrouter_json_advertises_schema_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Per-sub-router JSON must list referenced schema-file paths."""
+    monkeypatch.setattr(export_docs, "_output_dir", lambda: tmp_path)
+    main([])
+    import json as _json
+
+    accounts = _json.loads(
+        (tmp_path / "openapi" / "settings" / "accounts.json").read_text(encoding="utf-8")
+    )
+    listed = accounts.get("x-schema-files", [])
+    assert any(p.endswith("/AccountRead.json") for p in listed)
+    # Paths are relative to the openapi/ root.
+    openapi_root = tmp_path / "openapi"
+    for rel in listed:
+        assert (openapi_root / rel).exists(), f"missing schema file: {rel}"
+    assert accounts.get("x-shared-file") == "_shared.json"
+    assert (openapi_root / "_shared.json").exists()
 
 
 def _build_synthetic_app(

@@ -15,7 +15,13 @@ from app.models.assets.insurance import (
     InsuranceRead,
     InsuranceUpdate,
 )
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.asset_service import (
     create_insurance,
     create_insurance_detail,
@@ -35,7 +41,11 @@ router = APIRouter()
     summary="List insurance policies",
     description="Return policies under a given asset_id.",
     response_model=ApiResponse[list[InsuranceRead]],
-    responses={400: {"description": "Invalid query"}},
+    responses={
+        422: VALIDATION_ERROR,
+        400: error_response("Invalid query", error_payload="Invalid query"),
+        500: INTERNAL_ERROR,
+    },
 )
 def list_insurances_endpoint(
     asset_id: Annotated[str, Query(..., description="Parent asset category id", examples=["AC-INS-001"])],
@@ -50,7 +60,11 @@ def list_insurances_endpoint(
     summary="Create insurance policy",
     description="Create a policy; start/end dates accept ISO 8601 and are stored as YYYYMMDD.",
     response_model=ApiResponse[InsuranceRead],
-    responses={409: {"description": "Duplicate insurance_id"}, 422: {"description": "Validation error"}},
+    responses={
+        409: error_response("Duplicate insurance_id", error_payload="Duplicate insurance_id"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def create_insurance_endpoint(
     payload: InsuranceCreate, session: Session = Depends(get_session)
@@ -64,7 +78,11 @@ def create_insurance_endpoint(
     summary="Update insurance policy",
     description="Update a policy by id; any omitted field is left unchanged.",
     response_model=ApiResponse[InsuranceRead],
-    responses={404: {"description": "Insurance not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Insurance"),
+        500: INTERNAL_ERROR,
+    },
 )
 def update_insurance_endpoint(
     insurance_id: str,
@@ -80,7 +98,11 @@ def update_insurance_endpoint(
     summary="Delete insurance policy",
     description="Delete a policy by id.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Insurance not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Insurance"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_insurance_endpoint(
     insurance_id: str, session: Session = Depends(get_session)
@@ -94,7 +116,11 @@ def delete_insurance_endpoint(
     summary="List insurance transactions",
     description="Return all premium/claim/return transactions for a policy.",
     response_model=ApiResponse[list[InsuranceJournalRead]],
-    responses={404: {"description": "Insurance not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Insurance"),
+        500: INTERNAL_ERROR,
+    },
 )
 def list_insurance_details_endpoint(
     insurance_id: str, session: Session = Depends(get_session)
@@ -109,8 +135,9 @@ def list_insurance_details_endpoint(
     description="Record a pay/cash/return/expect transaction.",
     response_model=ApiResponse[InsuranceJournalRead],
     responses={
-        404: {"description": "Insurance not found"},
-        422: {"description": "Invalid insurance_excute_type"},
+        404: not_found_error("Insurance"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def create_insurance_detail_endpoint(
@@ -127,7 +154,11 @@ def create_insurance_detail_endpoint(
     summary="Update insurance transaction",
     description="Update a single insurance transaction row.",
     response_model=ApiResponse[InsuranceJournalRead],
-    responses={404: {"description": "Transaction not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: error_response("Transaction not found", error_payload="Transaction not found"),
+        500: INTERNAL_ERROR,
+    },
 )
 def update_insurance_detail_endpoint(
     distinct_number: int,
@@ -143,7 +174,11 @@ def update_insurance_detail_endpoint(
     summary="Delete insurance transaction",
     description="Delete a single insurance transaction row.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Transaction not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: error_response("Transaction not found", error_payload="Transaction not found"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_insurance_detail_endpoint(
     distinct_number: int, session: Session = Depends(get_session)

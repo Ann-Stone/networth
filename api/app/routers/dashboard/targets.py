@@ -10,7 +10,13 @@ from app.models.dashboard.target_setting import (
     TargetSettingRead,
     TargetSettingUpdate,
 )
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.dashboard_service import (
     create_target,
     delete_target,
@@ -26,7 +32,7 @@ router = APIRouter()
     summary="List annual targets",
     description="Returns all target settings ordered by year desc.",
     response_model=ApiResponse[list[TargetSettingRead]],
-    responses={500: {"description": "Server error"}},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def list_dashboard_targets(
     session: Session = Depends(get_session),
@@ -45,8 +51,9 @@ def list_dashboard_targets(
     ),
     response_model=ApiResponse[TargetSettingRead],
     responses={
-        409: {"description": "Duplicate distinct_number"},
-        422: {"description": "Validation error"},
+        409: error_response("Duplicate distinct_number", error_payload="Duplicate distinct_number"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def create_dashboard_target(
@@ -63,8 +70,9 @@ def create_dashboard_target(
     description="Partial update. is_done can be changed independently.",
     response_model=ApiResponse[TargetSettingRead],
     responses={
-        404: {"description": "Target not found"},
-        422: {"description": "Validation error"},
+        404: not_found_error("Target"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def update_dashboard_target(
@@ -81,7 +89,11 @@ def update_dashboard_target(
     summary="Delete target",
     description="Deletes a target by id.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Target not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Target"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_dashboard_target(
     target_id: str,

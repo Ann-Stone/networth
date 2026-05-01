@@ -6,7 +6,13 @@ from sqlmodel import Session
 
 from app.database import get_session
 from app.models.dashboard.alarm_view import AlarmItem
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.dashboard_service import get_upcoming_alarms
 
 router = APIRouter()
@@ -20,7 +26,7 @@ router = APIRouter()
         "alarms are expanded per month; expired months are excluded."
     ),
     response_model=ApiResponse[list[AlarmItem]],
-    responses={500: {"description": "Server error"}},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def list_dashboard_alarms(
     session: Session = Depends(get_session),

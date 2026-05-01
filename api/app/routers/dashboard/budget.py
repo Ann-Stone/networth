@@ -8,7 +8,13 @@ from sqlmodel import Session
 
 from app.database import get_session
 from app.models.dashboard.budget import BudgetRead, BudgetType
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.dashboard_service import get_budget_usage
 
 router = APIRouter()
@@ -21,7 +27,10 @@ router = APIRouter()
         "Returns per-category budget-vs-actual for a month (YYYYMM) or year (YYYY)."
     ),
     response_model=ApiResponse[BudgetRead],
-    responses={422: {"description": "Invalid type or period"}},
+    responses={
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def get_dashboard_budget(
     type: Annotated[

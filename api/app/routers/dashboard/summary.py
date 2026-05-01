@@ -8,7 +8,13 @@ from sqlmodel import Session
 
 from app.database import get_session
 from app.models.dashboard.summary import SummaryRead, SummaryType
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.dashboard_service import get_summary
 
 router = APIRouter()
@@ -22,7 +28,10 @@ router = APIRouter()
         "for the requested period (YYYYMM-YYYYMM)."
     ),
     response_model=ApiResponse[SummaryRead],
-    responses={422: {"description": "Invalid type or period"}},
+    responses={
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def get_dashboard_summary(
     type: Annotated[

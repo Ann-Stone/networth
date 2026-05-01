@@ -8,7 +8,12 @@ from sqlmodel import Session
 
 from app.database import get_session
 from app.models.utilities.selection import SelectionGroup
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+)
 from app.services.utility_service import (
     get_account_selection_groups,
     get_code_selection_groups,
@@ -20,10 +25,7 @@ from app.services.utility_service import (
 
 router = APIRouter(prefix="/selections", tags=["utilities:selections"])
 
-_COMMON_RESPONSES = {
-    200: {"description": "Grouped options for a frontend dropdown."},
-    500: {"description": "Unexpected server error"},
-}
+_COMMON_RESPONSES = {500: INTERNAL_ERROR}
 
 
 @router.get(
@@ -96,7 +98,14 @@ def list_code_selections(
     summary="List sub-codes for a parent code",
     description="Return children of the parent code identified by code_group as a single 'sub' group.",
     response_model=ApiResponse[list[SelectionGroup]],
-    responses={**_COMMON_RESPONSES, 404: {"description": "Parent code has no children"}},
+    responses={
+        **_COMMON_RESPONSES,
+        422: VALIDATION_ERROR,
+        404: error_response(
+            "Parent code has no children",
+            error_payload="Parent code 'XYZ' has no children",
+        ),
+    },
 )
 def list_sub_code_selections(
     code_group: Annotated[

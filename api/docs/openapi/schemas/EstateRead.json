@@ -1,0 +1,123 @@
+{
+  "components": {
+    "schemas": {
+      "EstateRead": {
+        "example": {
+          "asset_id": "AC-REAL-001",
+          "estate_address": "123 Main St",
+          "estate_id": "EST-001",
+          "estate_name": "Condo",
+          "estate_status": "live",
+          "estate_type": "residential",
+          "loan_id": "LN-001",
+          "memo": "Primary residence",
+          "obtain_date": "20200101"
+        },
+        "properties": {
+          "asset_id": {
+            "description": "Asset category ID",
+            "examples": [
+              "AC-REAL-001"
+            ],
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "estate_address": {
+            "description": "Physical address",
+            "examples": [
+              "123 Main St"
+            ],
+            "title": "Estate Address",
+            "type": "string"
+          },
+          "estate_id": {
+            "description": "Estate business ID",
+            "examples": [
+              "EST-001"
+            ],
+            "title": "Estate Id",
+            "type": "string"
+          },
+          "estate_name": {
+            "description": "Estate display name",
+            "examples": [
+              "Condo"
+            ],
+            "title": "Estate Name",
+            "type": "string"
+          },
+          "estate_status": {
+            "description": "Status",
+            "examples": [
+              "hold"
+            ],
+            "title": "Estate Status",
+            "type": "string"
+          },
+          "estate_type": {
+            "description": "Estate type",
+            "examples": [
+              "residential"
+            ],
+            "title": "Estate Type",
+            "type": "string"
+          },
+          "loan_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Associated loan ID",
+            "examples": [
+              "LN-001"
+            ],
+            "title": "Loan Id"
+          },
+          "memo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Free-form memo",
+            "examples": [
+              "Primary residence"
+            ],
+            "title": "Memo"
+          },
+          "obtain_date": {
+            "description": "YYYYMMDD",
+            "examples": [
+              "20200101"
+            ],
+            "title": "Obtain Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "estate_id",
+          "estate_name",
+          "estate_type",
+          "estate_address",
+          "asset_id",
+          "obtain_date",
+          "estate_status"
+        ],
+        "title": "EstateRead",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Networth API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0"
+}

@@ -8,7 +8,13 @@ from sqlmodel import Session
 
 from app.database import get_session
 from app.models.dashboard.gift_view import GiftItem
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.dashboard_service import get_gifted_by_year
 
 router = APIRouter()
@@ -22,7 +28,10 @@ router = APIRouter()
         "Rate is amount * 100 / 2,200,000 (legacy gift-tax threshold)."
     ),
     response_model=ApiResponse[list[GiftItem]],
-    responses={422: {"description": "year must be YYYY"}},
+    responses={
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def get_dashboard_gifts(
     year: Annotated[

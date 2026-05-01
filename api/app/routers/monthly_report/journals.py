@@ -18,7 +18,13 @@ from app.models.monthly_report.journal import (
     JournalRead,
     JournalUpdate,
 )
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.monthly_report_service import (
     compute_expenditure_budget,
     compute_expenditure_ratio,
@@ -43,7 +49,7 @@ router = APIRouter()
         "total for the month."
     ),
     response_model=ApiResponse[JournalMonthRead],
-    responses={200: {"description": "Journal list and gain/loss for the month"}},
+    responses={422: VALIDATION_ERROR, 500: INTERNAL_ERROR},
 )
 def get_journals_by_month(
     vesting_month: str, session: Session = Depends(get_session)
@@ -64,8 +70,8 @@ def get_journals_by_month(
     response_model=ApiResponse[JournalRead],
     status_code=201,
     responses={
-        201: {"description": "Journal created"},
-        422: {"description": "Validation error"},
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def post_journal(
@@ -81,9 +87,9 @@ def post_journal(
     description="Partial update of a Journal identified by distinct_number.",
     response_model=ApiResponse[JournalRead],
     responses={
-        200: {"description": "Journal updated"},
-        404: {"description": "Journal not found"},
-        422: {"description": "Validation error"},
+        404: not_found_error("Journal"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def put_journal(
@@ -101,8 +107,9 @@ def put_journal(
     description="Delete a Journal identified by distinct_number.",
     response_model=ApiResponse[dict],
     responses={
-        200: {"description": "Journal deleted"},
-        404: {"description": "Journal not found"},
+        422: VALIDATION_ERROR,
+        404: not_found_error("Journal"),
+        500: INTERNAL_ERROR,
     },
 )
 def delete_journal_endpoint(
@@ -125,8 +132,9 @@ def delete_journal_endpoint(
     ),
     response_model=ApiResponse[ExpenditureRatioResponse],
     responses={
-        200: {"description": "Expenditure ratio aggregation"},
-        404: {"description": "No data for the month"},
+        422: VALIDATION_ERROR,
+        404: error_response("No data for the month", error_payload="No data for the month"),
+        500: INTERNAL_ERROR,
     },
 )
 def get_expenditure_ratio(
@@ -141,8 +149,9 @@ def get_expenditure_ratio(
     description="Aggregate journal spending whose action_main_type == 'invest', grouped by action_sub_type.",
     response_model=ApiResponse[InvestRatioResponse],
     responses={
-        200: {"description": "Invest ratio aggregation"},
-        404: {"description": "No data for the month"},
+        422: VALIDATION_ERROR,
+        404: error_response("No data for the month", error_payload="No data for the month"),
+        500: INTERNAL_ERROR,
     },
 )
 def get_invest_ratio(
@@ -160,8 +169,9 @@ def get_invest_ratio(
     ),
     response_model=ApiResponse[ExpenditureBudgetResponse],
     responses={
-        200: {"description": "Budget comparison rows"},
-        404: {"description": "No data for the month"},
+        422: VALIDATION_ERROR,
+        404: error_response("No data for the month", error_payload="No data for the month"),
+        500: INTERNAL_ERROR,
     },
 )
 def get_expenditure_budget(
@@ -176,8 +186,9 @@ def get_expenditure_budget(
     description="Aggregate journal spending whose spend_way_type == 'credit_card', grouped by credit card.",
     response_model=ApiResponse[LiabilityResponse],
     responses={
-        200: {"description": "Liability breakdown"},
-        404: {"description": "No data for the month"},
+        422: VALIDATION_ERROR,
+        404: error_response("No data for the month", error_payload="No data for the month"),
+        500: INTERNAL_ERROR,
     },
 )
 def get_liability(

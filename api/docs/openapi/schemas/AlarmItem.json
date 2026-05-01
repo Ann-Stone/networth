@@ -1,0 +1,41 @@
+{
+  "components": {
+    "schemas": {
+      "AlarmItem": {
+        "example": {
+          "content": "Pay credit card bill",
+          "date": "05/15"
+        },
+        "properties": {
+          "content": {
+            "description": "Alarm content",
+            "examples": [
+              "Pay credit card bill"
+            ],
+            "title": "Content",
+            "type": "string"
+          },
+          "date": {
+            "description": "Display date: MM/DD for monthly-recurring, raw alarm_date otherwise",
+            "examples": [
+              "05/15"
+            ],
+            "title": "Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "content"
+        ],
+        "title": "AlarmItem",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Networth API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0"
+}

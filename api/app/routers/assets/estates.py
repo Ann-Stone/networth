@@ -15,7 +15,13 @@ from app.models.assets.estate import (
     EstateRead,
     EstateUpdate,
 )
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+    error_response,
+    not_found_error,
+)
 from app.services.asset_service import (
     create_estate,
     create_estate_detail,
@@ -35,7 +41,10 @@ router = APIRouter()
     summary="List real-estate holdings",
     description="Return estate properties filtered by asset_id.",
     response_model=ApiResponse[list[EstateRead]],
-    responses={422: {"description": "Invalid query"}},
+    responses={
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def list_estates_endpoint(
     asset_id: Annotated[str, Query(..., description="Parent asset category id", examples=["AC-REAL-001"])],
@@ -50,7 +59,11 @@ def list_estates_endpoint(
     summary="Create real-estate holding",
     description="Create a new estate property; obtain_date accepts ISO 8601 and is stored as YYYYMMDD.",
     response_model=ApiResponse[EstateRead],
-    responses={409: {"description": "Duplicate estate_id"}, 422: {"description": "Validation error"}},
+    responses={
+        409: error_response("Duplicate estate_id", error_payload="Duplicate estate_id"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
 )
 def create_estate_endpoint(
     payload: EstateCreate, session: Session = Depends(get_session)
@@ -64,7 +77,11 @@ def create_estate_endpoint(
     summary="Update real-estate holding",
     description="Update an estate property; any omitted field is left unchanged.",
     response_model=ApiResponse[EstateRead],
-    responses={404: {"description": "Estate not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Estate"),
+        500: INTERNAL_ERROR,
+    },
 )
 def update_estate_endpoint(
     estate_id: str,
@@ -80,7 +97,11 @@ def update_estate_endpoint(
     summary="Delete real-estate holding",
     description="Delete an estate property by id.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Estate not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Estate"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_estate_endpoint(
     estate_id: str, session: Session = Depends(get_session)
@@ -94,7 +115,11 @@ def delete_estate_endpoint(
     summary="List estate transactions",
     description="Return all fee/tax/rent/deposit transactions for an estate property.",
     response_model=ApiResponse[list[EstateJournalRead]],
-    responses={404: {"description": "Estate not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: not_found_error("Estate"),
+        500: INTERNAL_ERROR,
+    },
 )
 def list_estate_details_endpoint(
     estate_id: str, session: Session = Depends(get_session)
@@ -109,8 +134,9 @@ def list_estate_details_endpoint(
     description="Record a tax/fee/insurance/fix/rent/deposit transaction.",
     response_model=ApiResponse[EstateJournalRead],
     responses={
-        404: {"description": "Estate not found"},
-        422: {"description": "Invalid estate_excute_type"},
+        404: not_found_error("Estate"),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
     },
 )
 def create_estate_detail_endpoint(
@@ -127,7 +153,11 @@ def create_estate_detail_endpoint(
     summary="Update estate transaction",
     description="Update a single estate transaction row.",
     response_model=ApiResponse[EstateJournalRead],
-    responses={404: {"description": "Transaction not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: error_response("Transaction not found", error_payload="Transaction not found"),
+        500: INTERNAL_ERROR,
+    },
 )
 def update_estate_detail_endpoint(
     distinct_number: int,
@@ -143,7 +173,11 @@ def update_estate_detail_endpoint(
     summary="Delete estate transaction",
     description="Delete a single estate transaction row.",
     response_model=ApiResponse[dict],
-    responses={404: {"description": "Transaction not found"}},
+    responses={
+        422: VALIDATION_ERROR,
+        404: error_response("Transaction not found", error_payload="Transaction not found"),
+        500: INTERNAL_ERROR,
+    },
 )
 def delete_estate_detail_endpoint(
     distinct_number: int, session: Session = Depends(get_session)

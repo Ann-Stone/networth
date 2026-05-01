@@ -4,7 +4,11 @@ from __future__ import annotations
 from fastapi import APIRouter, BackgroundTasks
 
 from app.models.utilities.imports import ImportAcceptedResponse, ImportRequest
-from app.schemas.response import ApiResponse
+from app.schemas.response import (
+    INTERNAL_ERROR,
+    VALIDATION_ERROR,
+    ApiResponse,
+)
 from app.services.import_service import (
     import_fx_rates,
     import_invoices,
@@ -14,8 +18,8 @@ from app.services.import_service import (
 router = APIRouter(prefix="/import", tags=["utilities:imports"])
 
 _ACCEPTED_RESPONSES = {
-    202: {"description": "Import scheduled as a background task."},
-    422: {"description": "Validation error (e.g. malformed period)."},
+    422: VALIDATION_ERROR,
+    500: INTERNAL_ERROR,
 }
 
 
