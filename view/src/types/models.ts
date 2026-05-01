@@ -233,7 +233,7 @@ export interface AssetComposition {
 
 // ─── API Response Wrapper ─────────────────────────────────────────────────────
 export interface ApiResponse<T> {
-  status: number      // 1 = success
+  status: number
   data: T
-  message?: string
+  msg: string
 }
