@@ -1,5 +1,5 @@
 <template>
-  <span class="tabular-nums" :class="colorClass">
+  <span class="tabular-nums" :class="[colorClass, sizeClass]">
     {{ formatted }}
   </span>
 </template>
@@ -12,10 +12,12 @@ const props = withDefaults(
     amount: number
     currency?: string
     positive?: boolean | null
+    size?: 'sm' | 'md' | 'lg'
   }>(),
   {
     currency: 'TWD',
     positive: null,
+    size: 'md',
   },
 )
 
@@ -35,5 +37,11 @@ const colorClass = computed(() => {
   if (props.positive === true) return 'text-positive'
   if (props.positive === false) return 'text-negative'
   return 'text-neutral'
+})
+
+const sizeClass = computed(() => {
+  if (props.size === 'sm') return 'text-sm'
+  if (props.size === 'lg') return 'text-3xl font-bold'
+  return 'text-base'
 })
 </script>

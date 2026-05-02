@@ -21,29 +21,19 @@
 
         <!-- Nav item with children -->
         <template v-if="item.children">
-          <button
-            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-text hover:bg-surface-dark hover:text-cream transition-colors"
-            :class="{ 'justify-center': collapsed }"
-            @click="toggleGroup(item.name)"
-          >
-            <el-icon class="shrink-0 text-base">
-              <component :is="item.icon" />
-            </el-icon>
-            <span v-if="!collapsed" class="flex-1 text-left">{{ item.label }}</span>
-            <el-icon
-              v-if="!collapsed"
-              class="text-xs transition-transform"
-              :class="openGroups.has(item.name) ? 'rotate-90' : ''"
-            >
-              <ArrowRight />
-            </el-icon>
-          </button>
+          <SidebarNavButton
+            :label="item.label"
+            :icon="item.icon"
+            :expanded="openGroups.has(item.name)"
+            :collapsed="collapsed"
+            @toggle="toggleGroup(item.name)"
+          />
           <div v-show="!collapsed && openGroups.has(item.name)" class="ml-4 space-y-1">
             <router-link
               v-for="child in item.children"
               :key="child.name"
               :to="child.path"
-              class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
+              class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
               :class="
                 isActive(child.path)
                   ? 'bg-primary/15 text-primary'
@@ -61,7 +51,7 @@
         <router-link
           v-else-if="item.type === 'link'"
           :to="item.path!"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
           :class="[
             { 'justify-center': collapsed },
             isActive(item.path!)
@@ -84,6 +74,7 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
+import SidebarNavButton from './SidebarNavButton.vue'
 import {
   Odometer,
   TrendCharts,
@@ -91,7 +82,6 @@ import {
   Coin,
   Setting,
   Tools,
-  ArrowRight,
 } from '@element-plus/icons-vue'
 
 defineProps<{ collapsed: boolean }>()
