@@ -5,6 +5,23 @@
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/utilities" layer(utilities);
 
+/* Class-based dark mode: enables `dark:` variants when html has class="dark". */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Warm-palette color tokens registered with Tailwind so utilities like
+ * `bg-surface-dark`, `text-cream`, and their `dark:` variants are auto-generated.
+ */
+@theme {
+  --color-bg-dark: #1c1b1a;
+  --color-surface-dark: #2a2826;
+  --color-cream: #e8e4df;
+  --color-muted-text: #a8a29e;
+  --color-accent-rose: #b58d8d;
+  --color-primary: #8fa79b;
+  --color-background-dark: #1c1b1a;
+}
+
 /* ─── Element Plus CSS Variables Override (warm sage palette) ─ */
 :root {
   --el-color-primary: #8fa79b;

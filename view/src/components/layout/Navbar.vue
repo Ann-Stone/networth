@@ -1,8 +1,8 @@
 <template>
-  <header class="h-14 bg-white border-b border-gray-200 flex items-center px-4 gap-4 shrink-0">
+  <header class="h-14 bg-white dark:bg-surface-dark border-b border-gray-200 dark:border-surface-dark flex items-center px-4 gap-4 shrink-0">
     <!-- Hamburger / toggle -->
     <button
-      class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+      class="p-1.5 rounded-lg text-gray-500 dark:text-muted-text hover:bg-gray-100 dark:hover:bg-primary/10 transition-colors"
       @click="appStore.toggleSidebar()"
     >
       <el-icon class="text-xl"><Expand v-if="appStore.sidebarCollapsed" /><Fold v-else /></el-icon>
@@ -37,6 +37,15 @@
         EN
       </el-button>
     </el-button-group>
+
+    <!-- Theme toggle -->
+    <el-button
+      size="small"
+      :title="appStore.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+      @click="appStore.toggleTheme()"
+    >
+      <el-icon><Sunny v-if="appStore.theme === 'dark'" /><Moon v-else /></el-icon>
+    </el-button>
   </header>
 </template>
 
@@ -44,7 +53,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
-import { Expand, Fold } from '@element-plus/icons-vue'
+import { Expand, Fold, Sunny, Moon } from '@element-plus/icons-vue'
 
 const appStore = useAppStore()
 const route = useRoute()
