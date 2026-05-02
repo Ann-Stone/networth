@@ -41,7 +41,7 @@ BE-005 runs, since the import script encodes whichever choice is made.
 | 4 | `Stock_Journal.vesting_nation` (BE-031) | distinct `(stock_code, vesting_nation)` for ticker fetch | column does not exist; `.TW` suffix derived from "all-digits" heuristic | Add column + backfill from legacy, or accept heuristic |
 | 5 | `Credit_Card.carrier_no` (BE-031) | carrier match against `carrier_no` for invoice import | column dropped per README Decision Log; falls back to `card_no` last-4 match | Either restore `carrier_no` (legacy column was buggy) or drop the carrier→spend_way auto-fill entirely |
 | 6 | `Journal.action_main_type` (BE-025) | literal `'Floating' / 'Fixed' / 'Income'` | implementation passes through whatever legacy stored (likely lowercase `expense` / `income`) | Decide canonical case; transform during BE-005 import |
-| 7 | `Target_Setting` PK (BE-027) | `id: int` PK + `setting_name` column | actual table: `distinct_number: str` PK, no `setting_name` | If frontend wants `id` + `setting_name`, this needs Alembic migration + BE-005 rewrite of that table |
+| 7 | ~~`Target_Setting` PK (BE-027)~~ | ~~`id: int` PK + `setting_name` column~~ | actual table: `distinct_number: str` PK, `target_year/setting_value/is_done`, no `setting_name` | **Resolved 2026-05-02**: frontend (FE-002) aligned with the shipped shape; no migration needed. Row kept here for audit only. |
 | 8 | Several Phase 4 asset PKs | `int` autoincrement | several use string business keys instead | Listed previously as "Phase 4 int-PK divergence"; bundle with the above when deciding |
 
 Suggested approach: open one follow-up ticket (BE-B02 perhaps) that
