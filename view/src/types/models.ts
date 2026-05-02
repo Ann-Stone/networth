@@ -451,6 +451,7 @@ export interface LoanAssetCreate {
   grace_expire_date?: string | null
   pay_day: number
   amount: number
+  repayed: number
   loan_index: number
 }
 
