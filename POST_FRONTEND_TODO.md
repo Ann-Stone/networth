@@ -71,7 +71,7 @@ single source of truth; do not scatter the same notes inside frontend code.
 | `Account.account_index` | drives dropdown order | _pending_ | _pending_ | _pending_ |
 | `Credit_Card.credit_card_index` | drives dropdown order | _pending_ | _pending_ | _pending_ |
 | `Other_Asset.asset_index` | drives dropdown order | _pending_ | _pending_ | _pending_ |
-| `Journal.invoice_number` | populated only by invoice CSV import; if unused, the entire BE-031 invoice path is dead weight | _pending_ | _pending_ | _pending_ |
+| `Journal.invoice_number` | populated only by invoice CSV import; if unused, the entire BE-031 invoice path is dead weight | view/src/views/monthly-report/CashFlowView.vue | keep | 2f87798 |
 | `Loan.grace_expire_date` | kept per Decision Log; verify frontend renders it | _pending_ | _pending_ | _pending_ |
 | `Stock_Journal.expected_spend` | planned-investment amount | _pending_ | _pending_ | _pending_ |
 
