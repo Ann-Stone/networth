@@ -62,6 +62,7 @@ All spec content in this directory is written in English.
 | 3 | Phase 2 — Layout & UI | FE-013..FE-016 | `npm run dev` starts; sidebar renders; no console errors |
 | 3.5 | Phase 2.5 — Shared design-system primitives | FE-016a | `npm run type-check` passes; new primitives importable; sidebar group toggles visually aligned |
 | 4 | Phase 3 — Dashboard | FE-017..FE-020 | Dashboard route renders all 4 sections |
+| 4.5 | Phase 3.5 — Default theme + toggle | FE-013a | `/networth/dashboard` defaults to template.html dark palette; navbar toggle flips to light without console errors |
 | 5 | Phase 4 — Monthly Report | FE-021..FE-024 | Journal CRUD works; charts render |
 | 6 | Phase 5 — Year Report | FE-025..FE-027 | All three year-report views render with data |
 | 7 | Phase 6 — Asset Management | FE-028..FE-033 | CRUD works for all 5 asset tabs |
@@ -112,6 +113,11 @@ All spec content in this directory is written in English.
 | FE-018 | DashboardView — alarm widget (GET /dashboard/alarms) |
 | FE-019 | DashboardView — targets CRUD panel (CRUD /dashboard/targets) |
 | FE-020 | DashboardView — budget overview + gifts (GET /dashboard/budget + /gifts/{year}) |
+
+### Phase 3.5 — Default theme + toggle
+| ID | Title |
+|----|-------|
+| FE-013a | Default to template.html dark theme + Navbar dark/light toggle (revises FE-013 default-mode decision) |
 
 ### Phase 4 — Monthly Report
 | ID | Title |
