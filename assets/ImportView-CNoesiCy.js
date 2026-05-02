@@ -1,0 +1,1 @@
+import{_ as s,o,e as a,f as t}from"./index-Dh_1HTgh.js";const c={},r={class:"p-6"};function n(l,e){return o(),a("div",r,[...e[0]||(e[0]=[t("h1",{class:"text-2xl font-bold mb-2"},"資料匯入",-1),t("p",{class:"text-muted-text text-sm"},"Phase 8 (FE-039) 將實作此頁。",-1)])])}const d=s(c,[["render",n]]);export{d as default};
