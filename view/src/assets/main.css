@@ -5,19 +5,52 @@
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/utilities" layer(utilities);
 
-/* ─── Element Plus CSS Variables Override ─────────────────── */
+/* ─── Element Plus CSS Variables Override (warm sage palette) ─ */
 :root {
-  --el-color-primary: #4f46e5;        /* indigo-600 */
-  --el-color-primary-light-3: #818cf8;
-  --el-color-primary-light-5: #a5b4fc;
-  --el-color-primary-light-7: #c7d2fe;
-  --el-color-primary-light-9: #eef2ff;
-  --el-color-primary-dark-2: #4338ca;
+  --el-color-primary: #8fa79b;
+  --el-color-primary-light-3: #a8bcb6;
+  --el-color-primary-light-5: #c4d4cf;
+  --el-color-primary-light-7: #dde8e5;
+  --el-color-primary-light-9: #f0f5f3;
+  --el-color-primary-dark-2: #72978a;
   --el-border-radius-base: 6px;
   --el-border-radius-small: 4px;
   --el-border-radius-round: 20px;
   --el-font-size-base: 14px;
   --el-font-size-small: 13px;
+
+  /* Warm-palette tokens (also used in light mode for accent + text helpers) */
+  --bg-light: #f6f7f8;
+  --bg-dark: #1c1b1a;
+  --surface-dark: #2a2826;
+  --cream: #e8e4df;
+  --muted-text: #a8a29e;
+  --accent-rose: #b58d8d;
+}
+
+/* ─── Dark mode overrides ─────────────────────────────────── */
+html.dark {
+  --bg-dark: #1c1b1a;
+  --surface-dark: #2a2826;
+  --cream: #e8e4df;
+  --muted-text: #a8a29e;
+  --accent-rose: #b58d8d;
+
+  /* Element Plus dark surface mapping */
+  --el-bg-color: #2a2826;
+  --el-bg-color-page: #1c1b1a;
+  --el-bg-color-overlay: #2a2826;
+  --el-text-color-primary: #e8e4df;
+  --el-text-color-regular: #e8e4df;
+  --el-text-color-secondary: #a8a29e;
+  --el-border-color: #3a3835;
+  --el-border-color-light: #3a3835;
+  --el-fill-color-blank: #2a2826;
+}
+
+html.dark body {
+  background-color: #1c1b1a;
+  color: #e8e4df;
 }
 
 /* ─── Global Base ─────────────────────────────────────────── */
@@ -28,26 +61,46 @@ html, body, #app {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC',
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC',
     'Microsoft JhengHei', sans-serif;
-  background-color: #f5f7fa;
+  background-color: #f6f7f8;
   color: #303133;
   -webkit-font-smoothing: antialiased;
 }
 
 /* ─── Money Display Helpers ───────────────────────────────── */
 .text-positive {
-  color: #16a34a; /* green-600 */
+  color: #16a34a;
   font-weight: 500;
 }
 
 .text-negative {
-  color: #dc2626; /* red-600 */
+  color: #dc2626;
   font-weight: 500;
 }
 
 .text-neutral {
-  color: #6b7280; /* gray-500 */
+  color: #6b7280;
+}
+
+/* ─── Tailwind v4 custom utility layer (palette tokens) ───── */
+@layer utilities {
+  .bg-bg-dark { background-color: var(--bg-dark); }
+  .bg-surface-dark { background-color: var(--surface-dark); }
+  .bg-primary { background-color: var(--el-color-primary); }
+  .bg-accent-rose { background-color: var(--accent-rose); }
+
+  .text-cream { color: var(--cream); }
+  .text-muted-text { color: var(--muted-text); }
+  .text-primary { color: var(--el-color-primary); }
+  .text-accent-rose { color: var(--accent-rose); }
+
+  .border-surface-dark { border-color: var(--surface-dark); }
+  .border-primary { border-color: var(--el-color-primary); }
+
+  .hover\:bg-surface-dark:hover { background-color: var(--surface-dark); }
+  .hover\:text-cream:hover { color: var(--cream); }
+  .hover\:text-primary:hover { color: var(--el-color-primary); }
 }
 
 /* ─── Scrollbar Styling ───────────────────────────────────── */
@@ -62,10 +115,14 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: #8fa79b;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: #72978a;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #2a2826;
 }
