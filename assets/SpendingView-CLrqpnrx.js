@@ -1,0 +1,1 @@
+/* empty css             *//* empty css                 */import{a as o,b as a,l,e as n,o as s,aj as r}from"./index-C794Zcvb.js";const d=o({__name:"SpendingView",setup(p){return(i,e)=>{const t=r;return s(),a("div",null,[e[0]||(e[0]=l("h1",{class:"text-2xl font-semibold text-gray-800 mb-6"},"年度支出",-1)),n(t,{type:"info",title:"年度支出頁面開發中",closable:!1})])}}});export{d as default};

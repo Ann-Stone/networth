@@ -1,0 +1,1 @@
+/* empty css             *//* empty css                 */import{a as o,b as a,l,e as s,o as n,aj as r}from"./index-C794Zcvb.js";const f=o({__name:"CashFlowView",setup(m){return(p,e)=>{const t=r;return n(),a("div",null,[e[0]||(e[0]=l("h1",{class:"text-2xl font-semibold text-gray-800 mb-6"},"月度現金流",-1)),s(t,{type:"info",title:"月度現金流頁面開發中",closable:!1})])}}});export{f as default};
