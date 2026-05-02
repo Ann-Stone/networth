@@ -9,6 +9,9 @@
           format="YYYY/MM"
           :clearable="false"
         />
+        <el-button type="warning" :loading="settling" @click="confirmSettle">
+          執行月結
+        </el-button>
       </template>
     </PageHeader>
 
@@ -135,6 +138,71 @@
       </el-tabs>
     </section>
 
+    <section class="flex flex-col gap-4">
+      <SectionHeader title="股價快照">
+        <template #actions>
+          <el-button type="primary" :icon="Plus" size="small" @click="openStockPriceDialog">
+            新增股價
+          </el-button>
+        </template>
+      </SectionHeader>
+      <el-skeleton v-if="store.stockPricesLoading" :rows="3" animated />
+      <EmptyState
+        v-else-if="store.stockPrices.length === 0"
+        message="本月尚無股價快照"
+      />
+      <el-table v-else :data="store.stockPrices" border>
+        <el-table-column prop="stock_code" label="代號" width="140" />
+        <el-table-column prop="stock_name" label="名稱" min-width="200" />
+        <el-table-column label="收盤價" width="180" align="right">
+          <template #default="{ row }">
+            <MoneyDisplay :amount="row.close_price" size="sm" />
+          </template>
+        </el-table-column>
+      </el-table>
+    </section>
+
+    <FormDialog
+      v-model="stockPriceDialogVisible"
+      title="新增股價記錄"
+      :loading="stockPriceSubmitting"
+      width="520px"
+      @submit="submitStockPrice"
+    >
+      <el-form ref="stockPriceFormRef" :model="stockPriceForm" :rules="stockPriceRules" label-width="120px">
+        <el-form-item label="代號" prop="stock_code">
+          <el-input v-model="stockPriceForm.stock_code" placeholder="例如 AAPL" />
+        </el-form-item>
+        <el-form-item label="日期" prop="fetch_date">
+          <el-date-picker
+            v-model="stockPriceFormDate"
+            type="date"
+            format="YYYY/MM/DD"
+            :clearable="false"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="開盤" prop="open_price">
+          <el-input-number v-model="stockPriceForm.open_price" :precision="2" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="最高" prop="highest_price">
+          <el-input-number v-model="stockPriceForm.highest_price" :precision="2" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="最低" prop="lowest_price">
+          <el-input-number v-model="stockPriceForm.lowest_price" :precision="2" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="收盤" prop="close_price">
+          <el-input-number v-model="stockPriceForm.close_price" :precision="2" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="自動抓取">
+          <el-switch v-model="stockPriceForm.trigger_yfinance" />
+          <p class="text-xs text-slate-400 dark:text-muted-text ml-3">
+            開啟後會以 yfinance 收盤價覆寫
+          </p>
+        </el-form-item>
+      </el-form>
+    </FormDialog>
+
     <FormDialog
       v-model="journalDialogVisible"
       :title="formMode === 'create' ? '新增日記帳' : '編輯日記帳'"
@@ -249,7 +317,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import dayjs from 'dayjs'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -260,7 +328,13 @@ import FormDialog from '@/components/ui/FormDialog.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import DonutChart from '@/components/charts/DonutChart.vue'
 import { useCashFlowStore } from '@/stores/cashFlow'
-import { createJournal, updateJournal, deleteJournal } from '@/api/cashFlow'
+import {
+  createJournal,
+  updateJournal,
+  deleteJournal,
+  settleMonth,
+  uploadStockPrices,
+} from '@/api/cashFlow'
 import {
   getAccountSelections,
   getCodeSelections,
@@ -519,8 +593,109 @@ async function handleDeleteJournal(id: number) {
   await store.fetchJournals()
 }
 
+// ─── Settle ────────────────────────────────────────────────────────────────
+const settling = ref(false)
+
+async function confirmSettle() {
+  try {
+    await ElMessageBox.confirm(
+      `將執行 ${store.selectedMonth} 月結,會覆蓋既有快照,確定?`,
+      '確認月結',
+      { type: 'warning', confirmButtonText: '執行', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  settling.value = true
+  try {
+    const result = await settleMonth(store.selectedMonth)
+    ElMessage.success(`月結完成 (帳戶 ${result.account_rows} / 信用卡 ${result.credit_card_rows})`)
+    await store.fetchJournals()
+    loadedTabs.value.clear()
+    void loadChartTab(activeChartTab.value)
+  } finally {
+    settling.value = false
+  }
+}
+
+// ─── Stock prices ──────────────────────────────────────────────────────────
+const stockPriceDialogVisible = ref(false)
+const stockPriceSubmitting = ref(false)
+const stockPriceFormRef = ref<FormInstance>()
+
+interface StockPriceFormState {
+  stock_code: string
+  fetch_date: string
+  open_price: number
+  highest_price: number
+  lowest_price: number
+  close_price: number
+  trigger_yfinance: boolean
+}
+
+function emptyStockPriceForm(): StockPriceFormState {
+  return {
+    stock_code: '',
+    fetch_date: dayjs().format('YYYYMMDD'),
+    open_price: 0,
+    highest_price: 0,
+    lowest_price: 0,
+    close_price: 0,
+    trigger_yfinance: false,
+  }
+}
+
+const stockPriceForm = ref<StockPriceFormState>(emptyStockPriceForm())
+
+const stockPriceFormDate = computed<Date | null>({
+  get: () =>
+    stockPriceForm.value.fetch_date
+      ? dayjs(stockPriceForm.value.fetch_date, 'YYYYMMDD').toDate()
+      : null,
+  set: (date) => {
+    stockPriceForm.value.fetch_date = date ? dayjs(date).format('YYYYMMDD') : ''
+  },
+})
+
+const stockPriceRules: FormRules = {
+  stock_code: [{ required: true, message: '請輸入代號', trigger: 'blur' }],
+  fetch_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
+  open_price: [{ required: true, message: '請輸入開盤價', trigger: 'blur' }],
+  highest_price: [{ required: true, message: '請輸入最高價', trigger: 'blur' }],
+  lowest_price: [{ required: true, message: '請輸入最低價', trigger: 'blur' }],
+  close_price: [{ required: true, message: '請輸入收盤價', trigger: 'blur' }],
+}
+
+function openStockPriceDialog() {
+  stockPriceForm.value = emptyStockPriceForm()
+  stockPriceDialogVisible.value = true
+}
+
+async function submitStockPrice() {
+  if (!stockPriceFormRef.value) return
+  const valid = await stockPriceFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  stockPriceSubmitting.value = true
+  try {
+    await uploadStockPrices({ ...stockPriceForm.value })
+    ElMessage.success('股價已新增')
+    stockPriceDialogVisible.value = false
+    await store.fetchStockPrices()
+  } finally {
+    stockPriceSubmitting.value = false
+  }
+}
+
+watch(
+  () => store.selectedMonth,
+  () => {
+    void store.fetchStockPrices()
+  },
+)
+
 onMounted(() => {
   store.fetchJournals()
+  store.fetchStockPrices()
   void loadChartTab(activeChartTab.value)
 })
 </script>
