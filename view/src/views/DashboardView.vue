@@ -53,20 +53,91 @@
         </div>
       </DataListCard>
     </section>
+
+    <section class="flex flex-col gap-4">
+      <SectionHeader title="年度目標">
+        <template #actions>
+          <el-button type="primary" :icon="Plus" size="small" @click="openTargetCreate">
+            新增目標
+          </el-button>
+        </template>
+      </SectionHeader>
+      <el-skeleton v-if="store.targetsLoading" :rows="3" animated />
+      <EmptyState v-else-if="store.targets.length === 0" message="尚未設定年度目標" />
+      <DataListCard v-else title="目標清單">
+        <div
+          v-for="t in store.targets"
+          :key="t.distinct_number"
+          class="flex items-center justify-between px-6 py-4"
+        >
+          <div class="flex flex-col gap-1">
+            <p class="text-slate-800 dark:text-cream text-sm font-semibold">
+              {{ t.distinct_number }} · {{ t.target_year }}
+            </p>
+            <MoneyDisplay :amount="t.setting_value" size="sm" />
+          </div>
+          <div class="flex items-center gap-2">
+            <StatusBadge
+              :value="t.is_done === 'Y' ? '已完成' : '進行中'"
+              :type="t.is_done === 'Y' ? 'success' : 'info'"
+            />
+            <el-button :icon="Edit" size="small" text @click="openTargetEdit(t)" />
+            <el-popconfirm
+              title="確定刪除?"
+              confirm-button-text="刪除"
+              cancel-button-text="取消"
+              @confirm="handleDeleteTarget(t.distinct_number)"
+            >
+              <template #reference>
+                <el-button :icon="Delete" size="small" text type="danger" />
+              </template>
+            </el-popconfirm>
+          </div>
+        </div>
+      </DataListCard>
+
+      <FormDialog
+        v-model="targetDialogVisible"
+        :title="editingTarget ? '編輯目標' : '新增目標'"
+        :loading="targetSubmitting"
+        @submit="submitTarget"
+      >
+        <el-form ref="targetFormRef" :model="targetForm" :rules="targetRules" label-width="100px">
+          <el-form-item label="編號" prop="distinct_number">
+            <el-input v-model="targetForm.distinct_number" :disabled="!!editingTarget" placeholder="例如 T-2026-01" />
+          </el-form-item>
+          <el-form-item label="年度" prop="target_year">
+            <el-input v-model="targetForm.target_year" placeholder="YYYY" maxlength="4" />
+          </el-form-item>
+          <el-form-item label="目標金額" prop="setting_value">
+            <el-input-number v-model="targetForm.setting_value" :min="0" :step="10000" controls-position="right" class="!w-full" />
+          </el-form-item>
+          <el-form-item label="完成狀態">
+            <el-switch v-model="targetForm.is_done" active-value="Y" inactive-value="N" />
+          </el-form-item>
+        </el-form>
+      </FormDialog>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import TrendBadge from '@/components/ui/TrendBadge.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import DataListCard from '@/components/ui/DataListCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
+import FormDialog from '@/components/ui/FormDialog.vue'
 import { useDashboardStore, type SummaryType } from '@/stores/dashboard'
-import type { DashboardSummary } from '@/types/models'
+import { createTarget, updateTarget, deleteTarget } from '@/api/dashboard'
+import type { DashboardSummary, TargetSetting } from '@/types/models'
 
 const store = useDashboardStore()
 
@@ -132,10 +203,85 @@ const summaryCards = computed(() =>
   }),
 )
 
+// Targets CRUD ----------------------------------------------------------------
+const targetDialogVisible = ref(false)
+const targetSubmitting = ref(false)
+const editingTarget = ref<TargetSetting | null>(null)
+const targetFormRef = ref<FormInstance | null>(null)
+const targetForm = reactive({
+  distinct_number: '',
+  target_year: dayjs().format('YYYY'),
+  setting_value: 0,
+  is_done: 'N',
+})
+const targetRules: FormRules = {
+  distinct_number: [{ required: true, message: '請輸入編號', trigger: 'blur' }],
+  target_year: [{ required: true, pattern: /^\d{4}$/, message: '請輸入 YYYY', trigger: 'blur' }],
+  setting_value: [{ required: true, type: 'number', message: '請輸入金額', trigger: 'blur' }],
+}
+
+function resetTargetForm() {
+  targetForm.distinct_number = ''
+  targetForm.target_year = dayjs().format('YYYY')
+  targetForm.setting_value = 0
+  targetForm.is_done = 'N'
+}
+
+function openTargetCreate() {
+  editingTarget.value = null
+  resetTargetForm()
+  targetDialogVisible.value = true
+}
+
+function openTargetEdit(t: TargetSetting) {
+  editingTarget.value = t
+  targetForm.distinct_number = t.distinct_number
+  targetForm.target_year = t.target_year
+  targetForm.setting_value = t.setting_value
+  targetForm.is_done = t.is_done
+  targetDialogVisible.value = true
+}
+
+async function submitTarget() {
+  if (!targetFormRef.value) return
+  const ok = await targetFormRef.value.validate().catch(() => false)
+  if (!ok) return
+  targetSubmitting.value = true
+  try {
+    if (editingTarget.value) {
+      await updateTarget(editingTarget.value.distinct_number, {
+        target_year: targetForm.target_year,
+        setting_value: targetForm.setting_value,
+        is_done: targetForm.is_done,
+      })
+      ElMessage.success('已更新目標')
+    } else {
+      await createTarget({
+        distinct_number: targetForm.distinct_number,
+        target_year: targetForm.target_year,
+        setting_value: targetForm.setting_value,
+        is_done: targetForm.is_done,
+      })
+      ElMessage.success('已新增目標')
+    }
+    targetDialogVisible.value = false
+    await store.fetchTargets()
+  } finally {
+    targetSubmitting.value = false
+  }
+}
+
+async function handleDeleteTarget(targetId: string) {
+  await deleteTarget(targetId)
+  ElMessage.success('已刪除目標')
+  await store.fetchTargets()
+}
+
 onMounted(() => {
   for (const type of summaryTypes) {
     store.fetchSummary({ type, period })
   }
   store.fetchAlarms()
+  store.fetchTargets()
 })
 </script>
