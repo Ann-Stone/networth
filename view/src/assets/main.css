@@ -62,7 +62,27 @@ html.dark {
   --el-text-color-secondary: #a8a29e;
   --el-border-color: #3a3835;
   --el-border-color-light: #3a3835;
+  --el-border-color-lighter: #3a3835;
+  --el-border-color-extra-light: #3a3835;
   --el-fill-color-blank: #2a2826;
+  --el-fill-color: #34322f;
+  --el-fill-color-light: #34322f;
+  --el-fill-color-lighter: #2f2d2b;
+  --el-fill-color-dark: #3a3835;
+  --el-fill-color-darker: #45423f;
+  --el-disabled-bg-color: #262422;
+  --el-disabled-text-color: #6f6b66;
+  --el-disabled-border-color: #3a3835;
+
+  /* Tables */
+  --el-table-bg-color: #2a2826;
+  --el-table-tr-bg-color: #2a2826;
+  --el-table-header-bg-color: #34322f;
+  --el-table-row-hover-bg-color: #34322f;
+  --el-table-border-color: #3a3835;
+  --el-table-header-text-color: #e8e4df;
+  --el-table-text-color: #e8e4df;
+  --el-table-fixed-box-shadow: none;
 }
 
 html.dark body {
