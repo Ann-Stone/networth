@@ -31,6 +31,28 @@
         </div>
       </template>
     </section>
+
+    <section class="flex flex-col gap-4">
+      <SectionHeader title="近期提醒" />
+      <el-skeleton v-if="store.alarmsLoading" :rows="3" animated />
+      <EmptyState v-else-if="store.alarms.length === 0" message="近半年沒有待辦提醒" />
+      <DataListCard v-else title="未來 6 個月提醒">
+        <div
+          v-for="(alarm, idx) in store.alarms"
+          :key="`${alarm.date}-${idx}`"
+          class="flex items-center justify-between px-6 py-4"
+        >
+          <div class="flex items-center gap-4">
+            <span
+              class="inline-flex items-center justify-center min-w-[64px] px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold"
+            >
+              {{ alarm.date }}
+            </span>
+            <p class="text-slate-800 dark:text-cream text-sm">{{ alarm.content }}</p>
+          </div>
+        </div>
+      </DataListCard>
+    </section>
   </div>
 </template>
 
@@ -40,6 +62,9 @@ import dayjs from 'dayjs'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import TrendBadge from '@/components/ui/TrendBadge.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
+import DataListCard from '@/components/ui/DataListCard.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { useDashboardStore, type SummaryType } from '@/stores/dashboard'
 import type { DashboardSummary } from '@/types/models'
 
@@ -111,5 +136,6 @@ onMounted(() => {
   for (const type of summaryTypes) {
     store.fetchSummary({ type, period })
   }
+  store.fetchAlarms()
 })
 </script>
