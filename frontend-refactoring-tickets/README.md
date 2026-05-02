@@ -60,6 +60,7 @@ All spec content in this directory is written in English.
 | 1 | Phase 0 — Foundation | FE-001..FE-007 | `npm run type-check` passes (zero errors) |
 | 2 | Phase 1 — Stores | FE-008..FE-012 | `npm run type-check` passes; stores importable |
 | 3 | Phase 2 — Layout & UI | FE-013..FE-016 | `npm run dev` starts; sidebar renders; no console errors |
+| 3.5 | Phase 2.5 — Shared design-system primitives | FE-016a | `npm run type-check` passes; new primitives importable; sidebar group toggles visually aligned |
 | 4 | Phase 3 — Dashboard | FE-017..FE-020 | Dashboard route renders all 4 sections |
 | 5 | Phase 4 — Monthly Report | FE-021..FE-024 | Journal CRUD works; charts render |
 | 6 | Phase 5 — Year Report | FE-025..FE-027 | All three year-report views render with data |
@@ -98,6 +99,11 @@ All spec content in this directory is written in English.
 | FE-014 | Update Sidebar.vue + SidebarContent.vue for full route coverage |
 | FE-015 | Create shared UI primitives — MoneyDisplay.vue, StatusBadge.vue, EmptyState.vue |
 | FE-016 | Create chart wrappers — LineChart.vue, BarChart.vue, PieChart.vue, DonutChart.vue |
+
+### Phase 2.5 — Shared design-system primitives
+| ID | Title |
+|----|-------|
+| FE-016a | Shared layout & data-display primitives (PageHeader, MetricCard, TrendBadge, SectionHeader, DataListCard, FormDialog, useConfirm) + MoneyDisplay size extension + sidebar group-toggle polish |
 
 ### Phase 3 — Dashboard
 | ID | Title |
@@ -164,22 +170,33 @@ Phase 1 (Stores: FE-008..012)
 Phase 2 (Layout: FE-013..016)
   └─ Depends on: Phase 0 (for type-check); can overlap with Phase 1
 
+Phase 2.5 (Shared design-system primitives: FE-016a)
+  └─ Depends on: Phase 2 complete (palette + base ui primitives)
+  └─ Front-loads PageHeader / MetricCard / DataListCard / FormDialog /
+     useConfirm so Phase 3+ CRUD/list views compose, not invent.
+  └─ Also rolls in sidebar group-toggle polish from Phase 2.
+
 Phase 3 (Dashboard: FE-017..020)
-  └─ Depends on: FE-009 (dashboard store), FE-016 (chart wrappers)
+  └─ Depends on: FE-009 (dashboard store), FE-016 (chart wrappers),
+     FE-016a (MetricCard, PageHeader, SectionHeader, DataListCard)
 
 Phase 4 (Monthly Report: FE-021..024)
-  └─ Depends on: FE-010 (cashFlow store), FE-016 (charts)
+  └─ Depends on: FE-010 (cashFlow store), FE-016 (charts),
+     FE-016a (PageHeader, FormDialog, useConfirm, DataListCard)
   └─ FE-022 (journal CRUD) depends on FE-021 (journal list)
 
 Phase 5 (Year Report: FE-025..027)
-  └─ Depends on: FE-011 (yearReport store), FE-016 (charts)
+  └─ Depends on: FE-011 (yearReport store), FE-016 (charts),
+     FE-016a (PageHeader, MetricCard, SectionHeader)
 
 Phase 6 (Assets: FE-028..033)
-  └─ Depends on: FE-012 (otherAssets store)
+  └─ Depends on: FE-012 (otherAssets store),
+     FE-016a (FormDialog, useConfirm, DataListCard)
   └─ FE-029 depends on FE-028 (stock list must exist before detail sub-tab)
 
 Phase 7 (Settings: FE-034..038)
-  └─ Depends on: FE-008 (setting store)
+  └─ Depends on: FE-008 (setting store),
+     FE-016a (FormDialog, useConfirm, DataListCard)
 
 Phase 8 (Utilities + Mock: FE-039..041)
   └─ FE-040 depends on all views done (mock data mirrors real API shapes)
@@ -200,3 +217,4 @@ Phase 8 (Utilities + Mock: FE-039..041)
 | 6 | MSW (`msw` npm package) added in Phase 8 only | Only needed for `build:mock`; adds 200 kB to dev install. Phase 8 ticket (FE-040) owns adding the dep and wiring the service worker. |
 | 7 | `vite.config.ts` base path `/networth/` kept as-is | Set for GitHub Pages deployment; no change needed |
 | 8 | `src/api/` filenames follow CLAUDE.md exactly: `setting.ts`, `cashFlow.ts`, `yearReport.ts`, `otherAssets.ts`, `dashboard.ts` | Canonical names from view/CLAUDE.md §3; utilities.ts is an approved addition (see #5) |
+| 9 | Insert FE-016a (Phase 2.5) before Phase 3 to front-load shared layout / data-display primitives matching `template.html` | Audited Phase 3+ tickets revealed recurring UI blocks (PageHeader, MetricCard, DataListCard, FormDialog) that would otherwise be re-invented per view. Designing once against the visual reference avoids per-view drift and removes the need for a follow-up polish pass. Sidebar group-toggle polish (flagged at end of Phase 2) is rolled in to keep all template.html alignment in one ticket. |
