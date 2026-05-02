@@ -84,6 +84,57 @@
       </template>
     </section>
 
+    <section class="flex flex-col gap-4">
+      <SectionHeader title="月度分析" />
+      <el-tabs v-model="activeChartTab">
+        <el-tab-pane label="收支預算" name="budget">
+          <el-skeleton v-if="store.expenditureBudgetLoading" :rows="4" animated />
+          <EmptyState
+            v-else-if="!store.expenditureBudget || store.expenditureBudget.rows.length === 0"
+            message="本月無預算資料"
+          />
+          <BarChart
+            v-else
+            :x-data="budgetChart.xData"
+            :series="budgetChart.series"
+            height="320px"
+          />
+        </el-tab-pane>
+        <el-tab-pane label="支出比例" name="expenditureRatio">
+          <el-skeleton v-if="store.expenditureRatioLoading" :rows="4" animated />
+          <EmptyState
+            v-else-if="!store.expenditureRatio || store.expenditureRatio.outer.length === 0"
+            message="本月無支出資料"
+          />
+          <DonutChart v-else :data="store.expenditureRatio.outer" height="320px" />
+        </el-tab-pane>
+        <el-tab-pane label="投資比例" name="investRatio">
+          <el-skeleton v-if="store.investRatioLoading" :rows="4" animated />
+          <EmptyState
+            v-else-if="!store.investRatio || store.investRatio.items.length === 0"
+            message="本月無投資資料"
+          />
+          <DonutChart v-else :data="store.investRatio.items" height="320px" />
+        </el-tab-pane>
+        <el-tab-pane label="負債" name="liability">
+          <el-skeleton v-if="store.liabilityLoading" :rows="4" animated />
+          <EmptyState
+            v-else-if="!store.liability || store.liability.items.length === 0"
+            message="本月無信用卡負債資料"
+          />
+          <el-table v-else :data="store.liability.items" border>
+            <el-table-column prop="credit_card_id" label="信用卡 ID" width="160" />
+            <el-table-column prop="credit_card_name" label="名稱" min-width="160" />
+            <el-table-column label="金額" width="200" align="right">
+              <template #default="{ row }">
+                <MoneyDisplay :amount="row.amount" :positive="false" size="sm" />
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+    </section>
+
     <FormDialog
       v-model="journalDialogVisible"
       :title="formMode === 'create' ? '新增日記帳' : '編輯日記帳'"
@@ -206,6 +257,8 @@ import SectionHeader from '@/components/ui/SectionHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
 import FormDialog from '@/components/ui/FormDialog.vue'
+import BarChart from '@/components/charts/BarChart.vue'
+import DonutChart from '@/components/charts/DonutChart.vue'
 import { useCashFlowStore } from '@/stores/cashFlow'
 import { createJournal, updateJournal, deleteJournal } from '@/api/cashFlow'
 import {
@@ -240,6 +293,42 @@ const totalExpense = computed(() =>
 )
 
 const netTotal = computed(() => totalIncome.value + totalExpense.value)
+
+// ─── Analytics tabs ────────────────────────────────────────────────────────
+type ChartTab = 'budget' | 'expenditureRatio' | 'investRatio' | 'liability'
+const activeChartTab = ref<ChartTab>('budget')
+const loadedTabs = ref<Set<ChartTab>>(new Set())
+
+async function loadChartTab(tab: ChartTab) {
+  if (tab === 'budget') await store.fetchExpenditureBudget()
+  else if (tab === 'expenditureRatio') await store.fetchExpenditureRatio()
+  else if (tab === 'investRatio') await store.fetchInvestRatio()
+  else if (tab === 'liability') await store.fetchLiability()
+  loadedTabs.value.add(tab)
+}
+
+watch(activeChartTab, (tab) => {
+  if (!loadedTabs.value.has(tab)) void loadChartTab(tab)
+})
+
+watch(
+  () => store.selectedMonth,
+  () => {
+    loadedTabs.value.clear()
+    void loadChartTab(activeChartTab.value)
+  },
+)
+
+const budgetChart = computed(() => {
+  const rows = store.expenditureBudget?.rows ?? []
+  return {
+    xData: rows.map((r) => r.action_main_type),
+    series: [
+      { name: '預算', data: rows.map((r) => r.expected) },
+      { name: '實際', data: rows.map((r) => Math.abs(r.actual)) },
+    ],
+  }
+})
 
 // ─── Selection caches ──────────────────────────────────────────────────────
 const accountGroups = ref<SelectionGroup[]>([])
@@ -432,5 +521,6 @@ async function handleDeleteJournal(id: number) {
 
 onMounted(() => {
   store.fetchJournals()
+  void loadChartTab(activeChartTab.value)
 })
 </script>
