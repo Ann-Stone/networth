@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col h-full">
     <!-- Logo -->
-    <div class="flex items-center h-14 px-4 border-b border-gray-700 shrink-0">
-      <span v-if="!collapsed" class="font-bold text-base tracking-wide truncate">
+    <div class="flex items-center h-14 px-4 border-b border-surface-dark shrink-0">
+      <span v-if="!collapsed" class="font-bold text-base tracking-wide truncate text-cream">
         Balance Sheet
       </span>
-      <span v-else class="font-bold text-base">BS</span>
+      <span v-else class="font-bold text-base text-cream">BS</span>
     </div>
 
     <!-- Navigation -->
@@ -14,7 +14,7 @@
         <!-- Group label -->
         <div
           v-if="!collapsed && item.type === 'group'"
-          class="px-2 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider"
+          class="px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-text"
         >
           {{ item.label }}
         </div>
@@ -22,7 +22,7 @@
         <!-- Nav item with children -->
         <template v-if="item.children">
           <button
-            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-text hover:bg-surface-dark hover:text-cream transition-colors"
             :class="{ 'justify-center': collapsed }"
             @click="toggleGroup(item.name)"
           >
@@ -30,7 +30,11 @@
               <component :is="item.icon" />
             </el-icon>
             <span v-if="!collapsed" class="flex-1 text-left">{{ item.label }}</span>
-            <el-icon v-if="!collapsed" class="text-xs transition-transform" :class="openGroups.has(item.name) ? 'rotate-90' : ''">
+            <el-icon
+              v-if="!collapsed"
+              class="text-xs transition-transform"
+              :class="openGroups.has(item.name) ? 'rotate-90' : ''"
+            >
               <ArrowRight />
             </el-icon>
           </button>
@@ -39,8 +43,12 @@
               v-for="child in item.children"
               :key="child.name"
               :to="child.path"
-              class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-700 hover:text-white transition-colors"
-              :class="{ 'bg-indigo-600 text-white': isActive(child.path) }"
+              class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
+              :class="
+                isActive(child.path)
+                  ? 'bg-primary/15 text-primary'
+                  : 'text-muted-text hover:bg-surface-dark hover:text-cream'
+              "
               @click="onNavClick"
             >
               <span class="w-1.5 h-1.5 rounded-full bg-current shrink-0" />
@@ -53,10 +61,12 @@
         <router-link
           v-else-if="item.type === 'link'"
           :to="item.path!"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
           :class="[
             { 'justify-center': collapsed },
-            { 'bg-indigo-600 text-white': isActive(item.path!) },
+            isActive(item.path!)
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-text hover:bg-surface-dark hover:text-cream',
           ]"
           @click="onNavClick"
         >
@@ -75,14 +85,20 @@ import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import {
-  Odometer, TrendCharts, Document, Coin, Setting, ArrowRight,
+  Odometer,
+  TrendCharts,
+  Document,
+  Coin,
+  Setting,
+  Tools,
+  ArrowRight,
 } from '@element-plus/icons-vue'
 
 defineProps<{ collapsed: boolean }>()
 
 const route = useRoute()
 const appStore = useAppStore()
-const openGroups = ref<Set<string>>(new Set(['yearReport', 'setting']))
+const openGroups = ref<Set<string>>(new Set(['monthlyReport', 'yearReport', 'setting', 'utilities']))
 
 const menuItems = [
   {
@@ -93,11 +109,13 @@ const menuItems = [
     icon: Odometer,
   },
   {
-    type: 'link',
+    type: 'group',
     name: 'monthlyReport',
-    label: '月報現金流',
-    path: '/monthly-report/cash-flow',
+    label: '月報',
     icon: TrendCharts,
+    children: [
+      { name: 'cashFlow', label: '現金流', path: '/monthly-report/cash-flow' },
+    ],
   },
   {
     type: 'group',
@@ -113,7 +131,7 @@ const menuItems = [
   {
     type: 'link',
     name: 'otherAssets',
-    label: '資產負債管理',
+    label: '資產管理',
     path: '/other-assets',
     icon: Coin,
   },
@@ -128,6 +146,15 @@ const menuItems = [
       { name: 'settingRemind', label: '提醒設定', path: '/setting/remind' },
     ],
   },
+  {
+    type: 'group',
+    name: 'utilities',
+    label: '工具',
+    icon: Tools,
+    children: [
+      { name: 'utilitiesImport', label: '資料匯入', path: '/utilities/import' },
+    ],
+  },
 ]
 
 const toggleGroup = (name: string) => {
@@ -138,7 +165,7 @@ const toggleGroup = (name: string) => {
   }
 }
 
-const isActive = (path: string) => route.path === path
+const isActive = (path: string) => route.path === path || route.path.startsWith(path + '/')
 
 const onNavClick = () => {
   if (appStore.isMobile) {

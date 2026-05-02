@@ -2,7 +2,7 @@
   <!-- Desktop sidebar -->
   <aside
     v-if="!appStore.isMobile"
-    class="fixed left-0 top-0 h-full z-20 bg-gray-900 text-white transition-all duration-300 flex flex-col"
+    class="fixed left-0 top-0 h-full z-20 bg-bg-dark text-cream border-r border-surface-dark transition-all duration-300 flex flex-col"
     :class="appStore.sidebarCollapsed ? 'w-16' : 'w-[220px]'"
   >
     <SidebarContent :collapsed="appStore.sidebarCollapsed" />
@@ -11,7 +11,7 @@
   <!-- Mobile drawer -->
   <aside
     v-else
-    class="fixed left-0 top-0 h-full z-40 w-[220px] bg-gray-900 text-white transition-transform duration-300 flex flex-col"
+    class="fixed left-0 top-0 h-full z-40 w-[220px] bg-bg-dark text-cream border-r border-surface-dark transition-transform duration-300 flex flex-col"
     :class="appStore.sidebarDrawerVisible ? 'translate-x-0' : '-translate-x-full'"
   >
     <SidebarContent :collapsed="false" />

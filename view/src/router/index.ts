@@ -69,6 +69,13 @@ const router = createRouter({
           component: () => import('@/views/setting/RemindSettingView.vue'),
           meta: { title: '提醒設定', breadcrumb: ['設定', '提醒'] },
         },
+        // Utilities
+        {
+          path: 'utilities/import',
+          name: 'UtilitiesImport',
+          component: () => import('@/views/utilities/ImportView.vue'),
+          meta: { title: '資料匯入', breadcrumb: ['工具', '資料匯入'] },
+        },
       ],
     },
     {
