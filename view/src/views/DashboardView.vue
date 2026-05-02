@@ -118,6 +118,65 @@
         </el-form>
       </FormDialog>
     </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="flex flex-col gap-4">
+        <SectionHeader :title="`本月預算 (${currentMonth})`" />
+        <el-skeleton v-if="store.budgetLoading" :rows="6" animated />
+        <EmptyState
+          v-else-if="!store.budget || store.budget.lines.length === 0"
+          message="本月尚無預算資料"
+        />
+        <div v-else class="flex flex-col gap-4">
+          <div
+            class="rounded-xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-primary/5 p-4"
+          >
+            <BarChart
+              :x-data="budgetXData"
+              :series="budgetSeries"
+              height="240px"
+            />
+          </div>
+          <el-table :data="store.budget.lines" size="small" stripe>
+            <el-table-column prop="category" label="類別" />
+            <el-table-column label="預算" align="right">
+              <template #default="{ row }">
+                <MoneyDisplay :amount="row.planned" size="sm" />
+              </template>
+            </el-table-column>
+            <el-table-column label="實際" align="right">
+              <template #default="{ row }">
+                <MoneyDisplay :amount="row.actual" size="sm" />
+              </template>
+            </el-table-column>
+            <el-table-column prop="usage_pct" label="使用率" align="right" width="100">
+              <template #default="{ row }">
+                {{ row.usage_pct.toFixed(1) }}%
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <SectionHeader :title="`本年贈與 (${currentYear})`" />
+        <el-skeleton v-if="store.giftsLoading" :rows="4" animated />
+        <EmptyState v-else-if="store.gifts.length === 0" message="本年尚無贈與紀錄" />
+        <el-table v-else :data="store.gifts" size="small" stripe>
+          <el-table-column prop="owner" label="對象" />
+          <el-table-column label="金額" align="right">
+            <template #default="{ row }">
+              <MoneyDisplay :amount="row.amount" size="sm" />
+            </template>
+          </el-table-column>
+          <el-table-column prop="rate" label="額度比例" align="right" width="120">
+            <template #default="{ row }">
+              {{ row.rate.toFixed(2) }}%
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -135,6 +194,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import FormDialog from '@/components/ui/FormDialog.vue'
+import BarChart from '@/components/charts/BarChart.vue'
 import { useDashboardStore, type SummaryType } from '@/stores/dashboard'
 import { createTarget, updateTarget, deleteTarget } from '@/api/dashboard'
 import type { DashboardSummary, TargetSetting } from '@/types/models'
@@ -277,11 +337,26 @@ async function handleDeleteTarget(targetId: string) {
   await store.fetchTargets()
 }
 
+// Budget + Gifts --------------------------------------------------------------
+const currentMonth = dayjs().format('YYYYMM')
+const currentYear = dayjs().year()
+
+const budgetXData = computed(() => store.budget?.lines.map((l) => l.category) ?? [])
+const budgetSeries = computed(() => {
+  const lines = store.budget?.lines ?? []
+  return [
+    { name: '預算', data: lines.map((l) => l.planned) },
+    { name: '實際', data: lines.map((l) => l.actual) },
+  ]
+})
+
 onMounted(() => {
   for (const type of summaryTypes) {
     store.fetchSummary({ type, period })
   }
   store.fetchAlarms()
   store.fetchTargets()
+  store.fetchBudget({ type: 'monthly', period: currentMonth })
+  store.fetchGifts(currentYear)
 })
 </script>
