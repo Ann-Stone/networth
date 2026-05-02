@@ -15,26 +15,40 @@ import type {
   TargetSetting,
 } from '@/types/models'
 
+export type SummaryType = 'spending' | 'freedom_ratio' | 'asset_debt_trend'
+
 export interface DashboardSummaryParams {
-  type: string
+  type: SummaryType
   period: string
 }
 
 export interface DashboardBudgetParams {
-  type: string
+  type: 'monthly' | 'yearly'
   period: string
 }
 
+const emptySummaryMap = (): Record<SummaryType, DashboardSummary | null> => ({
+  spending: null,
+  freedom_ratio: null,
+  asset_debt_trend: null,
+})
+
+const emptyLoadingMap = (): Record<SummaryType, boolean> => ({
+  spending: false,
+  freedom_ratio: false,
+  asset_debt_trend: false,
+})
+
 export const useDashboardStore = defineStore('dashboard', () => {
-  // Summary
-  const summary = ref<DashboardSummary | null>(null)
-  const summaryLoading = ref(false)
+  // Summary — keyed by SummaryType variant
+  const summaries = ref<Record<SummaryType, DashboardSummary | null>>(emptySummaryMap())
+  const summariesLoading = ref<Record<SummaryType, boolean>>(emptyLoadingMap())
   async function fetchSummary(params: DashboardSummaryParams) {
-    summaryLoading.value = true
+    summariesLoading.value[params.type] = true
     try {
-      summary.value = await getDashboardSummary(params)
+      summaries.value[params.type] = await getDashboardSummary(params)
     } finally {
-      summaryLoading.value = false
+      summariesLoading.value[params.type] = false
     }
   }
 
@@ -87,8 +101,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
   }
 
   return {
-    summary,
-    summaryLoading,
+    summaries,
+    summariesLoading,
     fetchSummary,
     alarms,
     alarmsLoading,
