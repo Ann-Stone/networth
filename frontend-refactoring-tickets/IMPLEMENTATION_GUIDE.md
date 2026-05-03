@@ -230,9 +230,25 @@ Before declaring the session done:
 6. **`POST_FRONTEND_TODO.md` §3 updated** for every row that any ticket
    in this phase declared as "touched". If any row remains `_pending_`,
    the phase is **not** done.
-7. Commit(s) pushed, one per ticket.
-8. Session summary lists: tickets completed, type-check status,
-   §3 rows updated this phase, any flagged gaps.
+7. **Dark-mode visual sanity** — for every view this phase added or
+   modified, open the page in the default dark theme and confirm there
+   are no reverse-highlight (white / light-mode) blocks bleeding through
+   on Element Plus components. Hot spots to audit:
+   - `el-table` zebra rows, header, hover state
+   - `el-input` / `el-input-number` (including disabled state and the
+     ▲▼ control buttons)
+   - `el-select` dropdown panel and option hover
+   - `el-dialog` body and form-item backgrounds
+   - `el-tabs` active/inactive bar
+   - `el-popconfirm` / `el-message-box` panels
+
+   Any unmapped Element Plus CSS variable found this way is fixed in
+   `view/src/assets/main.css` `html.dark { … }` block (not via per-view
+   overrides). Capture a screenshot of the worst offender before / after
+   the fix in the session summary.
+8. Commit(s) pushed, one per ticket.
+9. Session summary lists: tickets completed, type-check status,
+   §3 rows updated this phase, dark-mode audit result, any flagged gaps.
 
 ---
 
