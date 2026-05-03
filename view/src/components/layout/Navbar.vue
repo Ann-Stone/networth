@@ -1,8 +1,8 @@
 <template>
-  <header class="h-14 bg-white dark:bg-surface-dark border-b border-gray-200 dark:border-surface-dark flex items-center px-4 gap-4 shrink-0">
+  <header class="h-14 bg-surface-container border-b border-outline-variant flex items-center px-4 gap-4 shrink-0">
     <!-- Hamburger / toggle -->
     <button
-      class="p-1.5 rounded-lg text-gray-500 dark:text-muted-text hover:bg-gray-100 dark:hover:bg-primary/10 transition-colors"
+      class="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors"
       @click="appStore.toggleSidebar()"
     >
       <el-icon class="text-xl"><Expand v-if="appStore.sidebarCollapsed" /><Fold v-else /></el-icon>

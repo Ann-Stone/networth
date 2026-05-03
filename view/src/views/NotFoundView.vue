@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col items-center justify-center h-full gap-4 text-gray-500">
-    <p class="text-6xl font-bold text-gray-200">404</p>
+  <div class="flex flex-col items-center justify-center h-full gap-4 text-on-surface-variant">
+    <p class="text-6xl font-bold text-outline-variant">404</p>
     <p class="text-xl">找不到此頁面</p>
     <el-button type="primary" @click="router.push('/dashboard')">返回首頁</el-button>
   </div>

@@ -1,6 +1,6 @@
 <template>
-  <div class="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark pb-3">
-    <h2 class="text-slate-900 dark:text-cream text-xl font-bold leading-tight tracking-tight">
+  <div class="flex items-center justify-between border-b border-outline-variant pb-3">
+    <h2 class="text-on-surface text-xl font-bold leading-tight tracking-tight">
       {{ title }}
     </h2>
     <slot name="actions">

@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col h-full">
     <!-- Logo -->
-    <div class="flex items-center h-14 px-4 border-b border-surface-dark shrink-0">
-      <span v-if="!collapsed" class="font-bold text-base tracking-wide truncate text-cream">
+    <div class="flex items-center h-14 px-4 border-b border-outline-variant shrink-0">
+      <span v-if="!collapsed" class="font-bold text-base tracking-wide truncate text-on-surface">
         Balance Sheet
       </span>
-      <span v-else class="font-bold text-base text-cream">BS</span>
+      <span v-else class="font-bold text-base text-on-surface">BS</span>
     </div>
 
     <!-- Navigation -->
@@ -14,7 +14,7 @@
         <!-- Group label -->
         <div
           v-if="!collapsed && item.type === 'group'"
-          class="px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-text"
+          class="px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
         >
           {{ item.label }}
         </div>
@@ -36,8 +36,8 @@
               class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
               :class="
                 isActive(child.path)
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-muted-text hover:bg-surface-dark hover:text-cream'
+                  ? 'bg-primary-container/15 text-primary-container'
+                  : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               "
               @click="onNavClick"
             >
@@ -55,8 +55,8 @@
           :class="[
             { 'justify-center': collapsed },
             isActive(item.path!)
-              ? 'bg-primary/15 text-primary'
-              : 'text-muted-text hover:bg-surface-dark hover:text-cream',
+              ? 'bg-primary-container/15 text-primary-container'
+              : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
           ]"
           @click="onNavClick"
         >

@@ -13,6 +13,8 @@ import {
   LegendComponent,
 } from 'echarts/components'
 import VChart from 'vue-echarts'
+import { useAppStore } from '@/stores/app'
+import { getChartColors } from '@/utils/chartTheme'
 
 use([
   CanvasRenderer,
@@ -31,17 +33,22 @@ const props = withDefaults(
   { height: '300px' },
 )
 
-const option = computed(() => ({
-  color: ['#8fa79b', '#b58d8d', '#a8a29e', '#6b8e82', '#c4967a'],
-  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-  legend: { data: props.series.map((s) => s.name) },
-  grid: { left: 40, right: 20, top: 40, bottom: 30, containLabel: true },
-  xAxis: { type: 'category', data: props.xData },
-  yAxis: { type: 'value' },
-  series: props.series.map((s) => ({
-    name: s.name,
-    type: 'bar',
-    data: s.data,
-  })),
-}))
+const appStore = useAppStore()
+
+const option = computed(() => {
+  void appStore.theme // reactive dependency — recomputes on theme toggle
+  return {
+    color: getChartColors(),
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: props.series.map((s) => s.name) },
+    grid: { left: 40, right: 20, top: 40, bottom: 30, containLabel: true },
+    xAxis: { type: 'category', data: props.xData },
+    yAxis: { type: 'value' },
+    series: props.series.map((s) => ({
+      name: s.name,
+      type: 'bar',
+      data: s.data,
+    })),
+  }
+})
 </script>

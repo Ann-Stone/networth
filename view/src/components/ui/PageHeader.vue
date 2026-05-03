@@ -1,10 +1,10 @@
 <template>
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div class="flex flex-col gap-1">
-      <h1 class="text-slate-900 dark:text-cream text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight">
+      <h1 class="text-on-surface text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight">
         {{ title }}
       </h1>
-      <p v-if="subtitle" class="text-slate-500 dark:text-muted-text text-base">
+      <p v-if="subtitle" class="text-on-surface-variant text-base">
         {{ subtitle }}
       </p>
     </div>

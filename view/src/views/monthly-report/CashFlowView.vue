@@ -65,18 +65,18 @@
         </el-table>
 
         <div
-          class="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-xl border border-slate-200 dark:border-primary/5 bg-white dark:bg-surface-dark p-6"
+          class="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-xl border border-outline-variant bg-surface-container p-6"
         >
           <div class="flex flex-col gap-1">
-            <p class="text-slate-500 dark:text-muted-text text-xs uppercase tracking-wider">本月收入</p>
+            <p class="text-on-surface-variant text-xs uppercase tracking-wider">本月收入</p>
             <MoneyDisplay :amount="totalIncome" :positive="true" size="lg" />
           </div>
           <div class="flex flex-col gap-1">
-            <p class="text-slate-500 dark:text-muted-text text-xs uppercase tracking-wider">本月支出</p>
+            <p class="text-on-surface-variant text-xs uppercase tracking-wider">本月支出</p>
             <MoneyDisplay :amount="totalExpense" :positive="false" size="lg" />
           </div>
           <div class="flex flex-col gap-1">
-            <p class="text-slate-500 dark:text-muted-text text-xs uppercase tracking-wider">本月淨額</p>
+            <p class="text-on-surface-variant text-xs uppercase tracking-wider">本月淨額</p>
             <MoneyDisplay
               :amount="netTotal"
               :positive="netTotal > 0 ? true : netTotal < 0 ? false : null"
@@ -196,7 +196,7 @@
         </el-form-item>
         <el-form-item label="自動抓取">
           <el-switch v-model="stockPriceForm.trigger_yfinance" />
-          <p class="text-xs text-slate-400 dark:text-muted-text ml-3">
+          <p class="text-xs text-on-surface-variant ml-3">
             開啟後會以 yfinance 收盤價覆寫
           </p>
         </el-form-item>
@@ -299,7 +299,7 @@
             controls-position="right"
             style="width: 100%"
           />
-          <p class="text-xs text-slate-400 dark:text-muted-text mt-1">
+          <p class="text-xs text-on-surface-variant mt-1">
             正數 = 收入,負數 = 支出
           </p>
         </el-form-item>

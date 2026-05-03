@@ -13,6 +13,8 @@ import {
   GraphicComponent,
 } from 'echarts/components'
 import VChart from 'vue-echarts'
+import { useAppStore } from '@/stores/app'
+import { getChartColors } from '@/utils/chartTheme'
 
 use([
   CanvasRenderer,
@@ -31,7 +33,15 @@ const props = withDefaults(
   { height: '300px' },
 )
 
+const appStore = useAppStore()
+
 const option = computed(() => {
+  void appStore.theme // reactive dependency — recomputes on theme toggle
+
+  const centerFill = getComputedStyle(document.documentElement)
+    .getPropertyValue('--ds-primary-container')
+    .trim()
+
   const graphic = props.centerText
     ? [
         {
@@ -40,7 +50,7 @@ const option = computed(() => {
           top: 'middle',
           style: {
             text: props.centerText,
-            fill: '#8fa79b',
+            fill: centerFill,
             fontSize: 18,
             fontWeight: 600,
           },
@@ -49,7 +59,7 @@ const option = computed(() => {
     : undefined
 
   return {
-    color: ['#8fa79b', '#b58d8d', '#a8a29e', '#6b8e82', '#c4967a'],
+    color: getChartColors(),
     tooltip: { trigger: 'item' },
     legend: { bottom: 0 },
     graphic,

@@ -1,9 +1,9 @@
 <template>
   <div
-    class="flex flex-col gap-3 rounded-xl p-8 bg-white dark:bg-surface-dark border border-slate-200 dark:border-primary/5 shadow-sm"
+    class="flex flex-col gap-3 rounded-xl p-8 bg-surface-container border border-outline-variant shadow-sm"
   >
     <div class="flex justify-between items-start">
-      <p class="text-slate-500 dark:text-muted-text text-sm font-semibold uppercase tracking-wider">
+      <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">
         {{ label }}
       </p>
       <el-icon v-if="icon" :class="iconClass">
@@ -15,7 +15,7 @@
       :amount="amount"
       :currency="currency"
       size="lg"
-      class="text-slate-900 dark:text-cream"
+      class="text-on-surface"
     />
 
     <div v-if="hasDelta" class="flex items-center gap-1.5 mt-2">
@@ -26,7 +26,7 @@
       />
       <span
         v-if="deltaLabel"
-        class="text-slate-400 dark:text-muted-text text-xs"
+        class="text-on-surface-variant text-xs"
       >
         {{ deltaLabel }}
       </span>
@@ -56,7 +56,7 @@ const props = withDefaults(
 )
 
 const iconClass = computed(() =>
-  props.tone === 'rose' ? 'text-accent-rose' : 'text-primary',
+  props.tone === 'rose' ? 'text-secondary' : 'text-primary',
 )
 
 const badgeTone = computed<'positive' | 'negative' | 'auto'>(() => {

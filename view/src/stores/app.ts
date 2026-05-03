@@ -14,8 +14,13 @@ function readStoredTheme(): Theme {
 function applyThemeClass(theme: Theme) {
   if (typeof document === 'undefined') return
   const root = document.documentElement
-  if (theme === 'dark') root.classList.add('dark')
-  else root.classList.remove('dark')
+  if (theme === 'dark') {
+    root.classList.add('dark')
+    root.classList.remove('light')
+  } else {
+    root.classList.remove('dark')
+    root.classList.add('light')
+  }
 }
 
 export const useAppStore = defineStore('app', () => {

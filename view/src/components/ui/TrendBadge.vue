@@ -31,7 +31,7 @@ const isPositive = computed(() => {
 const toneClass = computed(() =>
   isPositive.value
     ? 'text-primary bg-primary/10'
-    : 'text-accent-rose bg-accent-rose/10',
+    : 'text-secondary bg-secondary/10',
 )
 
 const formatted = computed(() => {

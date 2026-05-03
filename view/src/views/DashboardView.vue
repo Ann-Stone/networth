@@ -14,17 +14,17 @@
         />
         <div
           v-else
-          class="flex flex-col gap-3 rounded-xl p-8 bg-white dark:bg-surface-dark border border-slate-200 dark:border-primary/5 shadow-sm"
+          class="flex flex-col gap-3 rounded-xl p-8 bg-surface-container border border-outline-variant shadow-sm"
         >
-          <p class="text-slate-500 dark:text-muted-text text-sm font-semibold uppercase tracking-wider">
+          <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">
             {{ card.label }}
           </p>
-          <span class="tabular-nums text-3xl font-bold text-neutral text-slate-900 dark:text-cream">
+          <span class="tabular-nums text-3xl font-bold text-on-surface">
             {{ formatPercent(card.value) }}
           </span>
           <div v-if="card.deltaPercent !== undefined" class="flex items-center gap-1.5 mt-2">
             <TrendBadge :value="card.deltaPercent" />
-            <span v-if="card.deltaLabel" class="text-slate-400 dark:text-muted-text text-xs">
+            <span v-if="card.deltaLabel" class="text-on-surface-variant text-xs">
               {{ card.deltaLabel }}
             </span>
           </div>
@@ -48,7 +48,7 @@
             >
               {{ alarm.date }}
             </span>
-            <p class="text-slate-800 dark:text-cream text-sm">{{ alarm.content }}</p>
+            <p class="text-on-surface text-sm">{{ alarm.content }}</p>
           </div>
         </div>
       </DataListCard>
@@ -71,7 +71,7 @@
           class="flex items-center justify-between px-6 py-4"
         >
           <div class="flex flex-col gap-1">
-            <p class="text-slate-800 dark:text-cream text-sm font-semibold">
+            <p class="text-on-surface text-sm font-semibold">
               {{ t.distinct_number }} · {{ t.target_year }}
             </p>
             <MoneyDisplay :amount="t.setting_value" size="sm" />
@@ -129,7 +129,7 @@
         />
         <div v-else class="flex flex-col gap-4">
           <div
-            class="rounded-xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-primary/5 p-4"
+            class="rounded-xl bg-surface-container border border-outline-variant p-4"
           >
             <BarChart
               :x-data="budgetXData"

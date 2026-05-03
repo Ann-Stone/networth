@@ -5,92 +5,196 @@
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/utilities" layer(utilities);
 
-/* Class-based dark mode: enables `dark:` variants when html has class="dark". */
+/* ─── Dark-mode variant (class-based on <html>) ──────────── */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ─── Design-system token registration (Tailwind @theme) ─── */
 /*
- * Warm-palette color tokens registered with Tailwind so utilities like
- * `bg-surface-dark`, `text-cream`, and their `dark:` variants are auto-generated.
+ * `inline` mode: Tailwind emits var() references in generated utilities
+ * instead of resolving to static hex values. This is required for runtime
+ * dark ↔ light switching without a rebuild.
  */
-@theme {
-  --color-bg-dark: #1c1b1a;
-  --color-surface-dark: #2a2826;
-  --color-cream: #e8e4df;
-  --color-muted-text: #a8a29e;
-  --color-accent-rose: #b58d8d;
-  --color-primary: #8fa79b;
-  --color-background-dark: #1c1b1a;
+@theme inline {
+  /* Surfaces */
+  --color-surface:                   var(--ds-surface);
+  --color-surface-dim:               var(--ds-surface-dim);
+  --color-surface-bright:            var(--ds-surface-bright);
+  --color-surface-container-lowest:  var(--ds-surface-container-lowest);
+  --color-surface-container-low:     var(--ds-surface-container-low);
+  --color-surface-container:         var(--ds-surface-container);
+  --color-surface-container-high:    var(--ds-surface-container-high);
+  --color-surface-container-highest: var(--ds-surface-container-highest);
+  /* On-surface text */
+  --color-on-surface:                var(--ds-on-surface);
+  --color-on-surface-variant:        var(--ds-on-surface-variant);
+  /* Outline */
+  --color-outline:                   var(--ds-outline);
+  --color-outline-variant:           var(--ds-outline-variant);
+  /* Brand — primary (light sage) + primary-container (medium sage) */
+  --color-primary:                   var(--ds-primary);
+  --color-on-primary:                var(--ds-on-primary);
+  --color-primary-container:         var(--ds-primary-container);
+  --color-on-primary-container:      var(--ds-on-primary-container);
+  /* Brand — secondary (dusty rose) */
+  --color-secondary:                 var(--ds-secondary);
+  --color-on-secondary:              var(--ds-on-secondary);
+  --color-secondary-container:       var(--ds-secondary-container);
+  --color-on-secondary-container:    var(--ds-on-secondary-container);
+  /* Semantic signals */
+  --color-error:                     var(--ds-error);
+  --color-positive:                  var(--ds-positive);
+  --color-negative:                  var(--ds-negative);
+  --color-neutral-text:              var(--ds-neutral-text);
+  /* Background */
+  --color-background:                var(--ds-background);
+  --color-on-background:             var(--ds-on-background);
 }
 
-/* ─── Element Plus CSS Variables Override (warm sage palette) ─ */
+/* ─── Semantic design-system tokens — dark default ───────── */
+/*
+ * Dark is the primary mode; `:root` holds dark values.
+ * `html.light` overrides every surface/text/outline token
+ * with warm-neutral light equivalents (MD3-derived).
+ */
 :root {
-  --el-color-primary: #8fa79b;
-  --el-color-primary-light-3: #a8bcb6;
-  --el-color-primary-light-5: #c4d4cf;
-  --el-color-primary-light-7: #dde8e5;
-  --el-color-primary-light-9: #f0f5f3;
-  --el-color-primary-dark-2: #72978a;
-  --el-border-radius-base: 6px;
-  --el-border-radius-small: 4px;
-  --el-border-radius-round: 20px;
-  --el-font-size-base: 14px;
-  --el-font-size-small: 13px;
+  /* ── Surfaces ──────────────────────────────────────────── */
+  --ds-surface:                   #121413;
+  --ds-surface-dim:               #121413;
+  --ds-surface-bright:            #383938;
+  --ds-surface-container-lowest:  #0d0e0e;
+  --ds-surface-container-low:     #1b1c1b;
+  --ds-surface-container:         #1f201f;
+  --ds-surface-container-high:    #292a29;
+  --ds-surface-container-highest: #343534;
+  --ds-background:                #121413;
 
-  /* Warm-palette tokens (also used in light mode for accent + text helpers) */
-  --bg-light: #f6f7f8;
-  --bg-dark: #1c1b1a;
-  --surface-dark: #2a2826;
-  --cream: #e8e4df;
-  --muted-text: #a8a29e;
-  --accent-rose: #b58d8d;
+  /* ── On-surface text ───────────────────────────────────── */
+  --ds-on-surface:                #e3e2e0;
+  --ds-on-surface-variant:        #c2c8c3;
+  --ds-on-background:             #e3e2e0;
+
+  /* ── Outlines ──────────────────────────────────────────── */
+  --ds-outline:                   #8c928e;
+  --ds-outline-variant:           #424845;
+
+  /* ── Brand — primary ───────────────────────────────────── */
+  --ds-primary:                   #b3ccbf;
+  --ds-on-primary:                #1f352c;
+  --ds-primary-container:         #8fa79b;
+  --ds-on-primary-container:      #273c33;
+
+  /* ── Brand — secondary ─────────────────────────────────── */
+  --ds-secondary:                 #e8bcbc;
+  --ds-on-secondary:              #452929;
+  --ds-secondary-container:       #614141;
+  --ds-on-secondary-container:    #d9aeae;
+
+  /* ── Error + semantic signals ──────────────────────────── */
+  --ds-error:                     #ffb4ab;
+  --ds-on-error:                  #690005;
+  --ds-error-container:           #93000a;
+  --ds-positive:                  #81c784;
+  --ds-negative:                  #e8bcbc;   /* mirrors secondary / dusty rose */
+  --ds-neutral-text:              #8c928e;
+
+  /* ── Element Plus overrides (referenced via --ds-* tokens) */
+  --el-color-primary:             var(--ds-primary-container);
+  --el-color-primary-light-3:     color-mix(in srgb, var(--ds-primary-container) 70%, white);
+  --el-color-primary-light-5:     color-mix(in srgb, var(--ds-primary-container) 50%, white);
+  --el-color-primary-light-7:     color-mix(in srgb, var(--ds-primary-container) 30%, white);
+  --el-color-primary-light-9:     color-mix(in srgb, var(--ds-primary-container) 10%, white);
+  --el-color-primary-dark-2:      color-mix(in srgb, var(--ds-primary-container) 80%, black);
+  --el-border-radius-base:        6px;
+  --el-border-radius-small:       4px;
+  --el-border-radius-round:       20px;
+  --el-font-size-base:            14px;
+  --el-font-size-small:           13px;
+  --el-bg-color:                  var(--ds-surface-container);
+  --el-bg-color-page:             var(--ds-surface);
+  --el-bg-color-overlay:          var(--ds-surface-container);
+  --el-text-color-primary:        var(--ds-on-surface);
+  --el-text-color-regular:        var(--ds-on-surface);
+  --el-text-color-secondary:      var(--ds-on-surface-variant);
+  --el-border-color:              var(--ds-outline-variant);
+  --el-border-color-light:        var(--ds-outline-variant);
+  --el-border-color-lighter:      var(--ds-outline-variant);
+  --el-border-color-extra-light:  var(--ds-outline-variant);
+  --el-fill-color-blank:          var(--ds-surface-container);
+  --el-fill-color:                var(--ds-surface-container-high);
+  --el-fill-color-light:          var(--ds-surface-container-high);
+  --el-fill-color-lighter:        var(--ds-surface-container-low);
+  --el-fill-color-dark:           var(--ds-surface-container-highest);
+  --el-fill-color-darker:         var(--ds-surface-bright);
+  --el-disabled-bg-color:         var(--ds-surface-container-low);
+  --el-disabled-text-color:       var(--ds-outline);
+  --el-disabled-border-color:     var(--ds-outline-variant);
+  --el-table-bg-color:            var(--ds-surface-container);
+  --el-table-tr-bg-color:         var(--ds-surface-container);
+  --el-table-header-bg-color:     var(--ds-surface-container-high);
+  --el-table-row-hover-bg-color:  var(--ds-surface-container-high);
+  --el-table-border-color:        var(--ds-outline-variant);
+  --el-table-header-text-color:   var(--ds-on-surface);
+  --el-table-text-color:          var(--ds-on-surface);
+  --el-table-fixed-box-shadow:    none;
 }
 
-/* ─── Dark mode overrides ─────────────────────────────────── */
-html.dark {
-  --bg-dark: #1c1b1a;
-  --surface-dark: #2a2826;
-  --cream: #e8e4df;
-  --muted-text: #a8a29e;
-  --accent-rose: #b58d8d;
+/* ─── Light mode overrides ───────────────────────────────── */
+html.light {
+  --ds-surface:                   #f4f6f4;
+  --ds-surface-dim:               #d8dbd8;
+  --ds-surface-bright:            #f4f6f4;
+  --ds-surface-container-lowest:  #ffffff;
+  --ds-surface-container-low:     #eef1ee;
+  --ds-surface-container:         #e8ebe8;
+  --ds-surface-container-high:    #e2e6e2;
+  --ds-surface-container-highest: #dce0dc;
+  --ds-background:                #f4f6f4;
+  --ds-on-surface:                #181d1a;
+  --ds-on-surface-variant:        #404944;
+  --ds-on-background:             #181d1a;
+  --ds-outline:                   #717870;
+  --ds-outline-variant:           #c1c9c2;
+  --ds-primary:                   #4d6359;
+  --ds-on-primary:                #ffffff;
+  --ds-primary-container:         #cfe8db;
+  --ds-on-primary-container:      #091f17;
+  --ds-secondary:                 #765656;
+  --ds-on-secondary:              #ffffff;
+  --ds-secondary-container:       #ffdad9;
+  --ds-on-secondary-container:    #2d1415;
+  --ds-positive:                  #2e7d32;
+  --ds-negative:                  #c62828;
+  --ds-neutral-text:              #717870;
 
-  /* Element Plus dark surface mapping */
-  --el-bg-color: #2a2826;
-  --el-bg-color-page: #1c1b1a;
-  --el-bg-color-overlay: #2a2826;
-  --el-text-color-primary: #e8e4df;
-  --el-text-color-regular: #e8e4df;
-  --el-text-color-secondary: #a8a29e;
-  --el-border-color: #3a3835;
-  --el-border-color-light: #3a3835;
-  --el-border-color-lighter: #3a3835;
-  --el-border-color-extra-light: #3a3835;
-  --el-fill-color-blank: #2a2826;
-  --el-fill-color: #34322f;
-  --el-fill-color-light: #34322f;
-  --el-fill-color-lighter: #2f2d2b;
-  --el-fill-color-dark: #3a3835;
-  --el-fill-color-darker: #45423f;
-  --el-disabled-bg-color: #262422;
-  --el-disabled-text-color: #6f6b66;
-  --el-disabled-border-color: #3a3835;
-
-  /* Tables */
-  --el-table-bg-color: #2a2826;
-  --el-table-tr-bg-color: #2a2826;
-  --el-table-header-bg-color: #34322f;
-  --el-table-row-hover-bg-color: #34322f;
-  --el-table-border-color: #3a3835;
-  --el-table-header-text-color: #e8e4df;
-  --el-table-text-color: #e8e4df;
-  --el-table-fixed-box-shadow: none;
+  --el-bg-color:                  var(--ds-surface-container);
+  --el-bg-color-page:             var(--ds-background);
+  --el-bg-color-overlay:          var(--ds-surface-container-lowest);
+  --el-text-color-primary:        var(--ds-on-surface);
+  --el-text-color-regular:        var(--ds-on-surface);
+  --el-text-color-secondary:      var(--ds-on-surface-variant);
+  --el-border-color:              var(--ds-outline-variant);
+  --el-border-color-light:        var(--ds-outline-variant);
+  --el-border-color-lighter:      var(--ds-outline-variant);
+  --el-border-color-extra-light:  var(--ds-outline-variant);
+  --el-fill-color-blank:          var(--ds-surface-container-lowest);
+  --el-fill-color:                var(--ds-surface-container);
+  --el-fill-color-light:          var(--ds-surface-container-low);
+  --el-fill-color-lighter:        var(--ds-surface-container-lowest);
+  --el-fill-color-dark:           var(--ds-surface-container-high);
+  --el-fill-color-darker:         var(--ds-surface-container-highest);
+  --el-disabled-bg-color:         var(--ds-surface-container-low);
+  --el-disabled-text-color:       var(--ds-outline);
+  --el-disabled-border-color:     var(--ds-outline-variant);
+  --el-table-bg-color:            var(--ds-surface-container-lowest);
+  --el-table-tr-bg-color:         var(--ds-surface-container-lowest);
+  --el-table-header-bg-color:     var(--ds-surface-container-low);
+  --el-table-row-hover-bg-color:  var(--ds-surface-container-low);
+  --el-table-border-color:        var(--ds-outline-variant);
+  --el-table-header-text-color:   var(--ds-on-surface);
+  --el-table-text-color:          var(--ds-on-surface);
 }
 
-html.dark body {
-  background-color: #1c1b1a;
-  color: #e8e4df;
-}
-
-/* ─── Global Base ─────────────────────────────────────────── */
+/* ─── Base ───────────────────────────────────────────────── */
 html, body, #app {
   height: 100%;
   margin: 0;
@@ -98,68 +202,30 @@ html, body, #app {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC',
-    'Microsoft JhengHei', sans-serif;
-  background-color: #f6f7f8;
-  color: #303133;
+  background-color: var(--ds-background);
+  color: var(--ds-on-surface);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'PingFang TC', 'Microsoft JhengHei', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─── Money Display Helpers ───────────────────────────────── */
-.text-positive {
-  color: #16a34a;
-  font-weight: 500;
-}
-
-.text-negative {
-  color: #dc2626;
-  font-weight: 500;
-}
-
-.text-neutral {
-  color: #6b7280;
-}
-
-/* ─── Tailwind v4 custom utility layer (palette tokens) ───── */
+/* ─── Typography utilities ───────────────────────────────── */
 @layer utilities {
-  .bg-bg-dark { background-color: var(--bg-dark); }
-  .bg-surface-dark { background-color: var(--surface-dark); }
-  .bg-primary { background-color: var(--el-color-primary); }
-  .bg-accent-rose { background-color: var(--accent-rose); }
-
-  .text-cream { color: var(--cream); }
-  .text-muted-text { color: var(--muted-text); }
-  .text-primary { color: var(--el-color-primary); }
-  .text-accent-rose { color: var(--accent-rose); }
-
-  .border-surface-dark { border-color: var(--surface-dark); }
-  .border-primary { border-color: var(--el-color-primary); }
-
-  .hover\:bg-surface-dark:hover { background-color: var(--surface-dark); }
-  .hover\:text-cream:hover { color: var(--cream); }
-  .hover\:text-primary:hover { color: var(--el-color-primary); }
+  .text-display-xl  { font-size: 36px; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; }
+  .text-headline-lg { font-size: 24px; font-weight: 700; line-height: 1.3; }
+  .text-title-md    { font-size: 16px; font-weight: 600; line-height: 1.5; }
+  .text-body-md     { font-size: 14px; font-weight: 400; line-height: 1.6; }
+  .text-label-caps  { font-size: 10px; font-weight: 700; line-height: 1.2; letter-spacing: 0.1em; text-transform: uppercase; }
+  .text-stats-lg    { font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 }
 
-/* ─── Scrollbar Styling ───────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+/* ─── Semantic signal helpers ────────────────────────────── */
+.text-positive { color: var(--ds-positive); font-weight: 500; }
+.text-negative { color: var(--ds-negative); font-weight: 500; }
+.text-neutral  { color: var(--ds-neutral-text); }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #8fa79b;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #72978a;
-}
-
-html.dark ::-webkit-scrollbar-track {
-  background: #2a2826;
-}
+/* ─── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--ds-surface-container-low); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--ds-primary-container); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ds-primary); }

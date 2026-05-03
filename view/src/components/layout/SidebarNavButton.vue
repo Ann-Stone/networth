@@ -1,7 +1,7 @@
 <template>
   <button
     type="button"
-    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-transparent border-0 outline-none cursor-pointer text-muted-text hover:bg-surface-dark hover:text-cream transition-colors"
+    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-transparent border-0 outline-none cursor-pointer text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"
     :class="{ 'justify-center': collapsed }"
     @click="emit('toggle')"
   >
