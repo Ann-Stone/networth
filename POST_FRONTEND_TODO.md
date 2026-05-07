@@ -73,7 +73,7 @@ single source of truth; do not scatter the same notes inside frontend code.
 | `Other_Asset.asset_index` | drives dropdown order | _pending_ | _pending_ | _pending_ |
 | `Journal.invoice_number` | populated only by invoice CSV import; if unused, the entire BE-031 invoice path is dead weight | view/src/views/monthly-report/CashFlowView.vue | keep | 2f87798 |
 | `Loan.grace_expire_date` | kept per Decision Log; verify frontend renders it | _pending_ | _pending_ | _pending_ |
-| `Stock_Journal.expected_spend` | planned-investment amount | _pending_ | _pending_ | _pending_ |
+| `Stock_Journal.expected_spend` | planned-investment amount; verified field exists only on Stock parent (assets/stocks.md), not on Stock_Journal (assets/stocks-details.md) | view/src/views/other-assets/OtherAssetsView.vue | drop | e7b372e |
 
 When `Decision = drop` is set on every row that ends up unused, open one
 cleanup ticket (BE-B03 perhaps) that bundles the column drops + Alembic
