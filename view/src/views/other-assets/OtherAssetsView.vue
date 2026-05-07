@@ -553,9 +553,55 @@
         </section>
       </el-tab-pane>
 
-      <!-- ─── Other-Assets (placeholder) ─────────────────────── -->
+      <!-- ─── Other-Assets ───────────────────────────────────── -->
       <el-tab-pane label="其他資產" name="other">
-        <EmptyState message="開發中" />
+        <section class="flex flex-col gap-4">
+          <SectionHeader title="資產分類">
+            <template #actions>
+              <el-button
+                type="primary"
+                :icon="Plus"
+                size="small"
+                @click="openCreateOtherAsset"
+              >
+                新增
+              </el-button>
+            </template>
+          </SectionHeader>
+
+          <el-skeleton v-if="store.otherAssetsLoading" :rows="4" animated />
+          <EmptyState
+            v-else-if="otherAssetsSorted.length === 0"
+            message="尚無資產分類"
+          />
+          <el-table v-else :data="otherAssetsSorted" stripe border style="width: 100%">
+            <el-table-column prop="asset_index" label="排序" width="80" align="right" />
+            <el-table-column prop="asset_id" label="ID" width="160" />
+            <el-table-column prop="asset_name" label="名稱" min-width="200" />
+            <el-table-column prop="asset_type" label="類型" width="140" />
+            <el-table-column prop="vesting_nation" label="歸屬地" width="120" />
+            <el-table-column label="啟用" width="90">
+              <template #default="{ row }">
+                <StatusBadge :value="row.in_use" />
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="180" align="center">
+              <template #default="{ row }">
+                <el-button size="small" :icon="Edit" @click="openEditOtherAsset(row)">
+                  編輯
+                </el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  :icon="Delete"
+                  @click="handleDeleteOtherAsset(row)"
+                >
+                  刪除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </section>
       </el-tab-pane>
     </el-tabs>
 
@@ -866,6 +912,62 @@
       </el-form>
     </FormDialog>
 
+    <!-- ─── Other-Asset Create / Edit Dialog ───────────────────────────────── -->
+    <FormDialog
+      v-model="otherAssetDialogVisible"
+      :title="otherAssetFormMode === 'create' ? '新增資產分類' : '編輯資產分類'"
+      :loading="otherAssetSubmitting"
+      width="520px"
+      @submit="submitOtherAsset"
+    >
+      <el-form
+        ref="otherAssetFormRef"
+        :model="otherAssetForm"
+        :rules="otherAssetFormRules"
+        label-width="110px"
+      >
+        <el-form-item label="ID" prop="asset_id">
+          <el-input
+            v-model="otherAssetForm.asset_id"
+            placeholder="例如 AC-STK-001"
+            :disabled="otherAssetFormMode === 'edit'"
+          />
+        </el-form-item>
+        <el-form-item label="名稱" prop="asset_name">
+          <el-input v-model="otherAssetForm.asset_name" />
+        </el-form-item>
+        <el-form-item label="類型" prop="asset_type">
+          <el-select v-model="otherAssetForm.asset_type" style="width: 100%" allow-create filterable>
+            <el-option label="股票 (stock)" value="stock" />
+            <el-option label="房產 (estate)" value="estate" />
+            <el-option label="保險 (insurance)" value="insurance" />
+            <el-option label="貸款 (loan)" value="loan" />
+            <el-option label="其他 (other)" value="other" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="歸屬地" prop="vesting_nation">
+          <el-input v-model="otherAssetForm.vesting_nation" placeholder="例如 TW / US" />
+        </el-form-item>
+        <el-form-item label="啟用" prop="in_use">
+          <el-radio-group v-model="otherAssetForm.in_use">
+            <el-radio value="Y">啟用</el-radio>
+            <el-radio value="N">停用</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number
+            v-model="otherAssetIndexProxy"
+            :min="0"
+            controls-position="right"
+            style="width: 100%"
+          />
+          <p class="text-xs text-on-surface-variant mt-1">
+            留空時後端自動指派 max(asset_index)+1
+          </p>
+        </el-form-item>
+      </el-form>
+    </FormDialog>
+
     <!-- ─── Loan Create / Edit Dialog ──────────────────────────────────────── -->
     <FormDialog
       v-model="loanDialogVisible"
@@ -1109,6 +1211,7 @@ import {
   createInsuranceDetail,
   createLoan,
   createLoanDetail,
+  createOtherAsset,
   createStock,
   createStockDetail,
   deleteEstate,
@@ -1117,6 +1220,7 @@ import {
   deleteInsuranceDetail,
   deleteLoan,
   deleteLoanDetail,
+  deleteOtherAsset,
   deleteStock,
   deleteStockDetail,
   getEstateDetails,
@@ -1129,6 +1233,7 @@ import {
   updateInsuranceDetail,
   updateLoan,
   updateLoanDetail,
+  updateOtherAsset,
   updateStock,
   updateStockDetail,
 } from '@/api/otherAssets'
@@ -1145,6 +1250,8 @@ import type {
   LoanAssetCreate,
   LoanJournal,
   LoanJournalCreate,
+  OtherAsset,
+  OtherAssetCreate,
   StockAsset,
   StockAssetCreate,
   StockJournal,
@@ -2156,6 +2263,96 @@ async function handleDeleteLoanDetail(loan: LoanAsset, detail: LoanJournal) {
   await deleteLoanDetail(detail.distinct_number)
   ElMessage.success('已刪除')
   await fetchLoanDetails(loan.loan_id)
+}
+
+// ─── Other-Assets ───────────────────────────────────────────────────────────
+const otherAssetsSorted = computed(() =>
+  [...store.otherAssets].sort((a, b) => a.asset_index - b.asset_index),
+)
+
+const otherAssetDialogVisible = ref(false)
+const otherAssetFormMode = ref<'create' | 'edit'>('create')
+const otherAssetSubmitting = ref(false)
+const otherAssetFormRef = ref<FormInstance>()
+
+function emptyOtherAssetForm(): OtherAssetCreate {
+  return {
+    asset_id: '',
+    asset_name: '',
+    asset_type: 'stock',
+    vesting_nation: '',
+    in_use: 'Y',
+    asset_index: undefined,
+  }
+}
+
+const otherAssetForm = ref<OtherAssetCreate>(emptyOtherAssetForm())
+
+const otherAssetIndexProxy = computed<number | undefined>({
+  get: () => otherAssetForm.value.asset_index,
+  set: (v) => {
+    otherAssetForm.value.asset_index = typeof v === 'number' ? v : undefined
+  },
+})
+
+const otherAssetFormRules: FormRules = {
+  asset_id: [{ required: true, message: '請輸入 ID', trigger: 'blur' }],
+  asset_name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
+  asset_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
+  vesting_nation: [{ required: true, message: '請輸入歸屬地', trigger: 'blur' }],
+  in_use: [{ required: true, message: '請選擇啟用狀態', trigger: 'change' }],
+}
+
+function openCreateOtherAsset() {
+  otherAssetFormMode.value = 'create'
+  otherAssetForm.value = emptyOtherAssetForm()
+  otherAssetDialogVisible.value = true
+}
+
+function openEditOtherAsset(row: OtherAsset) {
+  otherAssetFormMode.value = 'edit'
+  otherAssetForm.value = {
+    asset_id: row.asset_id,
+    asset_name: row.asset_name,
+    asset_type: row.asset_type,
+    vesting_nation: row.vesting_nation,
+    in_use: row.in_use,
+    asset_index: row.asset_index,
+  }
+  otherAssetDialogVisible.value = true
+}
+
+async function submitOtherAsset() {
+  if (!otherAssetFormRef.value) return
+  const valid = await otherAssetFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  otherAssetSubmitting.value = true
+  try {
+    if (otherAssetFormMode.value === 'create') {
+      await createOtherAsset({ ...otherAssetForm.value })
+      ElMessage.success('新增成功')
+    } else {
+      const { asset_id, ...rest } = otherAssetForm.value
+      await updateOtherAsset(asset_id, rest)
+      ElMessage.success('更新成功')
+    }
+    otherAssetDialogVisible.value = false
+    await store.fetchOtherAssets()
+  } finally {
+    otherAssetSubmitting.value = false
+  }
+}
+
+async function handleDeleteOtherAsset(row: OtherAsset) {
+  const ok = await confirm({
+    title: '刪除資產分類',
+    message: `確定要刪除「${row.asset_name}」(${row.asset_id})?`,
+    type: 'warning',
+  })
+  if (!ok) return
+  await deleteOtherAsset(row.asset_id)
+  ElMessage.success('已刪除')
+  await store.fetchOtherAssets()
 }
 
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
