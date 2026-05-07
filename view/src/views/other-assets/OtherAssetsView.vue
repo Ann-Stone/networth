@@ -427,9 +427,130 @@
         </section>
       </el-tab-pane>
 
-      <!-- ─── Loans (placeholder) ────────────────────────────── -->
+      <!-- ─── Loans ──────────────────────────────────────────── -->
       <el-tab-pane label="貸款" name="loans">
-        <EmptyState message="開發中" />
+        <section class="flex flex-col gap-4">
+          <SectionHeader title="貸款負債">
+            <template #actions>
+              <el-button type="primary" :icon="Plus" size="small" @click="openCreateLoan">
+                新增
+              </el-button>
+            </template>
+          </SectionHeader>
+
+          <el-skeleton v-if="store.loansLoading" :rows="4" animated />
+          <EmptyState v-else-if="store.loans.length === 0" message="尚無貸款資料" />
+          <el-table
+            v-else
+            :data="store.loans"
+            stripe
+            border
+            style="width: 100%"
+            @expand-change="onLoanExpandChange"
+          >
+            <el-table-column type="expand">
+              <template #default="{ row }">
+                <div class="px-6 py-4 flex flex-col gap-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-on-surface font-medium">還款明細</span>
+                    <el-button
+                      type="primary"
+                      :icon="Plus"
+                      size="small"
+                      @click="openCreateLoanDetail(row)"
+                    >
+                      新增明細
+                    </el-button>
+                  </div>
+                  <el-skeleton
+                    v-if="loanDetailsLoadingByLoan.get(row.loan_id)"
+                    :rows="3"
+                    animated
+                  />
+                  <EmptyState
+                    v-else-if="(loanDetailsByLoan.get(row.loan_id)?.length ?? 0) === 0"
+                    message="尚無還款明細"
+                  />
+                  <el-table
+                    v-else
+                    :data="loanDetailsByLoan.get(row.loan_id) ?? []"
+                    border
+                    size="small"
+                  >
+                    <el-table-column prop="excute_date" label="日期" width="110" />
+                    <el-table-column prop="loan_excute_type" label="類型" width="120" />
+                    <el-table-column label="金額" width="180" align="right">
+                      <template #default="{ row: d }">
+                        <MoneyDisplay :amount="d.excute_price" size="sm" />
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="memo" label="備註" min-width="160">
+                      <template #default="{ row: d }">
+                        <span>{{ d.memo ?? '' }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="180" align="center">
+                      <template #default="{ row: d }">
+                        <el-button size="small" :icon="Edit" @click="openEditLoanDetail(row, d)">
+                          編輯
+                        </el-button>
+                        <el-button
+                          size="small"
+                          type="danger"
+                          :icon="Delete"
+                          @click="handleDeleteLoanDetail(row, d)"
+                        >
+                          刪除
+                        </el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="loan_id" label="ID" width="120" />
+            <el-table-column prop="loan_name" label="名稱" min-width="160" />
+            <el-table-column prop="loan_type" label="類型" width="120" />
+            <el-table-column prop="account_name" label="還款帳戶" min-width="140" />
+            <el-table-column label="利率" width="100" align="right">
+              <template #default="{ row }">
+                {{ (row.interest_rate * 100).toFixed(2) }}%
+              </template>
+            </el-table-column>
+            <el-table-column prop="period" label="期數" width="80" align="right" />
+            <el-table-column label="本金" width="160" align="right">
+              <template #default="{ row }">
+                <MoneyDisplay :amount="row.amount" size="sm" />
+              </template>
+            </el-table-column>
+            <el-table-column label="已還" width="160" align="right">
+              <template #default="{ row }">
+                <MoneyDisplay :amount="row.repayed" size="sm" />
+              </template>
+            </el-table-column>
+            <el-table-column prop="apply_date" label="申貸日" width="110" />
+            <el-table-column label="寬限到期" width="120">
+              <template #default="{ row }">
+                <span>{{ row.grace_expire_date ?? '-' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="180" align="center">
+              <template #default="{ row }">
+                <el-button size="small" :icon="Edit" @click="openEditLoan(row)">
+                  編輯
+                </el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  :icon="Delete"
+                  @click="handleDeleteLoan(row)"
+                >
+                  刪除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </section>
       </el-tab-pane>
 
       <!-- ─── Other-Assets (placeholder) ─────────────────────── -->
@@ -745,6 +866,170 @@
       </el-form>
     </FormDialog>
 
+    <!-- ─── Loan Create / Edit Dialog ──────────────────────────────────────── -->
+    <FormDialog
+      v-model="loanDialogVisible"
+      :title="loanFormMode === 'create' ? '新增貸款' : '編輯貸款'"
+      :loading="loanSubmitting"
+      width="600px"
+      @submit="submitLoan"
+    >
+      <el-form
+        ref="loanFormRef"
+        :model="loanForm"
+        :rules="loanFormRules"
+        label-width="120px"
+      >
+        <el-form-item label="貸款 ID" prop="loan_id">
+          <el-input
+            v-model="loanForm.loan_id"
+            placeholder="例如 LN-001"
+            :disabled="loanFormMode === 'edit'"
+          />
+        </el-form-item>
+        <el-form-item label="名稱" prop="loan_name">
+          <el-input v-model="loanForm.loan_name" />
+        </el-form-item>
+        <el-form-item label="類型" prop="loan_type">
+          <el-input v-model="loanForm.loan_type" placeholder="例如 mortgage / car" />
+        </el-form-item>
+        <el-form-item label="還款帳戶 ID" prop="account_id">
+          <el-input v-model="loanForm.account_id" />
+        </el-form-item>
+        <el-form-item label="還款帳戶名稱" prop="account_name">
+          <el-input v-model="loanForm.account_name" />
+        </el-form-item>
+        <el-form-item label="年利率" prop="interest_rate">
+          <el-input-number
+            v-model="loanForm.interest_rate"
+            :precision="4"
+            :step="0.001"
+            :min="0"
+            controls-position="right"
+            style="width: 100%"
+          />
+          <p class="text-xs text-on-surface-variant mt-1">小數表示,例如 0.035 = 3.5%</p>
+        </el-form-item>
+        <el-form-item label="期數 (月)" prop="period">
+          <el-input-number
+            v-model="loanForm.period"
+            :min="1"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="申貸日" prop="apply_date">
+          <el-date-picker
+            v-model="loanFormApplyDate"
+            type="date"
+            format="YYYY/MM/DD"
+            :clearable="false"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="寬限到期">
+          <el-date-picker
+            v-model="loanFormGraceDate"
+            type="date"
+            format="YYYY/MM/DD"
+            placeholder="(可選)"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="繳款日" prop="pay_day">
+          <el-input-number
+            v-model="loanForm.pay_day"
+            :min="1"
+            :max="31"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="本金" prop="amount">
+          <el-input-number
+            v-model="loanForm.amount"
+            :precision="2"
+            :step="10000"
+            :min="0"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="已還本金" prop="repayed">
+          <el-input-number
+            v-model="loanForm.repayed"
+            :precision="2"
+            :step="1000"
+            :min="0"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="排序" prop="loan_index">
+          <el-input-number
+            v-model="loanForm.loan_index"
+            :min="0"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+    </FormDialog>
+
+    <!-- ─── Loan Detail Create / Edit Dialog ───────────────────────────────── -->
+    <FormDialog
+      v-model="loanDetailDialogVisible"
+      :title="loanDetailFormMode === 'create' ? '新增還款明細' : '編輯還款明細'"
+      :loading="loanDetailSubmitting"
+      width="520px"
+      @submit="submitLoanDetail"
+    >
+      <el-form
+        ref="loanDetailFormRef"
+        :model="loanDetailForm"
+        :rules="loanDetailFormRules"
+        label-width="110px"
+      >
+        <el-form-item label="貸款 ID">
+          <el-input :model-value="loanDetailForm.loan_id" disabled />
+        </el-form-item>
+        <el-form-item label="日期" prop="excute_date">
+          <el-date-picker
+            v-model="loanDetailFormDate"
+            type="date"
+            format="YYYY/MM/DD"
+            :clearable="false"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="類型" prop="loan_excute_type">
+          <el-select v-model="loanDetailForm.loan_excute_type" style="width: 100%">
+            <el-option label="本金 (principal)" value="principal" />
+            <el-option label="利息 (interest)" value="interest" />
+            <el-option label="增貸 (increment)" value="increment" />
+            <el-option label="手續費 (fee)" value="fee" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="金額" prop="excute_price">
+          <el-input-number
+            v-model="loanDetailForm.excute_price"
+            :precision="2"
+            :step="100"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="備註">
+          <el-input
+            v-model="loanDetailMemoProxy"
+            type="textarea"
+            :rows="2"
+            placeholder="(可選)"
+          />
+        </el-form-item>
+      </el-form>
+    </FormDialog>
+
     <!-- ─── Estate Detail Create / Edit Dialog ─────────────────────────────── -->
     <FormDialog
       v-model="estateDetailDialogVisible"
@@ -822,21 +1107,28 @@ import {
   createEstateDetail,
   createInsurance,
   createInsuranceDetail,
+  createLoan,
+  createLoanDetail,
   createStock,
   createStockDetail,
   deleteEstate,
   deleteEstateDetail,
   deleteInsurance,
   deleteInsuranceDetail,
+  deleteLoan,
+  deleteLoanDetail,
   deleteStock,
   deleteStockDetail,
   getEstateDetails,
   getInsuranceDetails,
+  getLoanDetails,
   getStockDetails,
   updateEstate,
   updateEstateDetail,
   updateInsurance,
   updateInsuranceDetail,
+  updateLoan,
+  updateLoanDetail,
   updateStock,
   updateStockDetail,
 } from '@/api/otherAssets'
@@ -849,6 +1141,10 @@ import type {
   InsuranceAssetCreate,
   InsuranceJournal,
   InsuranceJournalCreate,
+  LoanAsset,
+  LoanAssetCreate,
+  LoanJournal,
+  LoanJournalCreate,
   StockAsset,
   StockAssetCreate,
   StockJournal,
@@ -1621,8 +1917,250 @@ async function handleDeleteInsuranceDetail(insurance: InsuranceAsset, detail: In
   await fetchInsuranceDetails(insurance.insurance_id)
 }
 
+// ─── Loans ──────────────────────────────────────────────────────────────────
+const loanDialogVisible = ref(false)
+const loanFormMode = ref<'create' | 'edit'>('create')
+const loanSubmitting = ref(false)
+const loanFormRef = ref<FormInstance>()
+
+function emptyLoanForm(): LoanAssetCreate {
+  return {
+    loan_id: '',
+    loan_name: '',
+    loan_type: '',
+    account_id: '',
+    account_name: '',
+    interest_rate: 0,
+    period: 12,
+    apply_date: dayjs().format('YYYYMMDD'),
+    grace_expire_date: null,
+    pay_day: 1,
+    amount: 0,
+    repayed: 0,
+    loan_index: 0,
+  }
+}
+
+const loanForm = ref<LoanAssetCreate>(emptyLoanForm())
+
+const loanFormApplyDate = computed<Date | null>({
+  get: () =>
+    loanForm.value.apply_date ? dayjs(loanForm.value.apply_date, 'YYYYMMDD').toDate() : null,
+  set: (date) => {
+    loanForm.value.apply_date = date ? dayjs(date).format('YYYYMMDD') : ''
+  },
+})
+
+const loanFormGraceDate = computed<Date | null>({
+  get: () =>
+    loanForm.value.grace_expire_date
+      ? dayjs(loanForm.value.grace_expire_date, 'YYYYMMDD').toDate()
+      : null,
+  set: (date) => {
+    loanForm.value.grace_expire_date = date ? dayjs(date).format('YYYYMMDD') : null
+  },
+})
+
+const loanFormRules: FormRules = {
+  loan_id: [{ required: true, message: '請輸入貸款 ID', trigger: 'blur' }],
+  loan_name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
+  loan_type: [{ required: true, message: '請輸入類型', trigger: 'blur' }],
+  account_id: [{ required: true, message: '請輸入帳戶 ID', trigger: 'blur' }],
+  account_name: [{ required: true, message: '請輸入帳戶名稱', trigger: 'blur' }],
+  interest_rate: [{ required: true, message: '請輸入年利率', trigger: 'blur' }],
+  period: [{ required: true, message: '請輸入期數', trigger: 'blur' }],
+  apply_date: [{ required: true, message: '請選擇申貸日', trigger: 'change' }],
+  pay_day: [{ required: true, message: '請輸入繳款日', trigger: 'blur' }],
+  amount: [{ required: true, message: '請輸入本金', trigger: 'blur' }],
+  repayed: [{ required: true, message: '請輸入已還本金', trigger: 'blur' }],
+  loan_index: [{ required: true, message: '請輸入排序', trigger: 'blur' }],
+}
+
+function openCreateLoan() {
+  loanFormMode.value = 'create'
+  loanForm.value = emptyLoanForm()
+  loanDialogVisible.value = true
+}
+
+function openEditLoan(row: LoanAsset) {
+  loanFormMode.value = 'edit'
+  loanForm.value = {
+    loan_id: row.loan_id,
+    loan_name: row.loan_name,
+    loan_type: row.loan_type,
+    account_id: row.account_id,
+    account_name: row.account_name,
+    interest_rate: row.interest_rate,
+    period: row.period,
+    apply_date: row.apply_date,
+    grace_expire_date: row.grace_expire_date ?? null,
+    pay_day: row.pay_day,
+    amount: row.amount,
+    repayed: row.repayed,
+    loan_index: row.loan_index,
+  }
+  loanDialogVisible.value = true
+}
+
+async function submitLoan() {
+  if (!loanFormRef.value) return
+  const valid = await loanFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  loanSubmitting.value = true
+  try {
+    if (loanFormMode.value === 'create') {
+      await createLoan({ ...loanForm.value })
+      ElMessage.success('新增成功')
+    } else {
+      const { loan_id, ...rest } = loanForm.value
+      await updateLoan(loan_id, rest)
+      ElMessage.success('更新成功')
+    }
+    loanDialogVisible.value = false
+    await store.fetchLoans()
+  } finally {
+    loanSubmitting.value = false
+  }
+}
+
+async function handleDeleteLoan(row: LoanAsset) {
+  const ok = await confirm({
+    title: '刪除貸款',
+    message: `確定要刪除「${row.loan_name}」?`,
+    type: 'warning',
+  })
+  if (!ok) return
+  await deleteLoan(row.loan_id)
+  ElMessage.success('已刪除')
+  loanDetailsByLoan.delete(row.loan_id)
+  await store.fetchLoans()
+}
+
+const loanDetailsByLoan = shallowReactive(new Map<string, LoanJournal[]>())
+const loanDetailsLoadingByLoan = shallowReactive(new Map<string, boolean>())
+
+async function fetchLoanDetails(loanId: string) {
+  loanDetailsLoadingByLoan.set(loanId, true)
+  try {
+    const details = await getLoanDetails(loanId)
+    loanDetailsByLoan.set(loanId, details)
+  } finally {
+    loanDetailsLoadingByLoan.set(loanId, false)
+  }
+}
+
+function onLoanExpandChange(row: LoanAsset, expanded: LoanAsset[]) {
+  const isExpanded = expanded.some((r) => r.loan_id === row.loan_id)
+  if (isExpanded && !loanDetailsByLoan.has(row.loan_id)) {
+    void fetchLoanDetails(row.loan_id)
+  }
+}
+
+interface LoanDetailFormState extends LoanJournalCreate {
+  distinct_number?: number
+}
+
+const loanDetailDialogVisible = ref(false)
+const loanDetailFormMode = ref<'create' | 'edit'>('create')
+const loanDetailSubmitting = ref(false)
+const loanDetailFormRef = ref<FormInstance>()
+
+function emptyLoanDetailForm(loanId: string): LoanDetailFormState {
+  return {
+    loan_id: loanId,
+    loan_excute_type: 'principal',
+    excute_price: 0,
+    excute_date: dayjs().format('YYYYMMDD'),
+    memo: null,
+  }
+}
+
+const loanDetailForm = ref<LoanDetailFormState>(emptyLoanDetailForm(''))
+
+const loanDetailMemoProxy = computed<string>({
+  get: () => loanDetailForm.value.memo ?? '',
+  set: (v) => {
+    loanDetailForm.value.memo = v ? v : null
+  },
+})
+
+const loanDetailFormDate = computed<Date | null>({
+  get: () =>
+    loanDetailForm.value.excute_date
+      ? dayjs(loanDetailForm.value.excute_date, 'YYYYMMDD').toDate()
+      : null,
+  set: (date) => {
+    loanDetailForm.value.excute_date = date ? dayjs(date).format('YYYYMMDD') : ''
+  },
+})
+
+const loanDetailFormRules: FormRules = {
+  excute_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
+  loan_excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
+  excute_price: [{ required: true, message: '請輸入金額', trigger: 'blur' }],
+}
+
+function openCreateLoanDetail(loan: LoanAsset) {
+  loanDetailFormMode.value = 'create'
+  loanDetailForm.value = emptyLoanDetailForm(loan.loan_id)
+  loanDetailDialogVisible.value = true
+}
+
+function openEditLoanDetail(loan: LoanAsset, detail: LoanJournal) {
+  loanDetailFormMode.value = 'edit'
+  loanDetailForm.value = {
+    distinct_number: detail.distinct_number,
+    loan_id: loan.loan_id,
+    loan_excute_type: detail.loan_excute_type,
+    excute_price: detail.excute_price,
+    excute_date: detail.excute_date,
+    memo: detail.memo ?? null,
+  }
+  loanDetailDialogVisible.value = true
+}
+
+async function submitLoanDetail() {
+  if (!loanDetailFormRef.value) return
+  const valid = await loanDetailFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  loanDetailSubmitting.value = true
+  try {
+    const payload: LoanJournalCreate = {
+      loan_id: loanDetailForm.value.loan_id,
+      loan_excute_type: loanDetailForm.value.loan_excute_type,
+      excute_price: Number(loanDetailForm.value.excute_price ?? 0),
+      excute_date: loanDetailForm.value.excute_date,
+      memo: loanDetailForm.value.memo ?? null,
+    }
+    if (loanDetailFormMode.value === 'create') {
+      await createLoanDetail(loanDetailForm.value.loan_id, payload)
+      ElMessage.success('新增成功')
+    } else if (loanDetailForm.value.distinct_number !== undefined) {
+      await updateLoanDetail(loanDetailForm.value.distinct_number, payload)
+      ElMessage.success('更新成功')
+    }
+    loanDetailDialogVisible.value = false
+    await fetchLoanDetails(loanDetailForm.value.loan_id)
+  } finally {
+    loanDetailSubmitting.value = false
+  }
+}
+
+async function handleDeleteLoanDetail(loan: LoanAsset, detail: LoanJournal) {
+  const ok = await confirm({
+    title: '刪除還款明細',
+    message: `確定要刪除這筆 ${detail.excute_date} ${detail.loan_excute_type} 紀錄?`,
+    type: 'warning',
+  })
+  if (!ok) return
+  await deleteLoanDetail(detail.distinct_number)
+  ElMessage.success('已刪除')
+  await fetchLoanDetails(loan.loan_id)
+}
+
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
 onMounted(() => {
   void store.fetchOtherAssets()
+  void store.fetchLoans()
 })
 </script>
