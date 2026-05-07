@@ -281,9 +281,150 @@
         </section>
       </el-tab-pane>
 
-      <!-- ─── Insurances (placeholder) ───────────────────────── -->
+      <!-- ─── Insurances ─────────────────────────────────────── -->
       <el-tab-pane label="保險" name="insurances">
-        <EmptyState message="開發中" />
+        <section class="flex flex-col gap-4">
+          <SectionHeader title="保險合約">
+            <template #actions>
+              <el-select
+                v-model="insurancesAssetId"
+                placeholder="選擇資產分類"
+                style="width: 240px"
+                :disabled="insuranceCategoryOptions.length === 0"
+              >
+                <el-option
+                  v-for="cat in insuranceCategoryOptions"
+                  :key="cat.asset_id"
+                  :label="cat.asset_name"
+                  :value="cat.asset_id"
+                />
+              </el-select>
+              <el-button
+                type="primary"
+                :icon="Plus"
+                size="small"
+                :disabled="!insurancesAssetId"
+                @click="openCreateInsurance"
+              >
+                新增
+              </el-button>
+            </template>
+          </SectionHeader>
+
+          <el-skeleton v-if="store.insurancesLoading" :rows="4" animated />
+          <EmptyState
+            v-else-if="!insurancesAssetId"
+            message="請先選擇資產分類"
+          />
+          <EmptyState
+            v-else-if="store.insurances.length === 0"
+            message="尚無保險合約"
+          />
+          <el-table
+            v-else
+            :data="store.insurances"
+            stripe
+            border
+            style="width: 100%"
+            @expand-change="onInsuranceExpandChange"
+          >
+            <el-table-column type="expand">
+              <template #default="{ row }">
+                <div class="px-6 py-4 flex flex-col gap-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-on-surface font-medium">繳費明細</span>
+                    <el-button
+                      type="primary"
+                      :icon="Plus"
+                      size="small"
+                      @click="openCreateInsuranceDetail(row)"
+                    >
+                      新增明細
+                    </el-button>
+                  </div>
+                  <el-skeleton
+                    v-if="insuranceDetailsLoadingByPolicy.get(row.insurance_id)"
+                    :rows="3"
+                    animated
+                  />
+                  <EmptyState
+                    v-else-if="(insuranceDetailsByPolicy.get(row.insurance_id)?.length ?? 0) === 0"
+                    message="尚無繳費明細"
+                  />
+                  <el-table
+                    v-else
+                    :data="insuranceDetailsByPolicy.get(row.insurance_id) ?? []"
+                    border
+                    size="small"
+                  >
+                    <el-table-column prop="excute_date" label="日期" width="110" />
+                    <el-table-column prop="insurance_excute_type" label="類型" width="120" />
+                    <el-table-column label="金額" width="180" align="right">
+                      <template #default="{ row: d }">
+                        <MoneyDisplay :amount="d.excute_price" size="sm" />
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="memo" label="備註" min-width="160">
+                      <template #default="{ row: d }">
+                        <span>{{ d.memo ?? '' }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="180" align="center">
+                      <template #default="{ row: d }">
+                        <el-button
+                          size="small"
+                          :icon="Edit"
+                          @click="openEditInsuranceDetail(row, d)"
+                        >
+                          編輯
+                        </el-button>
+                        <el-button
+                          size="small"
+                          type="danger"
+                          :icon="Delete"
+                          @click="handleDeleteInsuranceDetail(row, d)"
+                        >
+                          刪除
+                        </el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="insurance_id" label="ID" width="140" />
+            <el-table-column prop="insurance_name" label="名稱" min-width="200" />
+            <el-table-column prop="pay_type" label="繳費頻率" width="120" />
+            <el-table-column prop="pay_day" label="繳款日" width="90" align="right" />
+            <el-table-column label="預計保費" width="180" align="right">
+              <template #default="{ row }">
+                <MoneyDisplay :amount="row.expected_spend" size="sm" />
+              </template>
+            </el-table-column>
+            <el-table-column prop="start_date" label="起始" width="110" />
+            <el-table-column prop="end_date" label="終止" width="110" />
+            <el-table-column label="已結案" width="90">
+              <template #default="{ row }">
+                <StatusBadge :value="row.has_closed" />
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="180" align="center">
+              <template #default="{ row }">
+                <el-button size="small" :icon="Edit" @click="openEditInsurance(row)">
+                  編輯
+                </el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  :icon="Delete"
+                  @click="handleDeleteInsurance(row)"
+                >
+                  刪除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </section>
       </el-tab-pane>
 
       <!-- ─── Loans (placeholder) ────────────────────────────── -->
@@ -468,6 +609,142 @@
       </el-form>
     </FormDialog>
 
+    <!-- ─── Insurance Create / Edit Dialog ─────────────────────────────────── -->
+    <FormDialog
+      v-model="insuranceDialogVisible"
+      :title="insuranceFormMode === 'create' ? '新增保險合約' : '編輯保險合約'"
+      :loading="insuranceSubmitting"
+      width="560px"
+      @submit="submitInsurance"
+    >
+      <el-form
+        ref="insuranceFormRef"
+        :model="insuranceForm"
+        :rules="insuranceFormRules"
+        label-width="110px"
+      >
+        <el-form-item label="保險 ID" prop="insurance_id">
+          <el-input
+            v-model="insuranceForm.insurance_id"
+            placeholder="例如 INS-001"
+            :disabled="insuranceFormMode === 'edit'"
+          />
+        </el-form-item>
+        <el-form-item label="名稱" prop="insurance_name">
+          <el-input v-model="insuranceForm.insurance_name" />
+        </el-form-item>
+        <el-form-item label="資產分類">
+          <el-input :model-value="insuranceForm.asset_id" disabled />
+        </el-form-item>
+        <el-form-item label="繳費帳戶 ID" prop="in_account">
+          <el-input v-model="insuranceForm.in_account" placeholder="例如 BANK-CHASE-01" />
+        </el-form-item>
+        <el-form-item label="領取帳戶 ID" prop="out_account">
+          <el-input v-model="insuranceForm.out_account" />
+        </el-form-item>
+        <el-form-item label="起始日" prop="start_date">
+          <el-date-picker
+            v-model="insuranceFormStartDate"
+            type="date"
+            format="YYYY/MM/DD"
+            :clearable="false"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="終止日" prop="end_date">
+          <el-date-picker
+            v-model="insuranceFormEndDate"
+            type="date"
+            format="YYYY/MM/DD"
+            :clearable="false"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="繳費頻率" prop="pay_type">
+          <el-input v-model="insuranceForm.pay_type" placeholder="例如 annual / monthly" />
+        </el-form-item>
+        <el-form-item label="繳款日" prop="pay_day">
+          <el-input-number
+            v-model="insuranceForm.pay_day"
+            :min="1"
+            :max="31"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="預計保費" prop="expected_spend">
+          <el-input-number
+            v-model="insuranceForm.expected_spend"
+            :precision="2"
+            :step="100"
+            :min="0"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="是否結案" prop="has_closed">
+          <el-radio-group v-model="insuranceForm.has_closed">
+            <el-radio value="N">未結案</el-radio>
+            <el-radio value="Y">已結案</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+    </FormDialog>
+
+    <!-- ─── Insurance Detail Create / Edit Dialog ──────────────────────────── -->
+    <FormDialog
+      v-model="insuranceDetailDialogVisible"
+      :title="insuranceDetailFormMode === 'create' ? '新增繳費明細' : '編輯繳費明細'"
+      :loading="insuranceDetailSubmitting"
+      width="520px"
+      @submit="submitInsuranceDetail"
+    >
+      <el-form
+        ref="insuranceDetailFormRef"
+        :model="insuranceDetailForm"
+        :rules="insuranceDetailFormRules"
+        label-width="110px"
+      >
+        <el-form-item label="保險 ID">
+          <el-input :model-value="insuranceDetailForm.insurance_id" disabled />
+        </el-form-item>
+        <el-form-item label="日期" prop="excute_date">
+          <el-date-picker
+            v-model="insuranceDetailFormDate"
+            type="date"
+            format="YYYY/MM/DD"
+            :clearable="false"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="類型" prop="insurance_excute_type">
+          <el-select v-model="insuranceDetailForm.insurance_excute_type" style="width: 100%">
+            <el-option label="繳費 (pay)" value="pay" />
+            <el-option label="現金回饋 (cash)" value="cash" />
+            <el-option label="退費 (return)" value="return" />
+            <el-option label="預期 (expect)" value="expect" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="金額" prop="excute_price">
+          <el-input-number
+            v-model="insuranceDetailForm.excute_price"
+            :precision="2"
+            :step="100"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="備註">
+          <el-input
+            v-model="insuranceDetailMemoProxy"
+            type="textarea"
+            :rows="2"
+            placeholder="(可選)"
+          />
+        </el-form-item>
+      </el-form>
+    </FormDialog>
+
     <!-- ─── Estate Detail Create / Edit Dialog ─────────────────────────────── -->
     <FormDialog
       v-model="estateDetailDialogVisible"
@@ -543,16 +820,23 @@ import { useOtherAssetsStore } from '@/stores/otherAssets'
 import {
   createEstate,
   createEstateDetail,
+  createInsurance,
+  createInsuranceDetail,
   createStock,
   createStockDetail,
   deleteEstate,
   deleteEstateDetail,
+  deleteInsurance,
+  deleteInsuranceDetail,
   deleteStock,
   deleteStockDetail,
   getEstateDetails,
+  getInsuranceDetails,
   getStockDetails,
   updateEstate,
   updateEstateDetail,
+  updateInsurance,
+  updateInsuranceDetail,
   updateStock,
   updateStockDetail,
 } from '@/api/otherAssets'
@@ -561,6 +845,10 @@ import type {
   EstateAssetCreate,
   EstateJournal,
   EstateJournalCreate,
+  InsuranceAsset,
+  InsuranceAssetCreate,
+  InsuranceJournal,
+  InsuranceJournalCreate,
   StockAsset,
   StockAssetCreate,
   StockJournal,
@@ -1076,6 +1364,261 @@ async function handleDeleteEstateDetail(estate: EstateAsset, detail: EstateJourn
   await deleteEstateDetail(detail.distinct_number)
   ElMessage.success('已刪除')
   await fetchEstateDetails(estate.estate_id)
+}
+
+// ─── Insurances ─────────────────────────────────────────────────────────────
+const insuranceCategoryOptions = computed(() =>
+  [...store.otherAssets]
+    .filter((a) => a.asset_type === 'insurance' && a.in_use === 'Y')
+    .sort((a, b) => a.asset_index - b.asset_index),
+)
+
+const insurancesAssetId = ref<string>('')
+
+watch(insuranceCategoryOptions, (options) => {
+  if (!insurancesAssetId.value && options.length > 0) {
+    insurancesAssetId.value = options[0]!.asset_id
+  }
+})
+
+watch(insurancesAssetId, (assetId) => {
+  if (assetId) void store.fetchInsurances(assetId)
+})
+
+const insuranceDialogVisible = ref(false)
+const insuranceFormMode = ref<'create' | 'edit'>('create')
+const insuranceSubmitting = ref(false)
+const insuranceFormRef = ref<FormInstance>()
+
+function emptyInsuranceForm(): InsuranceAssetCreate {
+  return {
+    insurance_id: '',
+    insurance_name: '',
+    asset_id: insurancesAssetId.value,
+    in_account: '',
+    out_account: '',
+    start_date: dayjs().format('YYYYMMDD'),
+    end_date: dayjs().add(1, 'year').format('YYYYMMDD'),
+    pay_type: 'annual',
+    pay_day: 1,
+    expected_spend: 0,
+    has_closed: 'N',
+  }
+}
+
+const insuranceForm = ref<InsuranceAssetCreate>(emptyInsuranceForm())
+
+const insuranceFormStartDate = computed<Date | null>({
+  get: () =>
+    insuranceForm.value.start_date
+      ? dayjs(insuranceForm.value.start_date, 'YYYYMMDD').toDate()
+      : null,
+  set: (date) => {
+    insuranceForm.value.start_date = date ? dayjs(date).format('YYYYMMDD') : ''
+  },
+})
+
+const insuranceFormEndDate = computed<Date | null>({
+  get: () =>
+    insuranceForm.value.end_date
+      ? dayjs(insuranceForm.value.end_date, 'YYYYMMDD').toDate()
+      : null,
+  set: (date) => {
+    insuranceForm.value.end_date = date ? dayjs(date).format('YYYYMMDD') : ''
+  },
+})
+
+const insuranceFormRules: FormRules = {
+  insurance_id: [{ required: true, message: '請輸入保險 ID', trigger: 'blur' }],
+  insurance_name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
+  in_account: [{ required: true, message: '請輸入繳費帳戶', trigger: 'blur' }],
+  out_account: [{ required: true, message: '請輸入領取帳戶', trigger: 'blur' }],
+  start_date: [{ required: true, message: '請選擇起始日', trigger: 'change' }],
+  end_date: [{ required: true, message: '請選擇終止日', trigger: 'change' }],
+  pay_type: [{ required: true, message: '請輸入繳費頻率', trigger: 'blur' }],
+  pay_day: [{ required: true, message: '請輸入繳款日', trigger: 'blur' }],
+  expected_spend: [{ required: true, message: '請輸入預計保費', trigger: 'blur' }],
+  has_closed: [{ required: true, message: '請選擇結案狀態', trigger: 'change' }],
+}
+
+function openCreateInsurance() {
+  insuranceFormMode.value = 'create'
+  insuranceForm.value = emptyInsuranceForm()
+  insuranceDialogVisible.value = true
+}
+
+function openEditInsurance(row: InsuranceAsset) {
+  insuranceFormMode.value = 'edit'
+  insuranceForm.value = {
+    insurance_id: row.insurance_id,
+    insurance_name: row.insurance_name,
+    asset_id: row.asset_id,
+    in_account: row.in_account,
+    out_account: row.out_account,
+    start_date: row.start_date,
+    end_date: row.end_date,
+    pay_type: row.pay_type,
+    pay_day: row.pay_day,
+    expected_spend: row.expected_spend,
+    has_closed: row.has_closed,
+  }
+  insuranceDialogVisible.value = true
+}
+
+async function submitInsurance() {
+  if (!insuranceFormRef.value) return
+  const valid = await insuranceFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  insuranceSubmitting.value = true
+  try {
+    if (insuranceFormMode.value === 'create') {
+      await createInsurance({ ...insuranceForm.value })
+      ElMessage.success('新增成功')
+    } else {
+      const { insurance_id, ...rest } = insuranceForm.value
+      await updateInsurance(insurance_id, rest)
+      ElMessage.success('更新成功')
+    }
+    insuranceDialogVisible.value = false
+    if (insurancesAssetId.value) await store.fetchInsurances(insurancesAssetId.value)
+  } finally {
+    insuranceSubmitting.value = false
+  }
+}
+
+async function handleDeleteInsurance(row: InsuranceAsset) {
+  const ok = await confirm({
+    title: '刪除保險合約',
+    message: `確定要刪除「${row.insurance_name}」?`,
+    type: 'warning',
+  })
+  if (!ok) return
+  await deleteInsurance(row.insurance_id)
+  ElMessage.success('已刪除')
+  insuranceDetailsByPolicy.delete(row.insurance_id)
+  if (insurancesAssetId.value) await store.fetchInsurances(insurancesAssetId.value)
+}
+
+const insuranceDetailsByPolicy = shallowReactive(new Map<string, InsuranceJournal[]>())
+const insuranceDetailsLoadingByPolicy = shallowReactive(new Map<string, boolean>())
+
+async function fetchInsuranceDetails(insuranceId: string) {
+  insuranceDetailsLoadingByPolicy.set(insuranceId, true)
+  try {
+    const details = await getInsuranceDetails(insuranceId)
+    insuranceDetailsByPolicy.set(insuranceId, details)
+  } finally {
+    insuranceDetailsLoadingByPolicy.set(insuranceId, false)
+  }
+}
+
+function onInsuranceExpandChange(row: InsuranceAsset, expanded: InsuranceAsset[]) {
+  const isExpanded = expanded.some((r) => r.insurance_id === row.insurance_id)
+  if (isExpanded && !insuranceDetailsByPolicy.has(row.insurance_id)) {
+    void fetchInsuranceDetails(row.insurance_id)
+  }
+}
+
+interface InsuranceDetailFormState extends InsuranceJournalCreate {
+  distinct_number?: number
+}
+
+const insuranceDetailDialogVisible = ref(false)
+const insuranceDetailFormMode = ref<'create' | 'edit'>('create')
+const insuranceDetailSubmitting = ref(false)
+const insuranceDetailFormRef = ref<FormInstance>()
+
+function emptyInsuranceDetailForm(insuranceId: string): InsuranceDetailFormState {
+  return {
+    insurance_id: insuranceId,
+    insurance_excute_type: 'pay',
+    excute_price: 0,
+    excute_date: dayjs().format('YYYYMMDD'),
+    memo: null,
+  }
+}
+
+const insuranceDetailForm = ref<InsuranceDetailFormState>(emptyInsuranceDetailForm(''))
+
+const insuranceDetailMemoProxy = computed<string>({
+  get: () => insuranceDetailForm.value.memo ?? '',
+  set: (v) => {
+    insuranceDetailForm.value.memo = v ? v : null
+  },
+})
+
+const insuranceDetailFormDate = computed<Date | null>({
+  get: () =>
+    insuranceDetailForm.value.excute_date
+      ? dayjs(insuranceDetailForm.value.excute_date, 'YYYYMMDD').toDate()
+      : null,
+  set: (date) => {
+    insuranceDetailForm.value.excute_date = date ? dayjs(date).format('YYYYMMDD') : ''
+  },
+})
+
+const insuranceDetailFormRules: FormRules = {
+  excute_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
+  insurance_excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
+  excute_price: [{ required: true, message: '請輸入金額', trigger: 'blur' }],
+}
+
+function openCreateInsuranceDetail(insurance: InsuranceAsset) {
+  insuranceDetailFormMode.value = 'create'
+  insuranceDetailForm.value = emptyInsuranceDetailForm(insurance.insurance_id)
+  insuranceDetailDialogVisible.value = true
+}
+
+function openEditInsuranceDetail(insurance: InsuranceAsset, detail: InsuranceJournal) {
+  insuranceDetailFormMode.value = 'edit'
+  insuranceDetailForm.value = {
+    distinct_number: detail.distinct_number,
+    insurance_id: insurance.insurance_id,
+    insurance_excute_type: detail.insurance_excute_type,
+    excute_price: detail.excute_price,
+    excute_date: detail.excute_date,
+    memo: detail.memo ?? null,
+  }
+  insuranceDetailDialogVisible.value = true
+}
+
+async function submitInsuranceDetail() {
+  if (!insuranceDetailFormRef.value) return
+  const valid = await insuranceDetailFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  insuranceDetailSubmitting.value = true
+  try {
+    const payload: InsuranceJournalCreate = {
+      insurance_id: insuranceDetailForm.value.insurance_id,
+      insurance_excute_type: insuranceDetailForm.value.insurance_excute_type,
+      excute_price: Number(insuranceDetailForm.value.excute_price ?? 0),
+      excute_date: insuranceDetailForm.value.excute_date,
+      memo: insuranceDetailForm.value.memo ?? null,
+    }
+    if (insuranceDetailFormMode.value === 'create') {
+      await createInsuranceDetail(insuranceDetailForm.value.insurance_id, payload)
+      ElMessage.success('新增成功')
+    } else if (insuranceDetailForm.value.distinct_number !== undefined) {
+      await updateInsuranceDetail(insuranceDetailForm.value.distinct_number, payload)
+      ElMessage.success('更新成功')
+    }
+    insuranceDetailDialogVisible.value = false
+    await fetchInsuranceDetails(insuranceDetailForm.value.insurance_id)
+  } finally {
+    insuranceDetailSubmitting.value = false
+  }
+}
+
+async function handleDeleteInsuranceDetail(insurance: InsuranceAsset, detail: InsuranceJournal) {
+  const ok = await confirm({
+    title: '刪除繳費明細',
+    message: `確定要刪除這筆 ${detail.excute_date} ${detail.insurance_excute_type} 紀錄?`,
+    type: 'warning',
+  })
+  if (!ok) return
+  await deleteInsuranceDetail(detail.distinct_number)
+  ElMessage.success('已刪除')
+  await fetchInsuranceDetails(insurance.insurance_id)
 }
 
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
