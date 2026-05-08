@@ -1063,9 +1063,13 @@
             :precision="2"
             :step="1000"
             :min="0"
+            :disabled="loanFormMode === 'edit'"
             controls-position="right"
             style="width: 100%"
           />
+          <span v-if="loanFormMode === 'edit'" class="text-xs text-on-surface-muted ml-2">
+            由還款明細自動計算
+          </span>
         </el-form-item>
         <el-form-item label="排序" prop="loan_index">
           <el-input-number
