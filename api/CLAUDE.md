@@ -169,6 +169,14 @@ uv run export-docs                            # Regenerate api/docs/ split spec
 uv run export-docs --check                    # Fail if any committed file is out of date
 ```
 
+`uv run python scripts/seed_dev_data.py [--target-db-url sqlite:///path.db]` —
+**dev-only** seed loader. Wipes the target SQLite (which must live under
+`~/.networth/` or be named `*_dev.db` / `*_test.db`) and re-creates a curated
+fixture covering every CRUD endpoint. The script refuses any URL that is
+non-SQLite or contains `prod`. Re-running yields identical state (idempotent).
+This is **not** the BE-005 legacy migration; it ships hand-written fixtures
+purely for backend smoke-testing.
+
 ---
 
 ## API documentation discipline (contract-as-spec)
