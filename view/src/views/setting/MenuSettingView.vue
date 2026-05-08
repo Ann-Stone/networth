@@ -45,9 +45,77 @@
       </el-tab-pane>
 
       <el-tab-pane label="分類" name="codes">
-        <div class="bg-surface-container rounded-xl border border-outline-variant p-12 flex justify-center">
-          <EmptyState message="開發中" />
-        </div>
+        <DataListCard title="主分類 / 子分類">
+          <template #menu>
+            <el-button type="primary" :icon="PlusIcon" @click="openCreateCode">
+              新增主分類
+            </el-button>
+          </template>
+
+          <div class="p-4">
+            <el-table
+              :data="store.codesWithSub"
+              v-loading="store.codesLoading"
+              row-key="code_id"
+              stripe
+              empty-text="尚無主分類"
+            >
+              <el-table-column type="expand">
+                <template #default="{ row }">
+                  <div class="px-6 py-4 flex flex-col gap-3">
+                    <SectionHeader
+                      :title="`${row.code_id} 子分類`"
+                      action-text="新增子分類"
+                      @action="openCreateSubCode(row)"
+                    />
+                    <el-table
+                      :data="row.sub_codes ?? []"
+                      empty-text="尚無子分類"
+                      size="small"
+                    >
+                      <el-table-column prop="code_id" label="子分類 ID" min-width="120" />
+                      <el-table-column prop="name" label="名稱" min-width="160" />
+                      <el-table-column label="啟用" width="80">
+                        <template #default="{ row: sub }">
+                          <StatusBadge :value="sub.in_use" />
+                        </template>
+                      </el-table-column>
+                      <el-table-column prop="code_index" label="排序" width="80" />
+                      <el-table-column label="操作" width="160" fixed="right">
+                        <template #default="{ row: sub }">
+                          <el-button link type="primary" @click="openEditSubCode(row, sub)">
+                            編輯
+                          </el-button>
+                          <el-button link type="danger" @click="handleDeleteSubCode(sub)">
+                            刪除
+                          </el-button>
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="code_id" label="分類 ID" min-width="120" />
+              <el-table-column prop="name" label="名稱" min-width="160" />
+              <el-table-column prop="code_type" label="類型" min-width="110" />
+              <el-table-column label="啟用" width="80">
+                <template #default="{ row }">
+                  <StatusBadge :value="row.in_use" />
+                </template>
+              </el-table-column>
+              <el-table-column prop="code_group" label="群組" min-width="120">
+                <template #default="{ row }">{{ row.code_group ?? '—' }}</template>
+              </el-table-column>
+              <el-table-column prop="code_index" label="排序" width="80" />
+              <el-table-column label="操作" width="160" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" @click="openEditCode(row)">編輯</el-button>
+                  <el-button link type="danger" @click="handleDeleteCode(row)">刪除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </DataListCard>
       </el-tab-pane>
 
       <el-tab-pane label="信用卡" name="credit-cards">
@@ -56,6 +124,95 @@
         </div>
       </el-tab-pane>
     </el-tabs>
+
+    <FormDialog
+      v-model="codeDialogVisible"
+      :title="codeFormMode === 'create' ? '新增主分類' : '編輯主分類'"
+      :loading="codeSubmitting"
+      width="520px"
+      @submit="submitCode"
+    >
+      <el-form
+        ref="codeFormRef"
+        :model="codeForm"
+        :rules="codeFormRules"
+        label-width="100px"
+      >
+        <el-form-item label="分類 ID" prop="code_id">
+          <el-input
+            v-model="codeForm.code_id"
+            :disabled="codeFormMode === 'edit'"
+            placeholder="如 E01"
+          />
+        </el-form-item>
+        <el-form-item label="類型" prop="code_type">
+          <el-select v-model="codeForm.code_type" style="width: 100%">
+            <el-option
+              v-for="opt in CODE_TYPE_OPTIONS"
+              :key="opt"
+              :label="opt"
+              :value="opt"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="名稱" prop="name">
+          <el-input v-model="codeForm.name" />
+        </el-form-item>
+        <el-form-item label="啟用">
+          <el-radio-group v-model="codeForm.in_use">
+            <el-radio value="Y">啟用</el-radio>
+            <el-radio value="N">停用</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="群組">
+          <el-input v-model="codeGroupModel" />
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number
+            v-model="codeIndexModel"
+            :min="0"
+            :step="1"
+            :precision="0"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+    </FormDialog>
+
+    <FormDialog
+      v-model="subCodeDialogVisible"
+      :title="subCodeFormMode === 'create' ? '新增子分類' : '編輯子分類'"
+      :loading="subCodeSubmitting"
+      width="480px"
+      @submit="submitSubCode"
+    >
+      <el-form
+        ref="subCodeFormRef"
+        :model="subCodeForm"
+        :rules="subCodeFormRules"
+        label-width="100px"
+      >
+        <el-form-item label="父分類">
+          <el-input :model-value="subCodeForm.parent_id ?? ''" disabled />
+        </el-form-item>
+        <el-form-item label="子分類 ID" prop="code_id">
+          <el-input
+            v-model="subCodeForm.code_id"
+            :disabled="subCodeFormMode === 'edit'"
+          />
+        </el-form-item>
+        <el-form-item label="名稱" prop="name">
+          <el-input v-model="subCodeForm.name" />
+        </el-form-item>
+        <el-form-item label="啟用">
+          <el-radio-group v-model="subCodeForm.in_use">
+            <el-radio value="Y">啟用</el-radio>
+            <el-radio value="N">停用</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+    </FormDialog>
 
     <FormDialog
       v-model="accountDialogVisible"
@@ -138,14 +295,29 @@ import DataListCard from '@/components/ui/DataListCard.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import FormDialog from '@/components/ui/FormDialog.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useSettingStore } from '@/stores/setting'
 import {
   createAccount,
   updateAccount,
   deleteAccount,
+  createCode,
+  updateCode,
+  deleteCode,
+  createSubCode,
+  updateSubCode,
+  deleteSubCode,
 } from '@/api/setting'
-import type { Account, AccountCreate } from '@/types/models'
+import type {
+  Account,
+  AccountCreate,
+  CodeData,
+  CodeDataCreate,
+  CodeDataWithSub,
+} from '@/types/models'
+
+const CODE_TYPE_OPTIONS = ['Floating', 'Fixed', 'Invest', 'Income', 'Transfer'] as const
 
 const store = useSettingStore()
 const confirm = useConfirm()
@@ -279,6 +451,193 @@ async function handleDeleteAccount(row: Account) {
   await deleteAccount(row.id)
   ElMessage.success('已刪除')
   await store.fetchAccounts()
+}
+
+// ─── Main code dialog ────────────────────────────────────────────────────────
+
+const codeDialogVisible = ref(false)
+const codeFormMode = ref<'create' | 'edit'>('create')
+const codeSubmitting = ref(false)
+const codeFormRef = ref<FormInstance>()
+const editingCodeId = ref<string | null>(null)
+
+function emptyCodeForm(): CodeDataCreate {
+  return {
+    code_id: '',
+    code_type: 'Floating',
+    name: '',
+    parent_id: null,
+    code_group: null,
+    in_use: 'Y',
+    code_index: undefined,
+  }
+}
+
+const codeForm = ref<CodeDataCreate>(emptyCodeForm())
+
+const codeGroupModel = computed<string>({
+  get: () => codeForm.value.code_group ?? '',
+  set: (v) => {
+    codeForm.value.code_group = v ? v : null
+  },
+})
+
+const codeIndexModel = computed<number | undefined>({
+  get: () => codeForm.value.code_index,
+  set: (v) => {
+    codeForm.value.code_index = typeof v === 'number' ? v : undefined
+  },
+})
+
+const codeFormRules: FormRules = {
+  code_id: [{ required: true, message: '請輸入分類 ID', trigger: 'blur' }],
+  code_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
+  name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
+}
+
+function openCreateCode() {
+  codeFormMode.value = 'create'
+  editingCodeId.value = null
+  codeForm.value = emptyCodeForm()
+  codeDialogVisible.value = true
+}
+
+function openEditCode(row: CodeDataWithSub) {
+  codeFormMode.value = 'edit'
+  editingCodeId.value = row.code_id
+  codeForm.value = {
+    code_id: row.code_id,
+    code_type: row.code_type,
+    name: row.name,
+    parent_id: row.parent_id ?? null,
+    code_group: row.code_group ?? null,
+    in_use: row.in_use,
+    code_index: row.code_index,
+  }
+  codeDialogVisible.value = true
+}
+
+async function submitCode() {
+  if (!codeFormRef.value) return
+  const valid = await codeFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  codeSubmitting.value = true
+  try {
+    if (codeFormMode.value === 'create') {
+      await createCode({ ...codeForm.value })
+      ElMessage.success('新增成功')
+    } else if (editingCodeId.value) {
+      const { code_id, ...rest } = codeForm.value
+      void code_id
+      await updateCode(editingCodeId.value, rest)
+      ElMessage.success('更新成功')
+    }
+    codeDialogVisible.value = false
+    await store.fetchCodesWithSub()
+  } finally {
+    codeSubmitting.value = false
+  }
+}
+
+async function handleDeleteCode(row: CodeDataWithSub) {
+  const ok = await confirm({
+    title: '刪除主分類',
+    message: `確定要刪除「${row.name}」? 子分類需先清空。`,
+    type: 'warning',
+  })
+  if (!ok) return
+  await deleteCode(row.code_id)
+  ElMessage.success('已刪除')
+  await store.fetchCodesWithSub()
+}
+
+// ─── Sub-code dialog ─────────────────────────────────────────────────────────
+
+const subCodeDialogVisible = ref(false)
+const subCodeFormMode = ref<'create' | 'edit'>('create')
+const subCodeSubmitting = ref(false)
+const subCodeFormRef = ref<FormInstance>()
+const editingSubCodeId = ref<string | null>(null)
+
+function emptySubCodeForm(parent: CodeDataWithSub): CodeDataCreate {
+  return {
+    code_id: '',
+    code_type: parent.code_type,
+    name: '',
+    parent_id: parent.code_id,
+    code_group: parent.code_group ?? null,
+    in_use: 'Y',
+    code_index: undefined,
+  }
+}
+
+const subCodeForm = ref<CodeDataCreate>({
+  code_id: '',
+  code_type: '',
+  name: '',
+  parent_id: null,
+  in_use: 'Y',
+})
+
+const subCodeFormRules: FormRules = {
+  code_id: [{ required: true, message: '請輸入子分類 ID', trigger: 'blur' }],
+  name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
+}
+
+function openCreateSubCode(parent: CodeDataWithSub) {
+  subCodeFormMode.value = 'create'
+  editingSubCodeId.value = null
+  subCodeForm.value = emptySubCodeForm(parent)
+  subCodeDialogVisible.value = true
+}
+
+function openEditSubCode(parent: CodeDataWithSub, row: CodeData) {
+  subCodeFormMode.value = 'edit'
+  editingSubCodeId.value = row.code_id
+  subCodeForm.value = {
+    code_id: row.code_id,
+    code_type: row.code_type || parent.code_type,
+    name: row.name,
+    parent_id: parent.code_id,
+    code_group: row.code_group ?? parent.code_group ?? null,
+    in_use: row.in_use,
+    code_index: row.code_index,
+  }
+  subCodeDialogVisible.value = true
+}
+
+async function submitSubCode() {
+  if (!subCodeFormRef.value) return
+  const valid = await subCodeFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  subCodeSubmitting.value = true
+  try {
+    if (subCodeFormMode.value === 'create') {
+      await createSubCode({ ...subCodeForm.value })
+      ElMessage.success('新增成功')
+    } else if (editingSubCodeId.value) {
+      const { code_id, ...rest } = subCodeForm.value
+      void code_id
+      await updateSubCode(editingSubCodeId.value, rest)
+      ElMessage.success('更新成功')
+    }
+    subCodeDialogVisible.value = false
+    await store.fetchCodesWithSub()
+  } finally {
+    subCodeSubmitting.value = false
+  }
+}
+
+async function handleDeleteSubCode(row: CodeData) {
+  const ok = await confirm({
+    title: '刪除子分類',
+    message: `確定要刪除「${row.name}」?`,
+    type: 'warning',
+  })
+  if (!ok) return
+  await deleteSubCode(row.code_id)
+  ElMessage.success('已刪除')
+  await store.fetchCodesWithSub()
 }
 </script>
 
