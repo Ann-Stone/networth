@@ -67,7 +67,8 @@ All spec content in this directory is written in English.
 | 6 | Phase 5 — Year Report | FE-025..FE-027 | All three year-report views render with data |
 | 7 | Phase 6 — Asset Management | FE-028..FE-033 | CRUD works for all 5 asset tabs |
 | 8 | Phase 7 — Settings | FE-034..FE-038 | All settings CRUD operations work |
-| 9 | Phase 8 — Utilities + Mock | FE-039..FE-041 | `npm run build:mock` succeeds |
+| 9 | Phase 8 — Mock fixtures + retrospective verification | FE-040, FE-040a | `npm run build:mock` succeeds; GitHub Pages deploy serves a working app; every Phase 4–7 view round-trips against MSW fixtures with no console errors |
+| 10 | Phase 9 — Utilities import + final build gate | FE-039, FE-041 | Utilities import panel works; `npm run build` and `npm run build:mock` both succeed; final phase-exit checklist clean |
 
 ---
 
@@ -153,11 +154,16 @@ All spec content in this directory is written in English.
 | FE-037 | BudgetSettingView — year selector + 12-month grid |
 | FE-038 | RemindSettingView — alarms CRUD |
 
-### Phase 8 — Utilities + Mock
+### Phase 8 — Mock fixtures + retrospective verification
+| ID | Title |
+|----|-------|
+| FE-040 | MSW handlers + per-sub-router fixtures + GitHub Pages deploy switch |
+| FE-040a | Retrospective UI round-trip across Phase 4–7 views via MSW |
+
+### Phase 9 — Utilities import + final build gate
 | ID | Title |
 |----|-------|
 | FE-039 | Utilities import panel (stock-prices, fx-rates, invoices CSV) |
-| FE-040 | MSW mock handlers + static data files |
 | FE-041 | Build verification — npm run build + npm run build:mock |
 
 ---
@@ -204,9 +210,20 @@ Phase 7 (Settings: FE-034..038)
   └─ Depends on: FE-008 (setting store),
      FE-016a (FormDialog, useConfirm, DataListCard)
 
-Phase 8 (Utilities + Mock: FE-039..041)
-  └─ FE-040 depends on all views done (mock data mirrors real API shapes)
-  └─ FE-041 is final gate
+Phase 8 (Mock + retrospective verification: FE-040, FE-040a)
+  └─ FE-040 depends on all Phase 0–7 views landing first; mock fixtures
+     mirror the API shapes those views already consume.
+  └─ FE-040a runs after FE-040 and re-walks every view added in
+     Phase 4–7 (CashFlow CRUD + charts, year-report tables, OtherAssets
+     5 tabs, Settings CRUD, Dashboard widgets) against MSW data — this
+     is where the round-trips skipped during Phase 4–7 (dev DB empty)
+     get backfilled.
+
+Phase 9 (Utilities import + final gate: FE-039, FE-041)
+  └─ FE-039 stays at the end so the utilities panel can compose
+     against the now-stable Phase 0–8 surface.
+  └─ FE-041 is final gate (npm run build + npm run build:mock both
+     pass; GitHub Pages deploy verified live).
 ```
 
 ---
@@ -224,3 +241,4 @@ Phase 8 (Utilities + Mock: FE-039..041)
 | 7 | `vite.config.ts` base path `/networth/` kept as-is | Set for GitHub Pages deployment; no change needed |
 | 8 | `src/api/` filenames follow CLAUDE.md exactly: `setting.ts`, `cashFlow.ts`, `yearReport.ts`, `otherAssets.ts`, `dashboard.ts` | Canonical names from view/CLAUDE.md §3; utilities.ts is an approved addition (see #5) |
 | 9 | Insert FE-016a (Phase 2.5) before Phase 3 to front-load shared layout / data-display primitives matching `template.html` | Audited Phase 3+ tickets revealed recurring UI blocks (PageHeader, MetricCard, DataListCard, FormDialog) that would otherwise be re-invented per view. Designing once against the visual reference avoids per-view drift and removes the need for a follow-up polish pass. Sidebar group-toggle polish (flagged at end of Phase 2) is rolled in to keep all template.html alignment in one ticket. |
+| 10 | Split the original Phase 8 (FE-039..FE-041) into Phase 8 (mock + retrospective verification) and Phase 9 (utilities import + final gate); pull FE-040 forward and add new ticket FE-040a | Phase 4 / Phase 6 / Phase 7 sessions repeatedly hit "dev DB empty" and could not exercise CRUD round-trips against the live API. The deploy.yml workflow also runs `npm run build` (not `build:mock`), so the live GitHub Pages site has been deploying with no API behind it — every view 404s. Building MSW fixtures now solves both: (a) the mock fixtures double as comprehensive UI test data, so all backfilled round-trips become deterministic; (b) flipping deploy.yml to `build:mock` fixes the live demo. FE-039 (utilities import) stays at the end since it composes against an otherwise-stable surface. Backend dev seed data is tracked separately as `BE-B04` in the api refactor backlog (see `refactoring-tickets/granular/BE-B04.md`); the two are independent — mock unblocks frontend, seed is for verifying real-server corner cases. |
