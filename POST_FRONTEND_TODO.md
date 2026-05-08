@@ -66,9 +66,9 @@ single source of truth; do not scatter the same notes inside frontend code.
 
 | Field | Origin / current note | Verified at | Decision | Frontend commit |
 |-------|-----------------------|-------------|----------|-----------------|
-| `Account.discount` | kept per Decision Log; "confirmed in use" | _pending_ | _pending_ | _pending_ |
-| `Account.owner` | kept per Decision Log; "confirmed in use" | _pending_ | _pending_ | _pending_ |
-| `Account.account_index` | drives dropdown order | _pending_ | _pending_ | _pending_ |
+| `Account.discount` | kept per Decision Log; "confirmed in use" | view/src/views/setting/MenuSettingView.vue | keep | c95016b |
+| `Account.owner` | kept per Decision Log; "confirmed in use" | view/src/views/setting/MenuSettingView.vue | keep | c95016b |
+| `Account.account_index` | drives dropdown order | view/src/views/setting/MenuSettingView.vue | keep | c95016b |
 | `Credit_Card.credit_card_index` | drives dropdown order | _pending_ | _pending_ | _pending_ |
 | `Other_Asset.asset_index` | drives dropdown order; per api/docs/api-reference/assets/other-assets.md the field orders the categories table and the per-tab parent selectors (stocks/estates/insurances) | view/src/views/other-assets/OtherAssetsView.vue | keep | 191b7ae |
 | `Journal.invoice_number` | populated only by invoice CSV import; if unused, the entire BE-031 invoice path is dead weight | view/src/views/monthly-report/CashFlowView.vue | keep | 2f87798 |
