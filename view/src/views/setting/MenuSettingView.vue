@@ -119,11 +119,137 @@
       </el-tab-pane>
 
       <el-tab-pane label="信用卡" name="credit-cards">
-        <div class="bg-surface-container rounded-xl border border-outline-variant p-12 flex justify-center">
-          <EmptyState message="開發中" />
-        </div>
+        <DataListCard title="信用卡清單">
+          <template #menu>
+            <el-button type="primary" :icon="PlusIcon" @click="openCreateCreditCard">
+              新增信用卡
+            </el-button>
+          </template>
+
+          <div class="p-4">
+            <el-table
+              :data="store.creditCards"
+              v-loading="store.creditCardsLoading"
+              row-key="credit_card_id"
+              stripe
+              empty-text="尚無信用卡"
+            >
+              <el-table-column prop="credit_card_id" label="卡片 ID" min-width="140" />
+              <el-table-column prop="card_name" label="卡名" min-width="160" />
+              <el-table-column prop="card_no" label="卡號" min-width="160">
+                <template #default="{ row }">{{ row.card_no ?? '—' }}</template>
+              </el-table-column>
+              <el-table-column prop="last_day" label="結帳日" width="90">
+                <template #default="{ row }">{{ row.last_day ?? '—' }}</template>
+              </el-table-column>
+              <el-table-column prop="charge_day" label="扣款日" width="90">
+                <template #default="{ row }">{{ row.charge_day ?? '—' }}</template>
+              </el-table-column>
+              <el-table-column prop="limit_date" label="繳費日" width="90">
+                <template #default="{ row }">{{ row.limit_date ?? '—' }}</template>
+              </el-table-column>
+              <el-table-column prop="fx_code" label="幣別" width="80" />
+              <el-table-column label="啟用" width="80">
+                <template #default="{ row }">
+                  <StatusBadge :value="row.in_use" />
+                </template>
+              </el-table-column>
+              <el-table-column prop="credit_card_index" label="排序" width="80" />
+              <el-table-column label="操作" width="160" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" @click="openEditCreditCard(row)">編輯</el-button>
+                  <el-button link type="danger" @click="handleDeleteCreditCard(row)">刪除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </DataListCard>
       </el-tab-pane>
     </el-tabs>
+
+    <FormDialog
+      v-model="creditCardDialogVisible"
+      :title="creditCardFormMode === 'create' ? '新增信用卡' : '編輯信用卡'"
+      :loading="creditCardSubmitting"
+      width="540px"
+      @submit="submitCreditCard"
+    >
+      <el-form
+        ref="creditCardFormRef"
+        :model="creditCardForm"
+        :rules="creditCardFormRules"
+        label-width="100px"
+      >
+        <el-form-item label="卡片 ID" prop="credit_card_id">
+          <el-input
+            v-model="creditCardForm.credit_card_id"
+            :disabled="creditCardFormMode === 'edit'"
+            placeholder="如 CC-VISA-01"
+          />
+        </el-form-item>
+        <el-form-item label="卡名" prop="card_name">
+          <el-input v-model="creditCardForm.card_name" />
+        </el-form-item>
+        <el-form-item label="卡號">
+          <el-input v-model="cardNoModel" placeholder="如 4111-XXXX-XXXX-1111" />
+        </el-form-item>
+        <el-form-item label="結帳日">
+          <el-input-number
+            v-model="lastDayModel"
+            :min="1"
+            :max="31"
+            :precision="0"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="扣款日">
+          <el-input-number
+            v-model="chargeDayModel"
+            :min="1"
+            :max="31"
+            :precision="0"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="繳費日">
+          <el-input-number
+            v-model="limitDateModel"
+            :min="1"
+            :max="31"
+            :precision="0"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="回饋方式">
+          <el-input v-model="feedbackWayModel" placeholder="如 cashback / mileage" />
+        </el-form-item>
+        <el-form-item label="幣別" prop="fx_code">
+          <el-input v-model="creditCardForm.fx_code" />
+        </el-form-item>
+        <el-form-item label="啟用">
+          <el-radio-group v-model="creditCardForm.in_use">
+            <el-radio value="Y">啟用</el-radio>
+            <el-radio value="N">停用</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number
+            v-model="creditCardIndexModel"
+            :min="0"
+            :step="1"
+            :precision="0"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="備註">
+          <el-input v-model="creditCardNoteModel" type="textarea" :rows="2" />
+        </el-form-item>
+      </el-form>
+    </FormDialog>
 
     <FormDialog
       v-model="codeDialogVisible"
@@ -293,7 +419,6 @@ import { Plus as PlusIcon } from '@element-plus/icons-vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import DataListCard from '@/components/ui/DataListCard.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import EmptyState from '@/components/ui/EmptyState.vue'
 import FormDialog from '@/components/ui/FormDialog.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import { useConfirm } from '@/composables/useConfirm'
@@ -308,6 +433,9 @@ import {
   createSubCode,
   updateSubCode,
   deleteSubCode,
+  createCreditCard,
+  updateCreditCard,
+  deleteCreditCard,
 } from '@/api/setting'
 import type {
   Account,
@@ -315,6 +443,8 @@ import type {
   CodeData,
   CodeDataCreate,
   CodeDataWithSub,
+  CreditCard,
+  CreditCardCreate,
 } from '@/types/models'
 
 const CODE_TYPE_OPTIONS = ['Floating', 'Fixed', 'Invest', 'Income', 'Transfer'] as const
@@ -638,6 +768,139 @@ async function handleDeleteSubCode(row: CodeData) {
   await deleteSubCode(row.code_id)
   ElMessage.success('已刪除')
   await store.fetchCodesWithSub()
+}
+
+// ─── Credit-card dialog ──────────────────────────────────────────────────────
+
+const creditCardDialogVisible = ref(false)
+const creditCardFormMode = ref<'create' | 'edit'>('create')
+const creditCardSubmitting = ref(false)
+const creditCardFormRef = ref<FormInstance>()
+const editingCreditCardId = ref<string | null>(null)
+
+function emptyCreditCardForm(): CreditCardCreate {
+  return {
+    credit_card_id: '',
+    card_name: '',
+    card_no: null,
+    last_day: null,
+    charge_day: null,
+    limit_date: null,
+    feedback_way: null,
+    fx_code: 'TWD',
+    in_use: 'Y',
+    credit_card_index: undefined,
+    note: null,
+  }
+}
+
+const creditCardForm = ref<CreditCardCreate>(emptyCreditCardForm())
+
+const cardNoModel = computed<string>({
+  get: () => creditCardForm.value.card_no ?? '',
+  set: (v) => {
+    creditCardForm.value.card_no = v ? v : null
+  },
+})
+
+function makeNumberNullableModel(field: 'last_day' | 'charge_day' | 'limit_date') {
+  return computed<number | undefined>({
+    get: () => creditCardForm.value[field] ?? undefined,
+    set: (v) => {
+      creditCardForm.value[field] = typeof v === 'number' ? v : null
+    },
+  })
+}
+
+const lastDayModel = makeNumberNullableModel('last_day')
+const chargeDayModel = makeNumberNullableModel('charge_day')
+const limitDateModel = makeNumberNullableModel('limit_date')
+
+const feedbackWayModel = computed<string>({
+  get: () => creditCardForm.value.feedback_way ?? '',
+  set: (v) => {
+    creditCardForm.value.feedback_way = v ? v : null
+  },
+})
+
+const creditCardIndexModel = computed<number | undefined>({
+  get: () => creditCardForm.value.credit_card_index,
+  set: (v) => {
+    creditCardForm.value.credit_card_index = typeof v === 'number' ? v : undefined
+  },
+})
+
+const creditCardNoteModel = computed<string>({
+  get: () => creditCardForm.value.note ?? '',
+  set: (v) => {
+    creditCardForm.value.note = v ? v : null
+  },
+})
+
+const creditCardFormRules: FormRules = {
+  credit_card_id: [{ required: true, message: '請輸入卡片 ID', trigger: 'blur' }],
+  card_name: [{ required: true, message: '請輸入卡名', trigger: 'blur' }],
+  fx_code: [{ required: true, message: '請輸入幣別', trigger: 'blur' }],
+}
+
+function openCreateCreditCard() {
+  creditCardFormMode.value = 'create'
+  editingCreditCardId.value = null
+  creditCardForm.value = emptyCreditCardForm()
+  creditCardDialogVisible.value = true
+}
+
+function openEditCreditCard(row: CreditCard) {
+  creditCardFormMode.value = 'edit'
+  editingCreditCardId.value = row.credit_card_id
+  creditCardForm.value = {
+    credit_card_id: row.credit_card_id,
+    card_name: row.card_name,
+    card_no: row.card_no ?? null,
+    last_day: row.last_day ?? null,
+    charge_day: row.charge_day ?? null,
+    limit_date: row.limit_date ?? null,
+    feedback_way: row.feedback_way ?? null,
+    fx_code: row.fx_code,
+    in_use: row.in_use,
+    credit_card_index: row.credit_card_index,
+    note: row.note ?? null,
+  }
+  creditCardDialogVisible.value = true
+}
+
+async function submitCreditCard() {
+  if (!creditCardFormRef.value) return
+  const valid = await creditCardFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  creditCardSubmitting.value = true
+  try {
+    if (creditCardFormMode.value === 'create') {
+      await createCreditCard({ ...creditCardForm.value })
+      ElMessage.success('新增成功')
+    } else if (editingCreditCardId.value) {
+      const { credit_card_id, ...rest } = creditCardForm.value
+      void credit_card_id
+      await updateCreditCard(editingCreditCardId.value, rest)
+      ElMessage.success('更新成功')
+    }
+    creditCardDialogVisible.value = false
+    await store.fetchCreditCards()
+  } finally {
+    creditCardSubmitting.value = false
+  }
+}
+
+async function handleDeleteCreditCard(row: CreditCard) {
+  const ok = await confirm({
+    title: '刪除信用卡',
+    message: `確定要刪除「${row.card_name}」?`,
+    type: 'warning',
+  })
+  if (!ok) return
+  await deleteCreditCard(row.credit_card_id)
+  ElMessage.success('已刪除')
+  await store.fetchCreditCards()
 }
 </script>
 
