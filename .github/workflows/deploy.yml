@@ -35,7 +35,7 @@ jobs:
         working-directory: ./view
         run: |
           npm run type-check || true
-          npm run build
+          npm run build:mock
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

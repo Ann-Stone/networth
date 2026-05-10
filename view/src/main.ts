@@ -7,6 +7,11 @@ import router from './router'
 import App from './App.vue'
 import './assets/main.css'
 
+if (import.meta.env.VITE_USE_MOCK === 'true') {
+  const { startMockWorker } = await import('./api/mock')
+  await startMockWorker()
+}
+
 const app = createApp(App)
 
 // Register all Element Plus icons globally
