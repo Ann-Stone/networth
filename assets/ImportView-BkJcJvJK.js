@@ -1,0 +1,1 @@
+import{at as s,o,c as a,i as e}from"./index-C6KRO2Qz.js";const c={},r={class:"p-6"};function n(l,t){return o(),a("div",r,[...t[0]||(t[0]=[e("h1",{class:"text-2xl font-bold mb-2"},"資料匯入",-1),e("p",{class:"text-muted-text text-sm"},"Phase 8 (FE-039) 將實作此頁。",-1)])])}const m=s(c,[["render",n]]);export{m as default};

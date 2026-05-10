@@ -1,0 +1,1 @@
+/* empty css                  */import{d as o,o as s,b as n,aq as p}from"./index-C6KRO2Qz.js";const _=o({__name:"EmptyState",props:{message:{}},setup(e){return(a,c)=>{const t=p;return s(),n(t,{description:e.message??"暫無資料"},null,8,["description"])}}});export{_};
