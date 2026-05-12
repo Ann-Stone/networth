@@ -37,4 +37,15 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vue: ['vue', 'vue-router', 'pinia'],
+          'element-plus': ['element-plus', '@element-plus/icons-vue'],
+          echarts: ['echarts', 'zrender', 'vue-echarts'],
+        },
+      },
+    },
+  },
 })
