@@ -2,7 +2,7 @@
   <header class="h-14 bg-surface-container border-b border-outline-variant flex items-center px-4 gap-4 shrink-0">
     <!-- Hamburger / toggle -->
     <button
-      class="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors"
+      class="p-1.5 rounded-lg bg-transparent border-0 outline-none cursor-pointer text-on-surface-variant hover:bg-surface-container-high transition-colors"
       @click="appStore.toggleSidebar()"
     >
       <el-icon class="text-xl"><Expand v-if="appStore.sidebarCollapsed" /><Fold v-else /></el-icon>

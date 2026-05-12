@@ -98,17 +98,26 @@
   --ds-neutral-text:              #8c928e;
 
   /* ── Element Plus overrides (referenced via --ds-* tokens) */
+  --el-border-radius-base:        6px;
+  --el-border-radius-small:       4px;
+  --el-border-radius-round:       20px;
+  --el-font-size-base:            14px;
+  --el-font-size-small:           13px;
+}
+
+/* ─── Dark mode EP overrides (html.dark specificity wins over EP :root) ── */
+/*
+ * EP component CSS loads after main.css via Vite / unplugin-vue-components,
+ * so EP's :root { --el-bg-color: #fff } overrides our :root definitions.
+ * html.dark {} has higher specificity (0,1,1 vs 0,1,0) and wins.
+ */
+html.dark {
   --el-color-primary:             var(--ds-primary-container);
   --el-color-primary-light-3:     color-mix(in srgb, var(--ds-primary-container) 70%, white);
   --el-color-primary-light-5:     color-mix(in srgb, var(--ds-primary-container) 50%, white);
   --el-color-primary-light-7:     color-mix(in srgb, var(--ds-primary-container) 30%, white);
   --el-color-primary-light-9:     color-mix(in srgb, var(--ds-primary-container) 10%, white);
   --el-color-primary-dark-2:      color-mix(in srgb, var(--ds-primary-container) 80%, black);
-  --el-border-radius-base:        6px;
-  --el-border-radius-small:       4px;
-  --el-border-radius-round:       20px;
-  --el-font-size-base:            14px;
-  --el-font-size-small:           13px;
   --el-bg-color:                  var(--ds-surface-container);
   --el-bg-color-page:             var(--ds-surface);
   --el-bg-color-overlay:          var(--ds-surface-container);
@@ -130,6 +139,7 @@
   --el-disabled-border-color:     var(--ds-outline-variant);
   --el-table-bg-color:            var(--ds-surface-container);
   --el-table-tr-bg-color:         var(--ds-surface-container);
+  --el-table-stripe-color:        var(--ds-surface-container-high);
   --el-table-header-bg-color:     var(--ds-surface-container-high);
   --el-table-row-hover-bg-color:  var(--ds-surface-container-high);
   --el-table-border-color:        var(--ds-outline-variant);
@@ -166,6 +176,12 @@ html.light {
   --ds-negative:                  #c62828;
   --ds-neutral-text:              #717870;
 
+  --el-color-primary:             var(--ds-primary-container);
+  --el-color-primary-light-3:     color-mix(in srgb, var(--ds-primary-container) 70%, white);
+  --el-color-primary-light-5:     color-mix(in srgb, var(--ds-primary-container) 50%, white);
+  --el-color-primary-light-7:     color-mix(in srgb, var(--ds-primary-container) 30%, white);
+  --el-color-primary-light-9:     color-mix(in srgb, var(--ds-primary-container) 10%, white);
+  --el-color-primary-dark-2:      color-mix(in srgb, var(--ds-primary-container) 80%, black);
   --el-bg-color:                  var(--ds-surface-container);
   --el-bg-color-page:             var(--ds-background);
   --el-bg-color-overlay:          var(--ds-surface-container-lowest);
@@ -187,6 +203,7 @@ html.light {
   --el-disabled-border-color:     var(--ds-outline-variant);
   --el-table-bg-color:            var(--ds-surface-container-lowest);
   --el-table-tr-bg-color:         var(--ds-surface-container-lowest);
+  --el-table-stripe-color:        var(--ds-surface-container-low);
   --el-table-header-bg-color:     var(--ds-surface-container-low);
   --el-table-row-hover-bg-color:  var(--ds-surface-container-low);
   --el-table-border-color:        var(--ds-outline-variant);
