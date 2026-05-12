@@ -1,0 +1,1 @@
+import{aa as e}from"./index-DeN5Mr2Q.js";function n(){return async t=>{try{return await e.confirm(t.message,t.title,{confirmButtonText:"確認",cancelButtonText:"取消",type:t.type??"warning"}),!0}catch{return!1}}}export{n as u};
