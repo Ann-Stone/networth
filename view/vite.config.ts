@@ -40,10 +40,11 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vue: ['vue', 'vue-router', 'pinia'],
-          'element-plus': ['element-plus', '@element-plus/icons-vue'],
-          echarts: ['echarts', 'zrender', 'vue-echarts'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (/[\\/]node_modules[\\/](vue|vue-router|pinia)[\\/]/.test(id)) return 'vue'
+          if (/[\\/]node_modules[\\/](element-plus|@element-plus[\\/]icons-vue)[\\/]/.test(id)) return 'element-plus'
+          if (/[\\/]node_modules[\\/](echarts|zrender|vue-echarts)[\\/]/.test(id)) return 'echarts'
         },
       },
     },
