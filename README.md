@@ -24,13 +24,13 @@ uv run uvicorn app.main:app --reload --port 9528
 
 # terminal 2 — frontend on :5173 (proxies /api → :9528)
 cd view
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Open <http://127.0.0.1:5173>.
 
-For UI-only work without a backend, use `npm run dev:mock` in `view/` (MSW intercepts every API call).
+For UI-only work without a backend, use `pnpm dev:mock` in `view/` (MSW intercepts every API call).
 
 Details:
 - Frontend setup, env vars, build/type-check: [`view/README.md`](view/README.md)
@@ -43,7 +43,7 @@ Details:
 GitHub Actions runs two jobs in parallel on every PR ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)):
 
 - **`api`** — `uv sync` → `pytest --cov` → docs drift check
-- **`view`** — `npm ci` → `type-check` → `build`
+- **`view`** — `pnpm install --frozen-lockfile` → `type-check` → `build`
 
 Both must pass before merge.
 

@@ -125,10 +125,10 @@ VITE_USE_MOCK=false             # true for GitHub Pages mock mode
 ```
 
 ```bash
-npm run dev          # http://127.0.0.1:5173
-npm run build        # production build
-npm run build:mock   # GitHub Pages build with mock data
-npm run type-check   # TypeScript check (must pass before any PR)
+pnpm dev          # http://127.0.0.1:5173
+pnpm build        # production build
+pnpm build:mock   # GitHub Pages build with mock data
+pnpm type-check   # TypeScript check (must pass before any PR)
 ```
 
 ---

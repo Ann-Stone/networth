@@ -10,14 +10,14 @@ Personal finance dashboard SPA: monthly cash flow, annual balance sheet, asset m
 
 | Tool   | Version       | Notes                                                                                     |
 |--------|---------------|-------------------------------------------------------------------------------------------|
-| Node   | **22 LTS**    | Vite 7 requires ≥ 20.19; CI pins 22. No `.nvmrc` is checked in — match this README.       |
-| npm    | bundled       | Use `npm` for the lockfile to stay reproducible. (No pnpm/yarn.)                          |
+| Node   | **22 LTS**    | Vite 8 requires ≥ 20.19; CI pins 22. No `.nvmrc` is checked in — match this README.       |
+| pnpm   | **9.15+**     | `packageManager` field in `package.json` pins the version. Install via `corepack enable` or `npm install -g pnpm@9`. |
 
 ## Install
 
 ```bash
 cd view
-npm install
+pnpm install
 ```
 
 ## Environment
@@ -40,7 +40,7 @@ cp .env.example .env
 ### Against the real backend
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 - Dev server: <http://127.0.0.1:5173>
@@ -50,7 +50,7 @@ npm run dev
 ### Standalone (MSW mock)
 
 ```bash
-npm run dev:mock
+pnpm dev:mock
 ```
 
 - Same dev server, but with `VITE_USE_MOCK=true` — no backend required.
@@ -60,12 +60,12 @@ npm run dev:mock
 
 | Command                | What it does                                                                          |
 |------------------------|---------------------------------------------------------------------------------------|
-| `npm run type-check`   | `vue-tsc --build --force` — full TS pass. **Must be green before any PR.**            |
-| `npm run build`        | `vue-tsc -b && vite build` → `dist/`. Production bundle hitting the real API.         |
-| `npm run build:mock`   | Same as `build` but with `VITE_USE_MOCK=true` → GitHub Pages bundle with MSW baked in.|
-| `npm run preview`      | Serves the last `build` output locally for smoke-checking.                            |
+| `pnpm type-check`   | `vue-tsc --build --force` — full TS pass. **Must be green before any PR.**            |
+| `pnpm build`        | `vue-tsc -b && vite build` → `dist/`. Production bundle hitting the real API.         |
+| `pnpm build:mock`   | Same as `build` but with `VITE_USE_MOCK=true` → GitHub Pages bundle with MSW baked in.|
+| `pnpm preview`      | Serves the last `build` output locally for smoke-checking.                            |
 
-`npm run type-check` and `npm run build` also run in CI on every PR touching `view/**` — see [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+`pnpm type-check` and `pnpm build` also run in CI on every PR touching `view/**` — see [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 ## Architecture quick reference
 
@@ -79,6 +79,6 @@ See [`view/CLAUDE.md`](CLAUDE.md) for the full breakdown. Key conventions:
 
 ## Troubleshooting
 
-- **`type-check` fails after a pull**: run `npm install` first; new types from upstream may not be in your `node_modules`.
-- **Dev server returns 502/connect ECONNREFUSED**: backend isn't on `:9528`. Either start the API or use `npm run dev:mock`.
+- **`type-check` fails after a pull**: run `pnpm install` first; new types from upstream may not be in your `node_modules`.
+- **Dev server returns 502/connect ECONNREFUSED**: backend isn't on `:9528`. Either start the API or use `pnpm dev:mock`.
 - **Build:mock fails with MSW worker error**: ensure `public/mockServiceWorker.js` exists (regenerate with `npx msw init public --save` if missing).

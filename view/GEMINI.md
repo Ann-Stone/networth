@@ -41,7 +41,7 @@ src/
 - Use `formatCurrency()` from `src/utils/currency.ts` for all money values
 - Use `<el-message>` / `<el-notification>` for user feedback, never `alert()`
 - Apply Tailwind for layout/spacing, Element Plus CSS vars for theming
-- Run `npm run type-check` before submitting a PR
+- Run `pnpm type-check` before submitting a PR
 
 ### DO NOT:
 - Inline TypeScript interfaces — always reference `src/types/models.ts`
