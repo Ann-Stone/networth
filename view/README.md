@@ -1,5 +1,84 @@
-# Vue 3 + TypeScript + Vite
+# Balance Sheet — Frontend (`view/`)
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Personal finance dashboard SPA: monthly cash flow, annual balance sheet, asset management (stocks, real estate, insurance, loans), budgets, reminders.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+> Sibling backend lives at [`../api/`](../api/). For monorepo overview see the [root README](../README.md).
+
+---
+
+## Requirements
+
+| Tool   | Version       | Notes                                                                                     |
+|--------|---------------|-------------------------------------------------------------------------------------------|
+| Node   | **22 LTS**    | Vite 7 requires ≥ 20.19; CI pins 22. No `.nvmrc` is checked in — match this README.       |
+| npm    | bundled       | Use `npm` for the lockfile to stay reproducible. (No pnpm/yarn.)                          |
+
+## Install
+
+```bash
+cd view
+npm install
+```
+
+## Environment
+
+Copy the example file and edit if needed:
+
+```bash
+cp .env.example .env
+```
+
+| Variable             | Default | Meaning                                                                                                                 |
+|----------------------|---------|-------------------------------------------------------------------------------------------------------------------------|
+| `VITE_API_BASE_URL`  | `/api`  | Path prefix used by `src/utils/request.ts`. In dev, Vite proxies `/api/*` → `http://localhost:9528` (strips the prefix). |
+| `VITE_USE_MOCK`      | `false` | When `true`, MSW intercepts every `/api/*` request in the browser using fixtures under `src/api/mock/`. No backend needed. |
+
+`.env.production` sets `VITE_USE_MOCK=true` for the GitHub Pages bundle (so the deployed demo works without a server).
+
+## Dev modes
+
+### Against the real backend
+
+```bash
+npm run dev
+```
+
+- Dev server: <http://127.0.0.1:5173>
+- Requires the FastAPI backend running on `:9528` — see [`../api/CLAUDE.md`](../api/CLAUDE.md) for backend startup.
+- Vite proxy config: see [`vite.config.ts`](vite.config.ts).
+
+### Standalone (MSW mock)
+
+```bash
+npm run dev:mock
+```
+
+- Same dev server, but with `VITE_USE_MOCK=true` — no backend required.
+- Useful for UI work, contract previews, GitHub Pages dry-runs.
+
+## Build & quality gates
+
+| Command                | What it does                                                                          |
+|------------------------|---------------------------------------------------------------------------------------|
+| `npm run type-check`   | `vue-tsc --build --force` — full TS pass. **Must be green before any PR.**            |
+| `npm run build`        | `vue-tsc -b && vite build` → `dist/`. Production bundle hitting the real API.         |
+| `npm run build:mock`   | Same as `build` but with `VITE_USE_MOCK=true` → GitHub Pages bundle with MSW baked in.|
+| `npm run preview`      | Serves the last `build` output locally for smoke-checking.                            |
+
+`npm run type-check` and `npm run build` also run in CI on every PR touching `view/**` — see [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+
+## Architecture quick reference
+
+See [`view/CLAUDE.md`](CLAUDE.md) for the full breakdown. Key conventions:
+
+- **Composition API only** (`<script setup lang="ts">`)
+- **Pinia stores** — one per domain, flat, never imported by each other
+- **All HTTP through `src/api/`** — `src/utils/request.ts` is the only axios touchpoint
+- **All types in `src/types/models.ts`** — no inline interface declarations elsewhere
+- **Tailwind for layout, Element Plus for interaction** — design tokens in `src/assets/main.css`
+
+## Troubleshooting
+
+- **`type-check` fails after a pull**: run `npm install` first; new types from upstream may not be in your `node_modules`.
+- **Dev server returns 502/connect ECONNREFUSED**: backend isn't on `:9528`. Either start the API or use `npm run dev:mock`.
+- **Build:mock fails with MSW worker error**: ensure `public/mockServiceWorker.js` exists (regenerate with `npx msw init public --save` if missing).
