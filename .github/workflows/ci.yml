@@ -1,4 +1,4 @@
-name: API CI
+name: CI
 
 on:
   push:
@@ -7,10 +7,12 @@ on:
       - master
     paths:
       - 'api/**'
+      - 'view/**'
       - '.github/workflows/ci.yml'
   pull_request:
     paths:
       - 'api/**'
+      - 'view/**'
       - '.github/workflows/ci.yml'
 
 jobs:
@@ -41,3 +43,28 @@ jobs:
         run: |
           uv run export-docs
           git diff --exit-code docs/openapi.json docs/api-reference.md
+
+  view:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: view/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./view
+        run: npm ci
+
+      - name: Type check
+        working-directory: ./view
+        run: npm run type-check
+
+      - name: Build
+        working-directory: ./view
+        run: npm run build
