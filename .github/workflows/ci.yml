@@ -42,7 +42,7 @@ jobs:
         working-directory: ./api
         run: |
           uv run export-docs
-          git diff --exit-code docs/openapi.json docs/api-reference.md
+          git diff --exit-code docs/openapi docs/api-reference docs/api-reference.md
 
   view:
     runs-on: ubuntu-latest
