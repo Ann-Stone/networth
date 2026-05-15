@@ -2,7 +2,7 @@
 name = "networth-api"
 version = "0.1.0"
 description = "Networth API — personal finance REST API (FastAPI + SQLModel + SQLite)."
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 readme = "CLAUDE.md"
 dependencies = [
     "fastapi",
