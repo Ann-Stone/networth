@@ -1,0 +1,1 @@
+function e(){let e=getComputedStyle(document.documentElement),t=t=>e.getPropertyValue(t).trim();return[t(`--ds-primary-container`),t(`--ds-secondary`),t(`--ds-on-surface-variant`),t(`--ds-outline`),t(`--ds-primary`)]}export{e as t};

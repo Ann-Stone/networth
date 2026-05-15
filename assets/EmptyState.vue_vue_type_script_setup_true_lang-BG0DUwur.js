@@ -1,1 +1,0 @@
-import"./index-CgWurdwf.js";import{R as o}from"./element-plus-BV1xY6vI.js";import{t as s,x as n,y as p}from"./vue-Dk909fS5.js";const i=s({__name:"EmptyState",props:{message:{}},setup(e){return(m,r)=>{const t=o;return n(),p(t,{description:e.message??"暫無資料"},null,8,["description"])}}});export{i as _};
