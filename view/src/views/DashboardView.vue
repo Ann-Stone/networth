@@ -2,34 +2,45 @@
   <div class="flex flex-col gap-8">
     <PageHeader title="儀表板" :subtitle="today" />
 
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <template v-for="card in summaryCards" :key="card.type">
-        <el-skeleton v-if="store.summariesLoading[card.type]" :rows="3" animated />
-        <MetricCard
-          v-else-if="card.format === 'currency'"
-          :label="card.label"
-          :amount="card.value"
-          :delta-percent="card.deltaPercent"
-          :delta-label="card.deltaLabel"
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div
+        class="lg:col-span-2 rounded-xl bg-surface-container border border-outline-variant p-4"
+      >
+        <el-skeleton
+          v-if="store.summariesLoading.asset_debt_trend"
+          :rows="6"
+          animated
         />
-        <div
+        <AssetTrendChart
           v-else
-          class="flex flex-col gap-3 rounded-xl p-8 bg-surface-container border border-outline-variant shadow-sm"
-        >
-          <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">
-            {{ card.label }}
-          </p>
-          <span class="tabular-nums text-3xl font-bold text-on-surface">
-            {{ formatPercent(card.value) }}
-          </span>
-          <div v-if="card.deltaPercent !== undefined" class="flex items-center gap-1.5 mt-2">
-            <TrendBadge :value="card.deltaPercent" />
-            <span v-if="card.deltaLabel" class="text-on-surface-variant text-xs">
-              {{ card.deltaLabel }}
-            </span>
-          </div>
-        </div>
-      </template>
+          :points="store.summaries.asset_debt_trend?.points ?? []"
+        />
+      </div>
+      <div class="lg:col-span-1 flex flex-col gap-6">
+        <el-skeleton
+          v-if="store.summariesLoading.asset_debt_trend"
+          :rows="3"
+          animated
+        />
+        <MetricCard
+          v-else
+          label="資產淨值"
+          :amount="latestNetWorth"
+          :points="store.summaries.asset_debt_trend?.points ?? []"
+        />
+        <el-skeleton
+          v-if="store.summariesLoading.freedom_ratio"
+          :rows="3"
+          animated
+        />
+        <MetricCard
+          v-else
+          label="財務自由度"
+          format="percent"
+          :amount="freedomPercentValue"
+          :points="freedomRatioPercentPoints"
+        />
+      </div>
     </section>
 
     <section class="flex flex-col gap-4">
@@ -187,7 +198,6 @@ import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
-import TrendBadge from '@/components/ui/TrendBadge.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import DataListCard from '@/components/ui/DataListCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -195,72 +205,33 @@ import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import FormDialog from '@/components/ui/FormDialog.vue'
 import BarChart from '@/components/charts/BarChart.vue'
-import { useDashboardStore, type SummaryType } from '@/stores/dashboard'
+import AssetTrendChart from '@/components/charts/AssetTrendChart.vue'
+import { useDashboardStore } from '@/stores/dashboard'
 import { createTarget, updateTarget, deleteTarget } from '@/api/dashboard'
-import type { DashboardSummary, TargetSetting } from '@/types/models'
+import type { TargetSetting } from '@/types/models'
 
 const store = useDashboardStore()
 
 const today = dayjs().format('YYYY-MM-DD')
 
-const period = (() => {
-  const end = dayjs()
-  const start = end.subtract(11, 'month')
-  return `${start.format('YYYYMM')}-${end.format('YYYYMM')}`
-})()
+// Latest monthly snapshot from asset_debt_trend (not a live calculation).
+const latestNetWorth = computed(() => {
+  const pts = store.summaries.asset_debt_trend?.points ?? []
+  return pts.at(-1)?.value ?? 0
+})
 
-const summaryTypes: SummaryType[] = ['asset_debt_trend', 'spending', 'freedom_ratio']
+// 0.25 -> 25.0
+const freedomPercentValue = computed(
+  () => Math.round(store.freedomRatioRolling12M * 1000) / 10,
+)
 
-const labelMap: Record<SummaryType, string> = {
-  asset_debt_trend: '資產淨值',
-  spending: '本期支出',
-  freedom_ratio: '財務自由度',
-}
-
-const formatMap: Record<SummaryType, 'currency' | 'percent'> = {
-  asset_debt_trend: 'currency',
-  spending: 'currency',
-  freedom_ratio: 'percent',
-}
-
-function latestValue(summary: DashboardSummary | null): number {
-  if (!summary || summary.points.length === 0) return 0
-  return summary.points[summary.points.length - 1]!.value
-}
-
-function previousValue(summary: DashboardSummary | null): number | null {
-  if (!summary || summary.points.length < 2) return null
-  return summary.points[summary.points.length - 2]!.value
-}
-
-function deltaPercent(summary: DashboardSummary | null): number | undefined {
-  const prev = previousValue(summary)
-  if (prev === null || prev === 0) return undefined
-  const curr = latestValue(summary)
-  return ((curr - prev) / Math.abs(prev)) * 100
-}
-
-function deltaLabel(summary: DashboardSummary | null): string | undefined {
-  if (!summary || summary.points.length < 2) return undefined
-  return '較上期'
-}
-
-function formatPercent(value: number): string {
-  return `${value.toFixed(1)}%`
-}
-
-const summaryCards = computed(() =>
-  summaryTypes.map((type) => {
-    const summary = store.summaries[type]
-    return {
-      type,
-      label: labelMap[type],
-      format: formatMap[type],
-      value: latestValue(summary),
-      deltaPercent: deltaPercent(summary),
-      deltaLabel: deltaLabel(summary),
-    }
-  }),
+// Convert each per-month freedom_ratio point to a percent number so the
+// card's internal MoM / YoY delta matches the displayed unit.
+const freedomRatioPercentPoints = computed(() =>
+  (store.summaries.freedom_ratio?.points ?? []).map((p) => ({
+    period: p.period,
+    value: Math.round(p.value * 1000) / 10,
+  })),
 )
 
 // Targets CRUD ----------------------------------------------------------------
@@ -351,9 +322,7 @@ const budgetSeries = computed(() => {
 })
 
 onMounted(() => {
-  for (const type of summaryTypes) {
-    store.fetchSummary({ type, period })
-  }
+  store.fetchSummariesForDashboard()
   store.fetchAlarms()
   store.fetchTargets()
   store.fetchBudget({ type: 'monthly', period: currentMonth })
