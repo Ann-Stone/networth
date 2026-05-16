@@ -3,6 +3,7 @@
     class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
     :class="toneClass"
   >
+    <span v-if="label" class="text-[10px] opacity-70">{{ label }}</span>
     <el-icon class="text-[14px]">
       <Top v-if="isPositive" />
       <Bottom v-else />
@@ -18,7 +19,11 @@ import { Top, Bottom } from '@element-plus/icons-vue'
 defineOptions({ name: 'TrendBadge' })
 
 const props = withDefaults(
-  defineProps<{ value: number; tone?: 'positive' | 'negative' | 'auto' }>(),
+  defineProps<{
+    value: number
+    tone?: 'positive' | 'negative' | 'auto'
+    label?: string
+  }>(),
   { tone: 'auto' },
 )
 
