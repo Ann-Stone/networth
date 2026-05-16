@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppLayout: typeof import('./components/layout/AppLayout.vue')['default']
+    AssetTrendChart: typeof import('./components/charts/AssetTrendChart.vue')['default']
     BarChart: typeof import('./components/charts/BarChart.vue')['default']
     DataListCard: typeof import('./components/ui/DataListCard.vue')['default']
     DonutChart: typeof import('./components/charts/DonutChart.vue')['default']
