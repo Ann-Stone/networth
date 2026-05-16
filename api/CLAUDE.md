@@ -177,6 +177,13 @@ non-SQLite or contains `prod`. Re-running yields identical state (idempotent).
 This is **not** the BE-005 legacy migration; it ships hand-written fixtures
 purely for backend smoke-testing.
 
+`uv run python scripts/migrate_from_legacy.py --help` — BE-005 one-shot
+migration from the legacy `account-book-API` SQLite (`ledger.db`) into the
+networth-api schema. Opens the legacy DB read-only, drops `carrier_no`
+columns, skips `Initial_Setting`. Refuses non-SQLite targets and any URL
+containing `prod`. See module docstring for the FK-safe order and the
+`Loan.repayed` semantic change (legacy Y/N flag → new float).
+
 ---
 
 ## API documentation discipline (contract-as-spec)
