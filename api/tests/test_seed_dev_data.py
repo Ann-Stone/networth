@@ -249,10 +249,10 @@ def test_journal_polymorphic_fks_consistent(seeded_engine):
 
 
 # ---------------------------------------------------------------------------
-# Sub-task 10 — settled month
+# Sub-task 10 — settled-month coverage (13 consecutive months for dashboard trend)
 # ---------------------------------------------------------------------------
 
-def test_one_settled_month(seeded_engine):
+def test_settled_month_thirteen_consecutive(seeded_engine):
     engine, _ = seeded_engine
     with Session(engine) as s:
         ab_months = {
@@ -264,10 +264,11 @@ def test_one_settled_month(seeded_engine):
         nv_count = _scalar(
             s.exec(select(func.count()).select_from(StockNetValueHistory)).one()
         )
-    assert len(ab_months) == 1
-    assert len(cb_months) == 1
-    assert ab_months == cb_months  # same settled month
-    assert nv_count >= 1
+    assert len(ab_months) == 13
+    assert len(cb_months) == 13
+    assert ab_months == cb_months  # account + card snapshots share the same period set
+    # 13 settled stock snapshots (STK-H-SETTLED) plus the 12-row year-report set
+    assert nv_count >= 13
 
 
 # ---------------------------------------------------------------------------

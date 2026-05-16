@@ -432,63 +432,108 @@ def seed_settled_month(
     accounts: list[Account],
     credit_cards: list[CreditCard],
 ) -> dict:
-    """Settle the most-recent fully-closed month."""
-    year, month = _ym_offset(TODAY.year, TODAY.month, -2)
-    vesting_month = _ym(year, month)
+    """Settle the most-recent 13 fully-closed months.
+
+    Dashboard verification (asset_debt_trend stacked-area chart) needs at least
+    13 monthly snapshots across all six balance/net-value tables; one snapshot
+    yields a flat line that cannot exercise the chart's per-category trend
+    rendering. Offsets -14..-2 from TODAY produce 13 consecutive periods
+    ending two months before today (the last fully-closed month under the
+    rest of the seed's conventions).
+    """
     fx_rate_for = {"TWD": 1.0, "USD": 31.5, "JPY": 0.21}
-    ab_rows: list[AccountBalance] = []
-    for idx, acc in enumerate(accounts, start=1):
-        ab = AccountBalance(
+    vesting_months: list[str] = []
+    last: dict = {}
+    for offset in range(-14, -1):  # -14..-2 inclusive: 13 months
+        year, month = _ym_offset(TODAY.year, TODAY.month, offset)
+        vesting_month = _ym(year, month)
+        vesting_months.append(vesting_month)
+        delta_idx = offset + 14  # 0..12
+        mult = 1.0 + delta_idx * 0.02
+
+        ab_rows: list[AccountBalance] = []
+        for idx, acc in enumerate(accounts, start=1):
+            ab = AccountBalance(
+                vesting_month=vesting_month,
+                id=acc.account_id,
+                name=acc.name,
+                balance=10000.0 * idx * mult,
+                fx_code=acc.fx_code,
+                fx_rate=fx_rate_for.get(acc.fx_code, 1.0),
+                is_calculate=acc.is_calculate,
+            )
+            session.add(ab)
+            ab_rows.append(ab)
+
+        cc_rows: list[CreditCardBalance] = []
+        for idx, card in enumerate(credit_cards, start=1):
+            cb = CreditCardBalance(
+                vesting_month=vesting_month,
+                id=card.credit_card_id,
+                name=card.card_name,
+                balance=-1000.0 * idx * mult,
+                fx_rate=fx_rate_for.get(card.fx_code, 1.0),
+            )
+            session.add(cb)
+            cc_rows.append(cb)
+
+        nv = StockNetValueHistory(
             vesting_month=vesting_month,
-            id=acc.account_id,
-            name=acc.name,
-            balance=10000.0 * idx,
-            fx_code=acc.fx_code,
-            fx_rate=fx_rate_for.get(acc.fx_code, 1.0),
-            is_calculate=acc.is_calculate,
+            id="STK-H-SETTLED",
+            asset_id="AC-STK-001",
+            stock_code="AAPL",
+            stock_name="Apple Inc.",
+            amount=50.0,
+            price=180.50 * mult,
+            cost=8000.0,
+            fx_code="USD",
+            fx_rate=31.5,
         )
-        session.add(ab)
-        ab_rows.append(ab)
-    cc_rows: list[CreditCardBalance] = []
-    for idx, card in enumerate(credit_cards, start=1):
-        cb = CreditCardBalance(
+        session.add(nv)
+
+        lb = LoanBalance(
             vesting_month=vesting_month,
-            id=card.credit_card_id,
-            name=card.card_name,
-            balance=-1000.0 * idx,
-            fx_rate=fx_rate_for.get(card.fx_code, 1.0),
+            id="LN-MORT-01",
+            name="Home Mortgage",
+            balance=-240000.0 + delta_idx * 1500.0,
+            cost=250000.0,
         )
-        session.add(cb)
-        cc_rows.append(cb)
-    nv = StockNetValueHistory(
-        vesting_month=vesting_month,
-        id="STK-H-SETTLED",
-        asset_id="AC-STK-001",
-        stock_code="AAPL",
-        stock_name="Apple Inc.",
-        amount=50.0,
-        price=180.50,
-        cost=8000.0,
-        fx_code="USD",
-        fx_rate=31.5,
-    )
-    session.add(nv)
-    lb = LoanBalance(
-        vesting_month=vesting_month,
-        id="LN-MORT-01",
-        name="Home Mortgage",
-        balance=-240000.0,
-        cost=250000.0,
-    )
-    session.add(lb)
+        session.add(lb)
+
+        est = EstateNetValueHistory(
+            vesting_month=vesting_month,
+            id="EST-SETTLED",
+            asset_id="AC-REAL-SETTLED",
+            name="Settled condo",
+            market_value=480000.0 * mult,
+            cost=420000.0,
+            estate_status="live",
+        )
+        session.add(est)
+
+        ins = InsuranceNetValueHistory(
+            vesting_month=vesting_month,
+            id="INS-SETTLED",
+            asset_id="AC-INS-SETTLED",
+            name="Settled policy",
+            surrender_value=24000.0 * mult,
+            cost=20000.0,
+            fx_code="USD",
+            fx_rate=31.5,
+        )
+        session.add(ins)
+
+        if offset == -2:
+            last = {
+                "vesting_month": vesting_month,
+                "account_balances": ab_rows,
+                "credit_card_balances": cc_rows,
+                "stock_net_value": nv,
+                "loan_balance": lb,
+            }
+
     session.commit()
-    return {
-        "vesting_month": vesting_month,
-        "account_balances": ab_rows,
-        "credit_card_balances": cc_rows,
-        "stock_net_value": nv,
-        "loan_balance": lb,
-    }
+    return {**last, "vesting_months": vesting_months}
 
 
 def seed_stock_prices(session: Session) -> list[StockPriceHistory]:
