@@ -1,6 +1,7 @@
 """BE-026 — summary endpoint tests."""
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
@@ -86,6 +87,26 @@ def test_get_summary_asset_debt_trend_golden(client: TestClient, session: Sessio
     by_period = {p["period"]: p["value"] for p in data["points"]}
     assert by_period["202301"] == 70000.0
     assert by_period["202302"] == 70000.0
+
+    expected_keys = {"accounts", "stocks", "estates", "insurances", "loans", "cards"}
+    for p in data["points"]:
+        assert p["breakdown"] is not None
+        assert set(p["breakdown"].keys()) == expected_keys
+        assert sum(p["breakdown"].values()) == pytest.approx(p["value"], abs=0.01)
+        assert p["breakdown"]["loans"] <= 0
+        assert p["breakdown"]["cards"] <= 0
+
+
+def test_get_summary_spending_breakdown_is_null(
+    client: TestClient, session: Session
+) -> None:
+    """spending variant must continue to return breakdown=null in JSON."""
+    session.add(_journal(vesting_month="202301", spending=-100.0))
+    session.commit()
+    r = client.get("/dashboard/summary?type=spending&period=202301-202301")
+    assert r.status_code == 200
+    for p in r.json()["data"]["points"]:
+        assert p["breakdown"] is None
 
 
 def test_get_summary_invalid_period_returns_422(client: TestClient) -> None:

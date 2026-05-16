@@ -97,6 +97,25 @@ def test_get_asset_debt_trend_golden(session: Session) -> None:
     assert by_period["202301"] == 70000.0
     assert by_period["202302"] == 70000.0
 
+    expected_keys = {"accounts", "stocks", "estates", "insurances", "loans", "cards"}
+    for p in summary.points:
+        assert p.breakdown is not None
+        assert set(p.breakdown.keys()) == expected_keys
+        assert sum(p.breakdown.values()) == pytest.approx(p.value, abs=0.01)
+        assert p.breakdown["loans"] <= 0
+        assert p.breakdown["cards"] <= 0
+    # Specific category attribution: account contributes +100k, loan contributes -30k
+    assert summary.points[0].breakdown["accounts"] == 100000.0
+    assert summary.points[0].breakdown["loans"] == -30000.0
+
+
+def test_breakdown_is_none_for_spending_summary(session: Session) -> None:
+    """spending variant does not expose a per-category breakdown."""
+    session.add(_journal(vesting_month="202301", spending=-100.0))
+    session.commit()
+    summary = get_spending_summary(session, "202301-202302")
+    assert all(p.breakdown is None for p in summary.points)
+
 
 def test_get_summary_dispatches(session: Session) -> None:
     out = get_summary(session, SummaryType.spending, "202301-202301")

@@ -163,7 +163,17 @@ def get_asset_debt_trend(session: Session, period: str) -> SummaryRead:
         )
         # liabilities are negative balances; net = assets + liabilities
         value = a_total + s_total + e_total + i_total + l_total + c_total
-        points.append(SummaryPoint(period=m, value=round(value, 2)))
+        breakdown = {
+            "accounts": round(a_total, 2),
+            "stocks": round(s_total, 2),
+            "estates": round(e_total, 2),
+            "insurances": round(i_total, 2),
+            "loans": round(l_total, 2),
+            "cards": round(c_total, 2),
+        }
+        points.append(
+            SummaryPoint(period=m, value=round(value, 2), breakdown=breakdown)
+        )
     return SummaryRead(type=SummaryType.asset_debt_trend, points=points)
 
 

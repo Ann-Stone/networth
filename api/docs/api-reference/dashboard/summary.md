@@ -42,15 +42,31 @@ Example:
   "data": {
     "points": [
       {
+        "breakdown": {
+          "accounts": 480000.0,
+          "cards": -3000.0,
+          "estates": 470000.0,
+          "insurances": 23000.0,
+          "loans": -230000.0,
+          "stocks": 310000.0
+        },
         "period": "202301",
-        "value": 32000.0
+        "value": 1050000.0
       },
       {
+        "breakdown": {
+          "accounts": 500000.0,
+          "cards": -3000.0,
+          "estates": 480000.0,
+          "insurances": 24000.0,
+          "loans": -240000.0,
+          "stocks": 320000.0
+        },
         "period": "202302",
-        "value": 41000.0
+        "value": 1081000.0
       }
     ],
-    "type": "spending"
+    "type": "asset_debt_trend"
   },
   "msg": "success"
 }
