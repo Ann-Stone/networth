@@ -551,6 +551,7 @@ export interface AssetReport {
 export interface DashboardSummaryPoint {
   period: string                // YYYYMM
   value: number
+  breakdown?: Record<string, number>
 }
 
 export interface DashboardSummary {
