@@ -110,7 +110,13 @@ def get_freedom_ratio_summary(session: Session, period: str) -> SummaryRead:
     points: list[SummaryPoint] = []
     for m in months:
         ratio = (income[m] - fixed[m]) / income[m] if income[m] > 0 else 0.0
-        points.append(SummaryPoint(period=m, value=round(ratio, 4)))
+        breakdown = {
+            "income": round(income[m], 2),
+            "fixed_expenses": round(fixed[m], 2),
+        }
+        points.append(
+            SummaryPoint(period=m, value=round(ratio, 4), breakdown=breakdown)
+        )
     return SummaryRead(type=SummaryType.freedom_ratio, points=points)
 
 

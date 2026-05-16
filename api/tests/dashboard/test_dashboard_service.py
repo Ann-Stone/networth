@@ -69,11 +69,19 @@ def test_get_freedom_ratio_summary_golden(session: Session) -> None:
     summary = get_freedom_ratio_summary(session, "202301-202301")
     # (10000 - 2500) / 10000 = 0.75
     assert summary.points[0].value == 0.75
+    point = summary.points[0]
+    assert point.breakdown == {"income": 10000.0, "fixed_expenses": 2500.0}
+    # Recomputed ratio from raw breakdown matches stored value.
+    recomputed = (
+        point.breakdown["income"] - point.breakdown["fixed_expenses"]
+    ) / point.breakdown["income"]
+    assert point.value == pytest.approx(recomputed, abs=1e-4)
 
 
 def test_get_freedom_ratio_zero_income(session: Session) -> None:
     summary = get_freedom_ratio_summary(session, "202301-202301")
     assert summary.points[0].value == 0.0
+    assert summary.points[0].breakdown == {"income": 0.0, "fixed_expenses": 0.0}
 
 
 def test_get_asset_debt_trend_golden(session: Session) -> None:

@@ -64,7 +64,13 @@ def test_get_summary_freedom_ratio_golden(client: TestClient, session: Session) 
 
     r = client.get("/dashboard/summary?type=freedom_ratio&period=202301-202301")
     data = r.json()["data"]
-    assert data["points"][0]["value"] == 0.75
+    point = data["points"][0]
+    assert point["value"] == 0.75
+    assert point["breakdown"] == {"income": 10000.0, "fixed_expenses": 2500.0}
+    recomputed = (
+        point["breakdown"]["income"] - point["breakdown"]["fixed_expenses"]
+    ) / point["breakdown"]["income"]
+    assert point["value"] == pytest.approx(recomputed, abs=1e-4)
 
 
 def test_get_summary_asset_debt_trend_golden(client: TestClient, session: Session) -> None:
