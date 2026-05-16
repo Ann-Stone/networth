@@ -22,8 +22,7 @@ let targets: TargetSetting[] = [
 
 // ─── Summary points ──────────────────────────────────────────────────────────
 
-function summaryPoints(type: string, period: string): DashboardSummary {
-  // period = YYYYMM-YYYYMM
+function eachPeriod(period: string): string[] {
   const [start, end] = period.split('-')
   const startYM = start || '202505'
   const endYM = end || '202604'
@@ -31,15 +30,55 @@ function summaryPoints(type: string, period: string): DashboardSummary {
   let m = Number(startYM.slice(4, 6))
   const endY = Number(endYM.slice(0, 4))
   const endM = Number(endYM.slice(4, 6))
-  const points: { period: string; value: number }[] = []
-  let base = 13800000
+  const out: string[] = []
   while (y < endY || (y === endY && m <= endM)) {
-    points.push({ period: `${y}${String(m).padStart(2, '0')}`, value: base })
-    base += 95000 + Math.round(Math.sin(points.length) * 50000)
+    out.push(`${y}${String(m).padStart(2, '0')}`)
     m += 1
     if (m === 13) { m = 1; y += 1 }
   }
-  return { type, points }
+  return out
+}
+
+function assetDebtPoints(period: string): DashboardSummary {
+  // Hand-tuned monthly slopes for a readable stacked-area + net-worth demo.
+  const points = eachPeriod(period).map((p, i) => {
+    const accounts = 3_800_000 + i * 35_000
+    const stocks = 5_200_000 + i * 60_000 + Math.round(Math.sin(i) * 80_000)
+    const estates = 6_000_000
+    const insurances = 1_400_000 + i * 12_000
+    const loans = -2_500_000 + i * 18_000 // amortizing toward 0
+    const cards = -680_000 + Math.round(Math.cos(i) * 40_000)
+    const breakdown = { accounts, stocks, estates, insurances, loans, cards }
+    const value = accounts + stocks + estates + insurances + loans + cards
+    return { period: p, value, breakdown }
+  })
+  return { type: 'asset_debt_trend', points }
+}
+
+function freedomRatioPoints(period: string): DashboardSummary {
+  // Income vs fixed_expenses so MoM/YoY on the rolling card carries signal.
+  const points = eachPeriod(period).map((p, i) => {
+    const income = 95_000 + Math.round(Math.sin(i * 0.7) * 12_000) + i * 600
+    const fixed_expenses = 60_000 + Math.round(Math.cos(i * 0.5) * 5_000)
+    const value = income > 0 ? (income - fixed_expenses) / income : 0
+    return { period: p, value, breakdown: { income, fixed_expenses } }
+  })
+  return { type: 'freedom_ratio', points }
+}
+
+function spendingPoints(period: string): DashboardSummary {
+  // Retained for any consumer still hitting the spending summary type.
+  const points = eachPeriod(period).map((p, i) => ({
+    period: p,
+    value: 38_000 + Math.round(Math.sin(i) * 6_000) + i * 200,
+  }))
+  return { type: 'spending', points }
+}
+
+function summaryPoints(type: string, period: string): DashboardSummary {
+  if (type === 'asset_debt_trend') return assetDebtPoints(period)
+  if (type === 'freedom_ratio') return freedomRatioPoints(period)
+  return spendingPoints(period)
 }
 
 // ─── Budget overview ─────────────────────────────────────────────────────────
