@@ -9,24 +9,13 @@
 
 ## 1. BE-005 — Legacy data migration (Phase 1.5)
 
-**Status**: Deferred per `~/.claude/projects/.../memory/MEMORY.md`.
-
-Migrate `account-book-API/data/ledger.db` → `~/.networth/networth.db` using
-the new SQLModel schema. Granular spec lives at
-`refactoring-tickets/granular/BE-005.md`. Acceptance gate: row counts match
-legacy `ledger.db` (Initial_Setting excluded).
-
-**Why deferred**: any column-rename / type-cast decision made now might be
-invalidated when the frontend refactor pins down the actual UI contract.
-Better to migrate once, after the contract is frozen.
-
-**Pre-flight before running BE-005**: read sections 2 and 3 below — several
-schema divergences need a decision (migration vs. import-time transform)
-before the import script is written.
+**Status**: Done — landed in commit `7236b69` (`BE-005: Migrate SQLite data
+from account-book-API to new schema`). Row counts match legacy `ledger.db`
+(Initial_Setting excluded).
 
 ---
 
-## 2. Schema divergences from refactoring-tickets specs
+## 2. Schema divergences from original refactor specs
 
 These are places where the implemented model intentionally differs from the
 ticket text. Each one needs a yes/no on "do we add a migration to align with
@@ -82,7 +71,7 @@ one-by-one.
 
 ---
 
-## 4. Backlog tickets parked in `refactoring-tickets/README.md`
+## 4. Backlog tickets
 
 | ID | Title | Trigger to revisit |
 |----|-------|--------------------|

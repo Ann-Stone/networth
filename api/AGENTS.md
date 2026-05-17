@@ -16,7 +16,7 @@ Calculation-heavy services (BE-017, BE-019, BE-025, BE-026) additionally require
 
 ## Validation Checklist by Domain
 
-Business rules to verify before declaring a feature done. The `Initial_Setting` table is intentionally dropped (see `refactoring-tickets/README.md` Decision Log) — there is no Initial-Setting endpoint.
+Business rules to verify before declaring a feature done. The `Initial_Setting` table is intentionally dropped (orphan in legacy code) — there is no Initial-Setting endpoint.
 
 ### Settings
 - [ ] Account CRUD: create, read with filters (name / type / `in_use`), update, delete.

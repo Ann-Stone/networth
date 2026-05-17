@@ -11,7 +11,7 @@
 - **Services** hold business logic (calculations, cross-domain queries, transformations).
 - **Models** are SQLModel table definitions + Create/Update/Read schemas, co-located in `app/models/<domain>/`.
 
-> The legacy `Initial_Setting` table is intentionally not ported — see `refactoring-tickets/README.md` Decision Log.
+> The legacy `Initial_Setting` table is intentionally not ported (orphan in legacy `account_balance_model.py`; initialization code already commented out).
 
 ### 2. Services are flat functions
 Plain functions in `app/services/`. **No classes.** `session: Session` is the first parameter, never stored on a class or module global. Cross-domain services import models from multiple domains directly.

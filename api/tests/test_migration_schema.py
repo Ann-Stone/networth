@@ -60,7 +60,7 @@ def test_head_has_all_retained_tables() -> None:
     assert not missing, f"Missing retained tables in head schema: {sorted(missing)}"
     assert "Initial_Setting" not in registered, (
         "Initial_Setting must not be present in the new schema "
-        "(see refactoring-tickets/README.md Decision Log)."
+        "(orphan in legacy code, intentionally not ported)."
     )
 
 
