@@ -258,13 +258,37 @@ class LookupMaps:
     account_int_to_str: dict[int, str]
 
 
+def _synth_account_id(legacy_id: int) -> str:
+    """Stable synthetic business ID for legacy Account rows whose
+    ``account_id`` column is NULL/empty. Matches schema's NOT NULL +
+    UNIQUE constraint while keeping FK resolution deterministic. User
+    can rename these through the UI after migration.
+    """
+    return f"LEGACY-ACC-{legacy_id}"
+
+
 def _load_lookup_maps(src: sqlite3.Connection) -> LookupMaps:
-    cur = src.execute("SELECT id, account_id FROM Account")
+    """Build legacy.id → new business_id map for Account.
+
+    Two patches over raw legacy data:
+      * NULL / empty ``account_id`` → ``LEGACY-ACC-{id}`` (see ``_synth_account_id``).
+      * Duplicate ``account_id`` (legacy schema lacked UNIQUE) → 2nd+
+        occurrence gets ``-DUP-{id}`` suffix so it satisfies the new
+        UNIQUE constraint. First occurrence keeps the original ID.
+    Ordered by legacy ``id`` so "first wins" is deterministic.
+    """
+    cur = src.execute("SELECT id, account_id FROM Account ORDER BY id")
     account_map: dict[int, str] = {}
+    seen: set[str] = set()
     for row in cur:
-        if row["id"] is None or row["account_id"] is None:
+        if row["id"] is None:
             continue
-        account_map[int(row["id"])] = str(row["account_id"])
+        legacy_id = int(row["id"])
+        biz_id = _opt_str(row["account_id"]) or _synth_account_id(legacy_id)
+        if biz_id in seen:
+            biz_id = f"{biz_id}-DUP-{legacy_id}"
+        seen.add(biz_id)
+        account_map[legacy_id] = biz_id
     return LookupMaps(account_int_to_str=account_map)
 
 
@@ -329,20 +353,36 @@ def migrate_codes(src: sqlite3.Connection, session: Session) -> int:
             code_group=_opt_str(row["code_group"]),
             code_group_name=_opt_str(row["code_group_name"]),
             in_use=row["in_use"],
-            code_index=int(row["code_index"]) if row["code_index"] is not None else 0,
+            code_index=_opt_int(row["code_index"]) or 0,
         ))
         count += 1
     session.commit()
     return count
 
 
-def migrate_accounts(src: sqlite3.Connection, session: Session) -> int:
-    """Migrate ``Account`` rows. Drops ``carrier_no`` (no backfill)."""
+def migrate_accounts(
+    src: sqlite3.Connection, session: Session, *, maps: LookupMaps
+) -> int:
+    """Migrate ``Account`` rows. Drops ``carrier_no`` (no backfill).
+
+    Business IDs come from ``maps.account_int_to_str``, which already
+    applied NULL-synthesis and duplicate-dedup. We just compare against
+    the raw legacy column to count and log adjustments.
+    """
     count = 0
-    for row in src.execute("SELECT * FROM Account"):
+    synthesized = 0
+    deduped = 0
+    for row in src.execute("SELECT * FROM Account ORDER BY id"):
+        legacy_id = int(row["id"])
+        original = _opt_str(row["account_id"])
+        final = maps.account_int_to_str[legacy_id]
+        if not original:
+            synthesized += 1
+        elif final != original:
+            deduped += 1
         session.merge(Account(
-            id=int(row["id"]),
-            account_id=str(row["account_id"]),
+            id=legacy_id,
+            account_id=final,
             name=row["name"],
             account_type=row["account_type"],
             fx_code=row["fx_code"],
@@ -351,10 +391,24 @@ def migrate_accounts(src: sqlite3.Connection, session: Session) -> int:
             discount=float(row["discount"]) if row["discount"] is not None else 1.0,
             memo=_opt_str(row["memo"]),
             owner=_opt_str(row["owner"]),
-            account_index=int(row["account_index"]) if row["account_index"] is not None else 0,
+            account_index=_opt_int(row["account_index"]) or 0,
         ))
         count += 1
     session.commit()
+    if synthesized:
+        logger.warning(
+            "migrate_accounts: synthesized account_id for %d row(s) "
+            "(legacy account_id was NULL/empty). Look for LEGACY-ACC-* "
+            "entries and rename via the UI if desired.",
+            synthesized,
+        )
+    if deduped:
+        logger.warning(
+            "migrate_accounts: dedup-renamed %d row(s) whose account_id "
+            "collided with an earlier row. Look for *-DUP-{id} entries "
+            "and rename via the UI if desired.",
+            deduped,
+        )
     return count
 
 
@@ -362,17 +416,24 @@ def migrate_credit_cards(src: sqlite3.Connection, session: Session) -> int:
     """Migrate ``Credit_Card`` rows. Drops ``carrier_no`` (no backfill)."""
     count = 0
     for row in src.execute("SELECT * FROM Credit_Card"):
+        # Legacy semantic mismatch: legacy `limit_date` stored card
+        # expiration ("YYYY/MM"), but the new schema's `limit_date` means
+        # "payment due day of month" (int 1-31). Reroute the legacy value
+        # into the new `card_expiry` column and leave `limit_date` NULL
+        # for the user to fill in via UI later.
+        legacy_limit = _opt_str(row["limit_date"])
         session.merge(CreditCard(
             credit_card_id=_str(row["credit_card_id"]),
             card_name=row["card_name"],
             card_no=_opt_str(row["card_no"]),
             last_day=_opt_int(row["last_day"]),
             charge_day=_opt_int(row["charge_day"]),
-            limit_date=_opt_int(row["limit_date"]),
+            limit_date=None,
+            card_expiry=legacy_limit,
             feedback_way=_opt_str(row["feedback_way"]),
             fx_code=row["fx_code"],
             in_use=row["in_use"],
-            credit_card_index=int(row["credit_card_index"]) if row["credit_card_index"] is not None else 0,
+            credit_card_index=_opt_int(row["credit_card_index"]) or 0,
             note=_opt_str(row["note"]),
         ))
         count += 1
@@ -419,7 +480,7 @@ def migrate_other_assets(src: sqlite3.Connection, session: Session) -> int:
             asset_type=row["asset_type"],
             vesting_nation=row["vesting_nation"] if row["vesting_nation"] is not None else "",
             in_use=row["in_use"],
-            asset_index=int(row["asset_index"]) if row["asset_index"] is not None else 0,
+            asset_index=_opt_int(row["asset_index"]) or 0,
         ))
         count += 1
     session.commit()
@@ -450,7 +511,7 @@ def migrate_loans(src: sqlite3.Connection, session: Session, *, maps: LookupMaps
             pay_day=int(str(row["pay_day"]).strip()),
             amount=float(row["amount"]),
             repayed=0.0,  # IMPL-NOTE: legacy is Y/N flag; new is float — recompute downstream
-            loan_index=int(row["loan_index"]) if row["loan_index"] is not None else 0,
+            loan_index=_opt_int(row["loan_index"]) or 0,
         ))
         count += 1
     session.commit()
@@ -572,7 +633,7 @@ def migrate_insurance(src: sqlite3.Connection, session: Session, *, maps: Lookup
             start_date=_to_yyyymmdd(row["start_date"]) or "",
             end_date=_to_yyyymmdd(row["expected_end_date"]) or "",
             pay_type=row["pay_type"],
-            pay_day=int(str(row["pay_day"]).strip()) if row["pay_day"] is not None else 0,
+            pay_day=_opt_str(row["pay_day"]) or "",
             expected_spend=float(row["expected_spend"]) if row["expected_spend"] is not None else 0.0,
             has_closed=row["has_closed"],
         ))
@@ -763,7 +824,7 @@ def migrate_target_settings(src: sqlite3.Connection, session: Session) -> int:
         session.merge(TargetSetting(
             distinct_number=_str(row["distinct_number"]),
             target_year=str(row["target_year"]),
-            setting_value=float(row["setting_value"]),
+            setting_value=_str(row["setting_value"]),
             is_done=row["is_done"],
         ))
         count += 1
@@ -806,7 +867,7 @@ def run_migration(src: sqlite3.Connection, engine, *, wipe: bool = True) -> dict
         # migrators need the lookup maps and are wrapped in lambdas.
         migrators: list[tuple[str, Any]] = [
             ("Code_Data", migrate_codes),
-            ("Account", migrate_accounts),
+            ("Account", lambda s, sess: migrate_accounts(s, sess, maps=maps)),
             ("Credit_Card", migrate_credit_cards),
             ("Budget", migrate_budgets),
             ("Alarm", migrate_alarms),

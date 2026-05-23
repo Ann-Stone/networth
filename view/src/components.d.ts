@@ -11,6 +11,9 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AlarmGroup: typeof import('./components/layout/AlarmGroup.vue')['default']
+    AlarmListDialog: typeof import('./components/layout/AlarmListDialog.vue')['default']
+    AlarmPill: typeof import('./components/layout/AlarmPill.vue')['default']
     AppLayout: typeof import('./components/layout/AppLayout.vue')['default']
     AssetTrendChart: typeof import('./components/charts/AssetTrendChart.vue')['default']
     BarChart: typeof import('./components/charts/BarChart.vue')['default']
@@ -33,6 +36,7 @@ declare module 'vue' {
     ElOptionGroup: typeof import('element-plus/es')['ElOptionGroup']
     ElPopconfirm: typeof import('element-plus/es')['ElPopconfirm']
     ElRadio: typeof import('element-plus/es')['ElRadio']
+    ElRadioButton: typeof import('element-plus/es')['ElRadioButton']
     ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSkeleton: typeof import('element-plus/es')['ElSkeleton']

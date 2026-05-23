@@ -13,6 +13,12 @@
 - `api/` — backend API (FastAPI + SQLModel + SQLite).
 - `account-book-API/`, `account-book-view/` — legacy code, reference only.
 
+> **Packaging note**: [`PACKAGING.md`](PACKAGING.md) records the chosen
+> packaging approach (PyInstaller + pywebview) for distributing the app
+> to non-technical friends. **Do not implement any of it** until data
+> cleaning + UX optimization are merged and `POST_FRONTEND_TODO.md` §2
+> is resolved. The file's top banner enumerates the gates.
+
 ## Subproject Routing Guide
 
 When analyzing an issue, mark the scope in the output tag:

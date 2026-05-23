@@ -96,8 +96,8 @@ describe('DashboardView', () => {
     // Rolling-window getters live on the store proxy. createTestingPinia does
     // not snapshot getters from initialState; force-evaluate via the store.
     const store = useDashboardStore()
-    void store.freedomRatioRolling12M
-    void store.workFreedomRatioRolling12M
+    void store.freedomRatioCurrent
+    void store.workFreedomRatioCurrent
 
     expect(wrapper.text()).not.toContain('本期支出')
     expect(wrapper.findComponent(AssetTrendChart).exists()).toBe(true)

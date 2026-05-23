@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-6">
-    <PageHeader title="提醒設定" subtitle="管理重要日期與提示">
+    <PageHeader title="提醒設定" subtitle="管理財務循環提醒（每年 / 每月）">
       <template #actions>
         <el-button type="primary" :icon="PlusIcon" @click="openCreate">
           新增提醒
@@ -16,9 +16,17 @@
           stripe
           empty-text="尚無提醒"
         >
-          <el-table-column prop="alarm_type" label="類型" min-width="140" />
+          <el-table-column label="循環" min-width="100">
+            <template #default="{ row }">
+              <span
+                class="text-xs font-semibold px-2 py-0.5 rounded bg-on-surface-variant/10 text-on-surface-variant"
+              >
+                🔁 {{ row.alarm_type === 'Y' ? '每年' : '每月' }}
+              </span>
+            </template>
+          </el-table-column>
           <el-table-column label="提醒日" min-width="140">
-            <template #default="{ row }">{{ formatDate(row.alarm_date) }}</template>
+            <template #default="{ row }">{{ formatRecurAnchor(row) }}</template>
           </el-table-column>
           <el-table-column prop="content" label="內容" min-width="260" />
           <el-table-column label="到期日" min-width="140">
@@ -47,16 +55,17 @@
         :rules="alarmFormRules"
         label-width="100px"
       >
-        <el-form-item label="類型" prop="alarm_type">
-          <el-input v-model="alarmForm.alarm_type" placeholder="如 保單續期 / 信用卡帳單" />
+        <el-form-item label="循環" prop="alarm_type">
+          <el-select v-model="alarmForm.alarm_type" placeholder="選擇循環" style="width: 100%">
+            <el-option label="每年（Y）" value="Y" />
+            <el-option label="每月（M）" value="M" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="提醒日" prop="alarm_date">
-          <el-date-picker
+        <el-form-item :label="anchorLabel" prop="alarm_date">
+          <el-input
             v-model="alarmForm.alarm_date"
-            type="date"
-            value-format="YYYYMMDD"
-            placeholder="選擇日期"
-            style="width: 100%"
+            :placeholder="anchorPlaceholder"
+            :maxlength="alarmForm.alarm_type === 'Y' ? 4 : 2"
           />
         </el-form-item>
         <el-form-item label="內容" prop="content">
@@ -67,7 +76,7 @@
             v-model="dueDateModel"
             type="date"
             value-format="YYYYMMDD"
-            placeholder="選擇日期 (選填)"
+            placeholder="選填，超過此日不再展開"
             clearable
             style="width: 100%"
           />
@@ -88,7 +97,7 @@ import FormDialog from '@/components/ui/FormDialog.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useSettingStore } from '@/stores/setting'
 import { createAlarm, updateAlarm, deleteAlarm } from '@/api/setting'
-import type { Alarm, AlarmCreate } from '@/types/models'
+import type { Alarm, AlarmCreate, AlarmType } from '@/types/models'
 
 const store = useSettingStore()
 const confirm = useConfirm()
@@ -103,6 +112,16 @@ function formatDate(value: string | null | undefined): string {
   return parsed.isValid() ? parsed.format('YYYY/MM/DD') : value
 }
 
+function formatRecurAnchor(row: Alarm): string {
+  if (row.alarm_type === 'Y' && row.alarm_date.length === 4) {
+    return `每年 ${row.alarm_date.slice(0, 2)}/${row.alarm_date.slice(2)}`
+  }
+  if (row.alarm_type === 'M' && row.alarm_date.length === 2) {
+    return `每月 ${row.alarm_date} 日`
+  }
+  return row.alarm_date
+}
+
 const alarmDialogVisible = ref(false)
 const formMode = ref<'create' | 'edit'>('create')
 const submitting = ref(false)
@@ -111,7 +130,7 @@ const editingAlarmId = ref<number | null>(null)
 
 function emptyAlarmForm(): AlarmCreate {
   return {
-    alarm_type: '',
+    alarm_type: 'Y',
     alarm_date: '',
     content: '',
     due_date: null,
@@ -127,9 +146,37 @@ const dueDateModel = computed<string>({
   },
 })
 
+const anchorLabel = computed(() =>
+  alarmForm.value.alarm_type === 'Y' ? '提醒日 (MMDD)' : '提醒日 (DD)',
+)
+
+const anchorPlaceholder = computed(() =>
+  alarmForm.value.alarm_type === 'Y' ? '例：0531（每年 5/31）' : '例：15（每月 15 號）',
+)
+
 const alarmFormRules: FormRules = {
-  alarm_type: [{ required: true, message: '請輸入類型', trigger: 'blur' }],
-  alarm_date: [{ required: true, message: '請選擇提醒日', trigger: 'change' }],
+  alarm_type: [{ required: true, message: '請選擇循環', trigger: 'change' }],
+  alarm_date: [
+    { required: true, message: '請輸入提醒日', trigger: 'blur' },
+    {
+      validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
+        const type: AlarmType = alarmForm.value.alarm_type as AlarmType
+        if (type === 'Y') {
+          if (!/^\d{4}$/.test(value)) return callback(new Error('每年提醒需為 4 碼 MMDD'))
+          const mm = Number(value.slice(0, 2))
+          const dd = Number(value.slice(2))
+          if (mm < 1 || mm > 12) return callback(new Error('月份需 01-12'))
+          if (dd < 1 || dd > 31) return callback(new Error('日期需 01-31'))
+        } else {
+          if (!/^\d{2}$/.test(value)) return callback(new Error('每月提醒需為 2 碼 DD'))
+          const dd = Number(value)
+          if (dd < 1 || dd > 31) return callback(new Error('日期需 01-31'))
+        }
+        callback()
+      },
+      trigger: 'blur',
+    },
+  ],
   content: [{ required: true, message: '請輸入內容', trigger: 'blur' }],
 }
 
@@ -175,7 +222,7 @@ async function submitAlarm() {
 async function handleDelete(row: Alarm) {
   const ok = await confirm({
     title: '刪除提醒',
-    message: `確定要刪除「${row.alarm_type}」?`,
+    message: `確定要刪除「${row.content}」?`,
     type: 'warning',
   })
   if (!ok) return

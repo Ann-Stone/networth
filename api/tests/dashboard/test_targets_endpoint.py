@@ -21,14 +21,23 @@ def test_list_targets_happy(client: TestClient, session: Session) -> None:
 
 
 def test_create_target_happy(client: TestClient) -> None:
-    r = client.post(
-        "/dashboard/targets",
-        json={"distinct_number": "T-A", "setting_value": "Save 500K"},
-    )
+    r = client.post("/dashboard/targets", json={"setting_value": "Save 500K"})
     assert r.status_code == 200, r.text
     data = r.json()["data"]
     assert data["target_year"] == datetime.now().strftime("%Y")
     assert data["is_done"] == "N"
+    # First row → serial "1"
+    assert data["distinct_number"] == "1"
+
+
+def test_create_target_auto_increments(client: TestClient, session: Session) -> None:
+    session.add(TargetSetting(distinct_number="5", target_year="2026", setting_value="x", is_done="N"))
+    session.add(TargetSetting(distinct_number="legacy-id", target_year="2026", setting_value="y", is_done="N"))
+    session.commit()
+    r = client.post("/dashboard/targets", json={"setting_value": "new one"})
+    assert r.status_code == 200
+    # Numeric max is 5, non-numeric "legacy-id" is ignored → next is "6"
+    assert r.json()["data"]["distinct_number"] == "6"
 
 
 def test_update_target_happy(client: TestClient, session: Session) -> None:
@@ -68,9 +77,6 @@ def test_delete_target_missing_returns_404(client: TestClient) -> None:
 
 
 def test_create_target_invalid_body_returns_422(client: TestClient) -> None:
-    # setting_value is now str(max_length=45) — exceeding the max triggers 422.
-    r = client.post(
-        "/dashboard/targets",
-        json={"distinct_number": "T-X", "setting_value": "x" * 46},
-    )
+    # setting_value is str(max_length=45) — exceeding the max triggers 422.
+    r = client.post("/dashboard/targets", json={"setting_value": "x" * 46})
     assert r.status_code == 422

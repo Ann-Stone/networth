@@ -136,10 +136,33 @@ function dashboardGifts(_year: string): DashboardGift[] {
 // ─── Alarms ──────────────────────────────────────────────────────────────────
 
 function dashboardAlarms(): DashboardAlarm[] {
-  return _alarmsSnapshot().map((a) => ({
-    date: `${a.alarm_date.slice(0, 4)}/${a.alarm_date.slice(4, 6)}/${a.alarm_date.slice(6, 8)}`,
-    content: a.content,
-  }))
+  const alarms = _alarmsSnapshot()
+  const list: DashboardAlarm[] = []
+  alarms.forEach((a) => {
+    if (a.alarm_type === 'M') {
+      // Monthly recurrence. alarm_date is DD (e.g. '10')
+      // Let's generate for 20260510 and 20260610
+      list.push({
+        date: `202605${a.alarm_date.padStart(2, '0')}`,
+        content: a.content,
+        alarm_type: 'M',
+      })
+      list.push({
+        date: `202606${a.alarm_date.padStart(2, '0')}`,
+        content: a.content,
+        alarm_type: 'M',
+      })
+    } else {
+      // Yearly recurrence. alarm_date is MMDD (e.g. '0512')
+      list.push({
+        date: `2026${a.alarm_date}`,
+        content: a.content,
+        alarm_type: 'Y',
+      })
+    }
+  })
+  list.sort((x, y) => x.date.localeCompare(y.date))
+  return list
 }
 
 // ─── Handlers ────────────────────────────────────────────────────────────────
@@ -155,8 +178,13 @@ export const dashboardHandlers = [
   http.get('*/dashboard/targets', () => ok(targets)),
   http.post('*/dashboard/targets', async ({ request }) => {
     const body = (await request.json()) as TargetSettingCreate
+    const maxSeen = targets.reduce((max, t) => {
+      const num = parseInt(t.distinct_number.replace(/\D/g, ''), 10)
+      return isNaN(num) ? max : Math.max(max, num)
+    }, 0)
+    const nextNum = `T${maxSeen + 1}`
     const created: TargetSetting = {
-      distinct_number: body.distinct_number,
+      distinct_number: nextNum,
       target_year: body.target_year ?? String(new Date().getFullYear()),
       setting_value: body.setting_value,
       is_done: body.is_done ?? 'N',

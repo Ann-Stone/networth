@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from sqlmodel import Session
 
 from app.models.dashboard.target_setting import (
+    TargetSetting,
     TargetSettingCreate,
     TargetSettingUpdate,
 )
@@ -22,30 +23,39 @@ from app.services.dashboard_service import (
 def test_list_targets_returns_all(session: Session) -> None:
     create_target(
         session,
-        TargetSettingCreate(distinct_number="T1", setting_value="Save 1M", target_year="2025"),
+        TargetSettingCreate(setting_value="Save 1M", target_year="2025"),
     )
     create_target(
         session,
-        TargetSettingCreate(distinct_number="T2", setting_value="Save 2M", target_year="2026"),
+        TargetSettingCreate(setting_value="Save 2M", target_year="2026"),
     )
     rows = list_targets(session)
-    assert [r.distinct_number for r in rows] == ["T2", "T1"]
+    # Ordered by target_year desc then distinct_number asc → 2026 row first
+    assert [r.target_year for r in rows] == ["2026", "2025"]
 
 
 def test_create_target_defaults_year_and_done(session: Session) -> None:
-    out = create_target(
-        session, TargetSettingCreate(distinct_number="T-A", setting_value="Save 500K")
-    )
+    out = create_target(session, TargetSettingCreate(setting_value="Save 500K"))
     assert out.target_year == datetime.now().strftime("%Y")
     assert out.is_done == "N"
 
 
+def test_create_target_auto_assigns_sequential_id(session: Session) -> None:
+    # Pre-seed with one numeric and one legacy non-numeric ID
+    session.add(TargetSetting(distinct_number="5", target_year="2026", setting_value="x", is_done="N"))
+    session.add(TargetSetting(distinct_number="legacy-id", target_year="2026", setting_value="y", is_done="N"))
+    session.commit()
+    out = create_target(session, TargetSettingCreate(setting_value="new"))
+    # max numeric is 5, legacy ignored → next is "6"
+    assert out.distinct_number == "6"
+
+
 def test_update_target_is_done_only(session: Session) -> None:
-    create_target(
+    created = create_target(
         session,
-        TargetSettingCreate(distinct_number="T1", setting_value="Save 1M", target_year="2026"),
+        TargetSettingCreate(setting_value="Save 1M", target_year="2026"),
     )
-    out = update_target(session, "T1", TargetSettingUpdate(is_done="Y"))
+    out = update_target(session, created.distinct_number, TargetSettingUpdate(is_done="Y"))
     assert out.is_done == "Y"
     assert out.setting_value == "Save 1M"
     assert out.target_year == "2026"
@@ -61,10 +71,3 @@ def test_delete_target_missing_returns_404(session: Session) -> None:
     with pytest.raises(HTTPException) as ei:
         delete_target(session, "missing")
     assert ei.value.status_code == 404
-
-
-def test_create_target_duplicate_409(session: Session) -> None:
-    create_target(session, TargetSettingCreate(distinct_number="T1", setting_value="Goal A"))
-    with pytest.raises(HTTPException) as ei:
-        create_target(session, TargetSettingCreate(distinct_number="T1", setting_value="Goal B"))
-    assert ei.value.status_code == 409

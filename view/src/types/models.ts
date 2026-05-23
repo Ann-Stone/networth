@@ -62,16 +62,19 @@ export type AccountUpdate = Partial<AccountCreate>
 
 // ─── Settings — Alarm ────────────────────────────────────────────────────────
 
+export type AlarmType = 'Y' | 'M'
+
 export interface Alarm {
   alarm_id: number
-  alarm_type: string
-  alarm_date: string    // YYYYMMDD
+  alarm_type: AlarmType
+  // MMDD when alarm_type === 'Y', DD when alarm_type === 'M'
+  alarm_date: string
   content: string
   due_date?: string | null
 }
 
 export interface AlarmCreate {
-  alarm_type: string
+  alarm_type: AlarmType
   alarm_date: string
   content: string
   due_date?: string | null
@@ -560,8 +563,9 @@ export interface DashboardSummary {
 }
 
 export interface DashboardAlarm {
-  date: string
+  date: string            // YYYYMMDD expanded occurrence
   content: string
+  alarm_type: AlarmType   // 'Y' yearly, 'M' monthly
 }
 
 export interface DashboardBudgetLine {
@@ -593,7 +597,7 @@ export interface TargetSetting {
 }
 
 export interface TargetSettingCreate {
-  distinct_number: string
+  // distinct_number is auto-assigned by the backend (sequential)
   setting_value: string
   target_year?: string
   is_done?: string

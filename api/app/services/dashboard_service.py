@@ -308,16 +308,26 @@ def create_target(session: Session, payload: TargetSettingCreate) -> TargetSetti
         data["target_year"] = datetime.now().strftime("%Y")
     if not data.get("is_done"):
         data["is_done"] = "N"
-    if session.get(TargetSetting, data["distinct_number"]) is not None:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Duplicate distinct_number: {data['distinct_number']}",
-        )
+    data["distinct_number"] = _next_target_serial(session)
     row = TargetSetting(**data)
     session.add(row)
     session.commit()
     session.refresh(row)
     return row
+
+
+def _next_target_serial(session: Session) -> str:
+    """Return the next sequential serial (str) for TargetSetting.distinct_number.
+
+    Legacy rows whose distinct_number is non-numeric are ignored when computing
+    the max — they keep their string IDs but new rows always get an integer.
+    """
+    existing = session.exec(select(TargetSetting.distinct_number)).all()
+    max_seen = 0
+    for v in existing:
+        if isinstance(v, str) and v.isdigit():
+            max_seen = max(max_seen, int(v))
+    return str(max_seen + 1)
 
 
 def update_target(
@@ -348,36 +358,90 @@ def delete_target(session: Session, target_id: str) -> None:
 def get_upcoming_alarms(
     session: Session, now: datetime | None = None
 ) -> list[AlarmItem]:
+    """Expand recurring alarms into concrete occurrences within a 6-month horizon.
+
+    Y alarms: `alarm_date` is MMDD → one occurrence per calendar year falling
+    in [today, today + 6 months]. M alarms: `alarm_date` is DD → one occurrence
+    per month in that same window. Past dates within the current month are
+    included so the user still sees recently-passed reminders for review.
+    """
     now = now or datetime.now()
-    this_month = now.strftime("%Y%m")
-    horizon_dt = now + relativedelta(months=6)
-    horizon = horizon_dt.strftime("%Y%m")
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    horizon_dt = today + relativedelta(months=6)
+    window_start_yyyymm = today.strftime("%Y%m")
 
     alarms = list(session.exec(select(Alarm)).all())
     items: list[AlarmItem] = []
     for a in alarms:
-        if a.alarm_type == "M":
-            base_year, base_month = now.year, now.month
-            for i in range(6):
-                month = base_month + i
-                year = base_year
-                while month > 12:
-                    month -= 12
-                    year += 1
-                month_yyyymm = f"{year:04d}{month:02d}"
-                if a.due_date and month_yyyymm > a.due_date[:6]:
-                    continue
-                items.append(
-                    AlarmItem(date=f"{month:02d}/{a.alarm_date}", content=a.content)
-                )
-        else:
-            alarm_period = a.alarm_date[:6] if len(a.alarm_date) >= 6 else a.alarm_date
-            if alarm_period < this_month or alarm_period > horizon:
-                continue
-            items.append(AlarmItem(date=a.alarm_date, content=a.content))
+        for occ in _expand_alarm(a, today, horizon_dt, window_start_yyyymm):
+            items.append(occ)
 
     items.sort(key=lambda it: it.date)
     return items
+
+
+def _expand_alarm(
+    a: Alarm,
+    today: datetime,
+    horizon_dt: datetime,
+    window_start_yyyymm: str,
+) -> list[AlarmItem]:
+    """Yield AlarmItem occurrences for one Alarm row inside the horizon window."""
+    items: list[AlarmItem] = []
+
+    if a.alarm_type == "M":
+        if len(a.alarm_date) != 2 or not a.alarm_date.isdigit():
+            return items
+        dd = int(a.alarm_date)
+        year, month = today.year, today.month
+        for _ in range(7):  # cover current month + up to 6 forward
+            yyyymm = f"{year:04d}{month:02d}"
+            if yyyymm > horizon_dt.strftime("%Y%m"):
+                break
+            if a.due_date and yyyymm > a.due_date[:6]:
+                break
+            occ_dd = _clamp_day(year, month, dd)
+            yyyymmdd = f"{yyyymm}{occ_dd:02d}"
+            if yyyymm >= window_start_yyyymm:
+                items.append(
+                    AlarmItem(date=yyyymmdd, content=a.content, alarm_type="M")
+                )
+            month += 1
+            if month > 12:
+                month = 1
+                year += 1
+        return items
+
+    if a.alarm_type == "Y":
+        if len(a.alarm_date) != 4 or not a.alarm_date.isdigit():
+            return items
+        mm = int(a.alarm_date[:2])
+        dd = int(a.alarm_date[2:])
+        # Yearly: include this year's anchor and possibly next year's if the
+        # 6-month horizon spans Dec→Jan.
+        for year in (today.year, today.year + 1):
+            occ_dd = _clamp_day(year, mm, dd)
+            occ = datetime(year, mm, occ_dd)
+            yyyymm = occ.strftime("%Y%m")
+            if a.due_date and yyyymm > a.due_date[:6]:
+                continue
+            if occ.replace(day=1) > horizon_dt.replace(day=1):
+                continue
+            if yyyymm < window_start_yyyymm:
+                continue
+            items.append(
+                AlarmItem(date=occ.strftime("%Y%m%d"), content=a.content, alarm_type="Y")
+            )
+        return items
+
+    return items
+
+
+def _clamp_day(year: int, month: int, day: int) -> int:
+    """Cap day at last valid day of month (e.g. Feb 30 → Feb 28/29)."""
+    next_month_first = datetime(year + (1 if month == 12 else 0), 1 if month == 12 else month + 1, 1)
+    last_day = (next_month_first - relativedelta(days=1)).day
+    return min(day, last_day)
 
 
 # ---------- Gifts (BE-028) ----------

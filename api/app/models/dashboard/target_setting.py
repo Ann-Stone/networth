@@ -6,9 +6,9 @@ from sqlmodel import Field, SQLModel
 
 
 _EXAMPLE = {
-    "distinct_number": "T-2026-01",
+    "distinct_number": "11",
     "target_year": "2026",
-    "setting_value": "Buy a house by end of year",
+    "setting_value": "存頭期款 200 萬",
     "is_done": "N",
 }
 
@@ -16,7 +16,12 @@ _EXAMPLE = {
 class TargetSetting(SQLModel, table=True):
     __tablename__ = "Target_Setting"
 
-    distinct_number: str = Field(..., primary_key=True, description="Target row business ID", schema_extra={"examples": ["T-2026-01"]})
+    distinct_number: str = Field(
+        ...,
+        primary_key=True,
+        description="Sequential serial ID (stored as str, auto-assigned on create)",
+        schema_extra={"examples": ["11"]},
+    )
     target_year: str = Field(..., description="YYYY", schema_extra={"examples": ["2026"]})
     setting_value: str = Field(
         ...,
@@ -26,7 +31,7 @@ class TargetSetting(SQLModel, table=True):
             "user's note about what the target is. May occasionally hold "
             "a number (parse in caller if needed)."
         ),
-        schema_extra={"examples": ["Buy a house by end of year"]},
+        schema_extra={"examples": ["存頭期款 200 萬"]},
     )
     is_done: str = Field(..., description="Y/N", schema_extra={"examples": ["N"]})
 
@@ -34,8 +39,12 @@ class TargetSetting(SQLModel, table=True):
 
 
 class TargetSettingCreate(SQLModel):
-    distinct_number: str = Field(..., description="Target row business ID", schema_extra={"examples": ["T-2026-01"]})
-    setting_value: str = Field(..., max_length=45, description="Target description / value (free-form text)", schema_extra={"examples": ["Buy a house by end of year"]})
+    setting_value: str = Field(
+        ...,
+        max_length=45,
+        description="Target description / value (free-form text)",
+        schema_extra={"examples": ["存頭期款 200 萬"]},
+    )
     target_year: str | None = Field(
         default=None,
         description="YYYY; defaults to the current year when omitted",
@@ -49,7 +58,7 @@ class TargetSettingCreate(SQLModel):
 
     model_config = ConfigDict(
         json_schema_extra={
-            "example": {"distinct_number": "T-2026-01", "setting_value": "Buy a house by end of year"}
+            "example": {"setting_value": "存頭期款 200 萬"}
         }
     )
 
@@ -63,9 +72,13 @@ class TargetSettingUpdate(SQLModel):
 
 
 class TargetSettingRead(SQLModel):
-    distinct_number: str = Field(..., description="Target row business ID", schema_extra={"examples": ["T-2026-01"]})
+    distinct_number: str = Field(
+        ...,
+        description="Sequential serial ID",
+        schema_extra={"examples": ["11"]},
+    )
     target_year: str = Field(..., description="YYYY", schema_extra={"examples": ["2026"]})
-    setting_value: str = Field(..., max_length=45, description="Target description / value", schema_extra={"examples": ["Buy a house by end of year"]})
+    setting_value: str = Field(..., max_length=45, description="Target description / value", schema_extra={"examples": ["存頭期款 200 萬"]})
     is_done: str = Field(..., description="Y/N", schema_extra={"examples": ["N"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _EXAMPLE})

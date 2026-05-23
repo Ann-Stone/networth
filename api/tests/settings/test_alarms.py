@@ -20,7 +20,7 @@ from app.services.setting_service import (
 def _payload(**overrides) -> dict:
     base = {
         "alarm_type": "Y",
-        "alarm_date": "08/26",
+        "alarm_date": "0826",
         "content": "Credit card payment",
         "due_date": "2026-05-01",
     }
@@ -57,11 +57,11 @@ def test_list_service(session: Session) -> None:
 
 
 def test_list_by_date(session: Session) -> None:
-    create_alarm(session, AlarmCreate(**_payload(alarm_type="Y", alarm_date="08/26")))
+    create_alarm(session, AlarmCreate(**_payload(alarm_type="Y", alarm_date="0826")))
     create_alarm(session, AlarmCreate(**_payload(alarm_type="M", alarm_date="26")))
-    create_alarm(session, AlarmCreate(**_payload(alarm_date="07/15")))
+    create_alarm(session, AlarmCreate(**_payload(alarm_type="Y", alarm_date="0715")))
     rows = list_alarms_by_date(session, "26")
-    assert {r.alarm_date for r in rows} == {"08/26", "26"}
+    assert {r.alarm_date for r in rows} == {"0826", "26"}
 
 
 def test_create_normalizes_iso(session: Session) -> None:
@@ -107,11 +107,11 @@ def test_get_list_happy(client: TestClient, session: Session) -> None:
 
 
 def test_by_date_endpoint(client: TestClient, session: Session) -> None:
-    create_alarm(session, AlarmCreate(**_payload(alarm_type="Y", alarm_date="08/26")))
+    create_alarm(session, AlarmCreate(**_payload(alarm_type="Y", alarm_date="0826")))
     create_alarm(session, AlarmCreate(**_payload(alarm_type="M", alarm_date="26")))
     res = client.get("/settings/alarms/by-date", params={"date": "26"})
     assert res.status_code == 200
-    assert {r["alarm_date"] for r in res.json()["data"]} == {"08/26", "26"}
+    assert {r["alarm_date"] for r in res.json()["data"]} == {"0826", "26"}
 
 
 def test_post_happy(client: TestClient) -> None:

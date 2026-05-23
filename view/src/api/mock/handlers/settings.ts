@@ -108,10 +108,10 @@ let budgetsByYear: Record<string, Budget[]> = {
 // ─── Alarms ──────────────────────────────────────────────────────────────────
 
 let alarms: Alarm[] = [
-  { alarm_id: 1, alarm_type: 'rent',     alarm_date: '20260510', content: '繳房租',     due_date: '20260515' },
-  { alarm_id: 2, alarm_type: 'card',     alarm_date: '20260520', content: 'Visa 帳單',  due_date: '20260525' },
-  { alarm_id: 3, alarm_type: 'tax',      alarm_date: '20260601', content: '綜所稅',     due_date: '20260631' },
-  { alarm_id: 4, alarm_type: 'reminder', alarm_date: '20260512', content: '每年保單檢視', due_date: null },
+  { alarm_id: 1, alarm_type: 'M', alarm_date: '10', content: '繳房租', due_date: null },
+  { alarm_id: 2, alarm_type: 'M', alarm_date: '20', content: 'Visa 帳單', due_date: null },
+  { alarm_id: 3, alarm_type: 'Y', alarm_date: '0601', content: '綜所稅', due_date: null },
+  { alarm_id: 4, alarm_type: 'Y', alarm_date: '0512', content: '每年保單檢視', due_date: null },
 ]
 let alarmSeq = alarms.length
 

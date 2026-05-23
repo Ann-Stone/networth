@@ -1,9 +1,15 @@
 <template>
-  <v-chart class="chart" :option="option" :style="{ height }" autoresize />
+  <v-chart
+    class="chart"
+    :option="option"
+    :update-options="{ notMerge: true }"
+    :style="{ height }"
+    autoresize
+  />
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart as EchartsLineChart } from 'echarts/charts'
@@ -53,6 +59,9 @@ const props = withDefaults(
 
 const appStore = useAppStore()
 
+type ChartMode = 'stack' | 'line'
+const chartMode = ref<ChartMode>('stack')
+
 function formatYYYYMM(period: string): string {
   if (period.length !== 6) return period
   return `${period.slice(0, 4)}/${period.slice(4)}`
@@ -76,11 +85,11 @@ const option = computed(() => {
 
   const xData = props.points.map((p) => formatYYYYMM(p.period))
 
+  const isStack = chartMode.value === 'stack'
   const stackedSeries = CATEGORIES.map((cat) => ({
     name: cat.label,
     type: 'line' as const,
-    stack: 'asset',
-    areaStyle: {},
+    ...(isStack ? { stack: 'asset', areaStyle: {} } : {}),
     smooth: false,
     symbol: 'none' as const,
     data: props.points.map((p) => p.breakdown?.[cat.key] ?? 0),
@@ -121,7 +130,28 @@ const option = computed(() => {
     },
     toolbox: {
       feature: {
-        magicType: { type: ['stack', 'line'] },
+        myStack: {
+          show: true,
+          title: '切換為堆疊面積圖',
+          icon: 'path://M432 928H160c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h272c17.7 0 32 14.3 32 32v736c0 17.7-14.3 32-32 32zm224 0H544c-17.7 0-32-14.3-32-32V416c0-17.7 14.3-32 32-32h112c17.7 0 32 14.3 32 32v480c0 17.7-14.3 32-32 32zm208 0H768c-17.7 0-32-14.3-32-32V608c0-17.7 14.3-32 32-32h96c17.7 0 32 14.3 32 32v288c0 17.7-14.3 32-32 32z',
+          iconStyle: {
+            borderColor: chartMode.value === 'stack' ? '#5470c6' : '#666',
+          },
+          onclick: () => {
+            chartMode.value = 'stack'
+          },
+        },
+        myLine: {
+          show: true,
+          title: '切換為折線圖',
+          icon: 'path://M880 144H144c-17.7 0-32 14.3-32 32v672c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V176c0-17.7-14.3-32-32-32zM208 832V272l192 320 224-256 256 352V832H208z',
+          iconStyle: {
+            borderColor: chartMode.value === 'line' ? '#5470c6' : '#666',
+          },
+          onclick: () => {
+            chartMode.value = 'line'
+          },
+        },
       },
     },
     grid: { left: 50, right: 20, top: 60, bottom: 30, containLabel: true },

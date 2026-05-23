@@ -22,6 +22,12 @@
     <!-- Spacer -->
     <div class="flex-1" />
 
+    <!-- Urgent alarm pill -->
+    <AlarmPill />
+
+    <!-- Spacer between pill and right cluster -->
+    <div class="w-2" />
+
     <!-- Language toggle -->
     <el-button-group size="small">
       <el-button
@@ -53,10 +59,17 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
+import { useAlarmStore } from '@/stores/alarms'
 import { Expand, Fold, Sunny, Moon } from '@element-plus/icons-vue'
+import AlarmPill from './AlarmPill.vue'
 
 const appStore = useAppStore()
+const alarmStore = useAlarmStore()
 const route = useRoute()
+
+if (alarmStore.alarms.length === 0) {
+  alarmStore.fetchAlarms()
+}
 
 const breadcrumbs = computed<string[]>(() => {
   const meta = route.meta as { breadcrumb?: string[] }
