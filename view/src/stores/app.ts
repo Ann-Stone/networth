@@ -2,8 +2,18 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 
 const THEME_STORAGE_KEY = 'networth-theme'
+const FONT_SCALE_STORAGE_KEY = 'networth-font-scale'
 
 type Theme = 'dark' | 'light'
+export type FontScale = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+
+const FONT_SCALE_MAP: Record<FontScale, number> = {
+  xs: 0.85,
+  sm: 0.92,
+  md: 1.0,
+  lg: 1.1,
+  xl: 1.2,
+}
 
 function readStoredTheme(): Theme {
   if (typeof window === 'undefined') return 'dark'
@@ -23,6 +33,20 @@ function applyThemeClass(theme: Theme) {
   }
 }
 
+function readStoredFontScale(): FontScale {
+  if (typeof window === 'undefined') return 'md'
+  const saved = window.localStorage.getItem(FONT_SCALE_STORAGE_KEY)
+  return saved && saved in FONT_SCALE_MAP ? (saved as FontScale) : 'md'
+}
+
+function applyFontScale(scale: FontScale) {
+  if (typeof document === 'undefined') return
+  document.documentElement.style.setProperty(
+    '--app-font-scale',
+    String(FONT_SCALE_MAP[scale]),
+  )
+}
+
 export const useAppStore = defineStore('app', () => {
   // Sidebar state
   const sidebarCollapsed = ref(false)
@@ -40,6 +64,17 @@ export const useAppStore = defineStore('app', () => {
     applyThemeClass(next)
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(THEME_STORAGE_KEY, next)
+    }
+  })
+
+  // Font scale
+  const fontScale = ref<FontScale>(readStoredFontScale())
+  applyFontScale(fontScale.value)
+
+  watch(fontScale, (next) => {
+    applyFontScale(next)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(FONT_SCALE_STORAGE_KEY, next)
     }
   })
 
@@ -67,6 +102,10 @@ export const useAppStore = defineStore('app', () => {
     theme.value = theme.value === 'dark' ? 'light' : 'dark'
   }
 
+  const setFontScale = (s: FontScale) => {
+    fontScale.value = s
+  }
+
   const contentClass = computed(() =>
     sidebarCollapsed.value ? 'ml-[64px]' : 'ml-[220px]',
   )
@@ -77,11 +116,13 @@ export const useAppStore = defineStore('app', () => {
     sidebarDrawerVisible,
     locale,
     theme,
+    fontScale,
     contentClass,
     toggleSidebar,
     closeSidebarDrawer,
     setMobile,
     setLocale,
     toggleTheme,
+    setFontScale,
   }
 })

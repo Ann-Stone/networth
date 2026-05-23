@@ -44,6 +44,27 @@
       </el-button>
     </el-button-group>
 
+    <!-- Font size selector -->
+    <el-dropdown trigger="click" @command="appStore.setFontScale($event)">
+      <el-button size="small" title="調整字級">
+        <span class="font-semibold leading-none">A<span class="text-[0.7em] align-baseline">A</span></span>
+      </el-button>
+      <template #dropdown>
+        <el-dropdown-menu>
+          <el-dropdown-item
+            v-for="opt in fontScaleOptions"
+            :key="opt.value"
+            :command="opt.value"
+            :class="{ 'is-active-scale': appStore.fontScale === opt.value }"
+          >
+            <span :class="{ 'font-semibold': appStore.fontScale === opt.value }">
+              {{ opt.label }}
+            </span>
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
+
     <!-- Theme toggle -->
     <el-button
       size="small"
@@ -58,10 +79,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAppStore } from '@/stores/app'
+import { useAppStore, type FontScale } from '@/stores/app'
 import { useAlarmStore } from '@/stores/alarms'
 import { Expand, Fold, Sunny, Moon } from '@element-plus/icons-vue'
 import AlarmPill from './AlarmPill.vue'
+
+const fontScaleOptions: { value: FontScale; label: string }[] = [
+  { value: 'xs', label: '極小 (85%)' },
+  { value: 'sm', label: '小 (92%)' },
+  { value: 'md', label: '標準 (100%)' },
+  { value: 'lg', label: '大 (110%)' },
+  { value: 'xl', label: '極大 (120%)' },
+]
 
 const appStore = useAppStore()
 const alarmStore = useAlarmStore()
