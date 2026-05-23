@@ -85,7 +85,7 @@
             <p class="text-on-surface text-sm font-semibold">
               {{ t.distinct_number }} · {{ t.target_year }}
             </p>
-            <MoneyDisplay :amount="t.setting_value" size="sm" />
+            <p class="text-on-surface-variant text-sm">{{ t.setting_value }}</p>
           </div>
           <div class="flex items-center gap-2">
             <StatusBadge
@@ -120,8 +120,8 @@
           <el-form-item label="年度" prop="target_year">
             <el-input v-model="targetForm.target_year" placeholder="YYYY" maxlength="4" />
           </el-form-item>
-          <el-form-item label="目標金額" prop="setting_value">
-            <el-input-number v-model="targetForm.setting_value" :min="0" :step="10000" controls-position="right" class="!w-full" />
+          <el-form-item label="目標內容" prop="setting_value">
+            <el-input v-model="targetForm.setting_value" maxlength="45" show-word-limit placeholder="目標說明 / 金額" />
           </el-form-item>
           <el-form-item label="完成狀態">
             <el-switch v-model="targetForm.is_done" active-value="Y" inactive-value="N" />
@@ -242,19 +242,19 @@ const targetFormRef = ref<FormInstance | null>(null)
 const targetForm = reactive({
   distinct_number: '',
   target_year: dayjs().format('YYYY'),
-  setting_value: 0,
+  setting_value: '',
   is_done: 'N',
 })
 const targetRules: FormRules = {
   distinct_number: [{ required: true, message: '請輸入編號', trigger: 'blur' }],
   target_year: [{ required: true, pattern: /^\d{4}$/, message: '請輸入 YYYY', trigger: 'blur' }],
-  setting_value: [{ required: true, type: 'number', message: '請輸入金額', trigger: 'blur' }],
+  setting_value: [{ required: true, message: '請輸入目標內容', trigger: 'blur' }],
 }
 
 function resetTargetForm() {
   targetForm.distinct_number = ''
   targetForm.target_year = dayjs().format('YYYY')
-  targetForm.setting_value = 0
+  targetForm.setting_value = ''
   targetForm.is_done = 'N'
 }
 

@@ -15,9 +15,9 @@ import type {
 // ─── Targets — in-memory CRUD ────────────────────────────────────────────────
 
 let targets: TargetSetting[] = [
-  { distinct_number: 'T1', target_year: '2026', setting_value: 18000000, is_done: 'N' },
-  { distinct_number: 'T2', target_year: '2026', setting_value: 1200000,  is_done: 'N' },
-  { distinct_number: 'T3', target_year: '2025', setting_value: 15000000, is_done: 'Y' },
+  { distinct_number: 'T1', target_year: '2026', setting_value: '年度淨值目標 18,000,000', is_done: 'N' },
+  { distinct_number: 'T2', target_year: '2026', setting_value: '股票股利收入 1,200,000', is_done: 'N' },
+  { distinct_number: 'T3', target_year: '2025', setting_value: '購入第二間房', is_done: 'Y' },
 ]
 
 // ─── Summary points ──────────────────────────────────────────────────────────

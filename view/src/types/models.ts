@@ -588,20 +588,20 @@ export interface DashboardGift {
 export interface TargetSetting {
   distinct_number: string
   target_year: string           // YYYY
-  setting_value: number
+  setting_value: string         // Free-form target description / value
   is_done: string               // Y/N
 }
 
 export interface TargetSettingCreate {
   distinct_number: string
-  setting_value: number
+  setting_value: string
   target_year?: string
   is_done?: string
 }
 
 export interface TargetSettingUpdate {
   target_year?: string
-  setting_value?: number
+  setting_value?: string
   is_done?: string
 }
 
