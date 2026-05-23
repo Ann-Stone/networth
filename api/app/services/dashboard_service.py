@@ -103,7 +103,7 @@ def get_freedom_ratio_summary(session: Session, period: str) -> SummaryRead:
     for j in rows:
         if j.vesting_month not in income:
             continue
-        if j.action_main_type == "Income":
+        if j.action_main_type in ("Income", "Passive"):
             income[j.vesting_month] += abs(j.spending)
         if j.action_main in fixed_codes:
             fixed[j.vesting_month] += abs(j.spending)
@@ -118,6 +118,39 @@ def get_freedom_ratio_summary(session: Session, period: str) -> SummaryRead:
             SummaryPoint(period=m, value=round(ratio, 4), breakdown=breakdown)
         )
     return SummaryRead(type=SummaryType.freedom_ratio, points=points)
+
+
+def get_work_freedom_ratio_summary(session: Session, period: str) -> SummaryRead:
+    start, end = parse_summary_period(period)
+    months = _iter_months(start, end)
+    rows = list(
+        session.exec(
+            select(Journal)
+            .where(Journal.vesting_month >= start)
+            .where(Journal.vesting_month <= end)
+        ).all()
+    )
+    passive = {m: 0.0 for m in months}
+    active = {m: 0.0 for m in months}
+    for j in rows:
+        if j.vesting_month not in passive:
+            continue
+        if j.action_main_type == "Passive":
+            passive[j.vesting_month] += abs(j.spending)
+        elif j.action_main_type == "Income":
+            active[j.vesting_month] += abs(j.spending)
+    points: list[SummaryPoint] = []
+    for m in months:
+        total = passive[m] + active[m]
+        ratio = passive[m] / total if total > 0 else 0.0
+        breakdown = {
+            "passive": round(passive[m], 2),
+            "active": round(active[m], 2),
+        }
+        points.append(
+            SummaryPoint(period=m, value=round(ratio, 4), breakdown=breakdown)
+        )
+    return SummaryRead(type=SummaryType.work_freedom_ratio, points=points)
 
 
 def _latest_per_entity_at(rows, vesting_month: str, key):
@@ -191,6 +224,8 @@ def get_summary(session: Session, type: SummaryType, period: str) -> SummaryRead
         return get_freedom_ratio_summary(session, period)
     if type == SummaryType.asset_debt_trend:
         return get_asset_debt_trend(session, period)
+    if type == SummaryType.work_freedom_ratio:
+        return get_work_freedom_ratio_summary(session, period)
     raise HTTPException(status_code=422, detail=f"Unknown summary type: {type}")
 
 

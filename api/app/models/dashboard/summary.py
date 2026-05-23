@@ -11,6 +11,7 @@ class SummaryType(str, Enum):
     spending = "spending"
     freedom_ratio = "freedom_ratio"
     asset_debt_trend = "asset_debt_trend"
+    work_freedom_ratio = "work_freedom_ratio"
 
 
 _BREAKDOWN_EXAMPLE = {
@@ -35,10 +36,10 @@ class SummaryPoint(SQLModel):
         description=(
             "Optional per-category contributions. When present, the sum of the "
             "breakdown values equals `value` within rounding tolerance. Populated "
-            "only for `asset_debt_trend` (keys: accounts, stocks, estates, "
-            "insurances, loans, cards) and `freedom_ratio` (keys: income, "
-            "fixed_expenses). Null for variants that do not expose a per-category "
-            "breakdown."
+            "for `asset_debt_trend` (keys: accounts, stocks, estates, insurances, "
+            "loans, cards), `freedom_ratio` (keys: income, fixed_expenses), and "
+            "`work_freedom_ratio` (keys: passive, active). Null for variants that "
+            "do not expose a per-category breakdown."
         ),
         schema_extra={"examples": [_BREAKDOWN_EXAMPLE]},
     )

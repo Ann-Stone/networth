@@ -27,7 +27,7 @@
                 "type": "null"
               }
             ],
-            "description": "Optional per-category contributions. When present, the sum of the breakdown values equals `value` within rounding tolerance. Populated only for `asset_debt_trend` (keys: accounts, stocks, estates, insurances, loans, cards) and `freedom_ratio` (keys: income, fixed_expenses). Null for variants that do not expose a per-category breakdown.",
+            "description": "Optional per-category contributions. When present, the sum of the breakdown values equals `value` within rounding tolerance. Populated for `asset_debt_trend` (keys: accounts, stocks, estates, insurances, loans, cards), `freedom_ratio` (keys: income, fixed_expenses), and `work_freedom_ratio` (keys: passive, active). Null for variants that do not expose a per-category breakdown.",
             "examples": [
               {
                 "accounts": 500000.0,

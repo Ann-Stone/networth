@@ -5,7 +5,8 @@
         "enum": [
           "spending",
           "freedom_ratio",
-          "asset_debt_trend"
+          "asset_debt_trend",
+          "work_freedom_ratio"
         ],
         "title": "SummaryType",
         "type": "string"
