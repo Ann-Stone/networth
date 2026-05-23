@@ -129,7 +129,7 @@ def test_get_insurance_selection_groups(session: Session) -> None:
             start_date="20200101",
             end_date="20500101",
             pay_type="annual",
-            pay_day=1,
+            pay_day="01",
             expected_spend=1000.0,
             has_closed="N",
         )
@@ -144,7 +144,7 @@ def test_get_insurance_selection_groups(session: Session) -> None:
             start_date="20200101",
             end_date="20210101",
             pay_type="annual",
-            pay_day=1,
+            pay_day="01",
             expected_spend=0.0,
             has_closed="Y",
         )

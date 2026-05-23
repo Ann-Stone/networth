@@ -3,6 +3,7 @@
     "schemas": {
       "CreditCardRead": {
         "example": {
+          "card_expiry": "2026/08",
           "card_name": "Chase Sapphire",
           "card_no": "4111-XXXX-XXXX-1111",
           "charge_day": 15,
@@ -16,6 +17,22 @@
           "note": "Primary card"
         },
         "properties": {
+          "card_expiry": {
+            "anyOf": [
+              {
+                "maxLength": 7,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Card expiration year/month 'YYYY/MM'",
+            "examples": [
+              "2026/08"
+            ],
+            "title": "Card Expiry"
+          },
           "card_name": {
             "description": "Display name",
             "examples": [

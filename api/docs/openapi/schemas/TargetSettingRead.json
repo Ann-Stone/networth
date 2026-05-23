@@ -5,7 +5,7 @@
         "example": {
           "distinct_number": "T-2026-01",
           "is_done": "N",
-          "setting_value": 1000000.0,
+          "setting_value": "Buy a house by end of year",
           "target_year": "2026"
         },
         "properties": {
@@ -26,12 +26,13 @@
             "type": "string"
           },
           "setting_value": {
-            "description": "Target amount",
+            "description": "Target description / value",
             "examples": [
-              1000000.0
+              "Buy a house by end of year"
             ],
+            "maxLength": 45,
             "title": "Setting Value",
-            "type": "number"
+            "type": "string"
           },
           "target_year": {
             "description": "YYYY",

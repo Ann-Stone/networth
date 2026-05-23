@@ -10,7 +10,7 @@ from app.models.dashboard.target_setting import TargetSetting
 
 
 def test_list_targets_happy(client: TestClient, session: Session) -> None:
-    session.add(TargetSetting(distinct_number="T1", target_year="2026", setting_value=1.0, is_done="N"))
+    session.add(TargetSetting(distinct_number="T1", target_year="2026", setting_value="Save 1M", is_done="N"))
     session.commit()
 
     r = client.get("/dashboard/targets")
@@ -23,7 +23,7 @@ def test_list_targets_happy(client: TestClient, session: Session) -> None:
 def test_create_target_happy(client: TestClient) -> None:
     r = client.post(
         "/dashboard/targets",
-        json={"distinct_number": "T-A", "setting_value": 500.0},
+        json={"distinct_number": "T-A", "setting_value": "Save 500K"},
     )
     assert r.status_code == 200, r.text
     data = r.json()["data"]
@@ -32,26 +32,26 @@ def test_create_target_happy(client: TestClient) -> None:
 
 
 def test_update_target_happy(client: TestClient, session: Session) -> None:
-    session.add(TargetSetting(distinct_number="T1", target_year="2026", setting_value=1.0, is_done="N"))
+    session.add(TargetSetting(distinct_number="T1", target_year="2026", setting_value="Save 1M", is_done="N"))
     session.commit()
-    r = client.put("/dashboard/targets/T1", json={"setting_value": 2000.0})
+    r = client.put("/dashboard/targets/T1", json={"setting_value": "Save 2M"})
     assert r.status_code == 200
-    assert r.json()["data"]["setting_value"] == 2000.0
+    assert r.json()["data"]["setting_value"] == "Save 2M"
 
 
 def test_update_target_is_done_only(client: TestClient, session: Session) -> None:
-    session.add(TargetSetting(distinct_number="T1", target_year="2026", setting_value=1.0, is_done="N"))
+    session.add(TargetSetting(distinct_number="T1", target_year="2026", setting_value="Save 1M", is_done="N"))
     session.commit()
     r = client.put("/dashboard/targets/T1", json={"is_done": "Y"})
     assert r.status_code == 200
     data = r.json()["data"]
     assert data["is_done"] == "Y"
-    assert data["setting_value"] == 1.0
+    assert data["setting_value"] == "Save 1M"
     assert data["target_year"] == "2026"
 
 
 def test_delete_target_happy(client: TestClient, session: Session) -> None:
-    session.add(TargetSetting(distinct_number="T1", target_year="2026", setting_value=1.0, is_done="N"))
+    session.add(TargetSetting(distinct_number="T1", target_year="2026", setting_value="Save 1M", is_done="N"))
     session.commit()
     r = client.delete("/dashboard/targets/T1")
     assert r.status_code == 200
@@ -68,8 +68,9 @@ def test_delete_target_missing_returns_404(client: TestClient) -> None:
 
 
 def test_create_target_invalid_body_returns_422(client: TestClient) -> None:
+    # setting_value is now str(max_length=45) — exceeding the max triggers 422.
     r = client.post(
         "/dashboard/targets",
-        json={"distinct_number": "T-X", "setting_value": "not-a-number"},
+        json={"distinct_number": "T-X", "setting_value": "x" * 46},
     )
     assert r.status_code == 422

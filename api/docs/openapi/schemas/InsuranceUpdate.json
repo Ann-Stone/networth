@@ -118,15 +118,16 @@
           "pay_day": {
             "anyOf": [
               {
-                "type": "integer"
+                "maxLength": 23,
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Day of month",
+            "description": "Premium date(s); 'DD' / 'MM/DD' / 'MM/DD,...' by pay_type",
             "examples": [
-              15
+              "01/15"
             ],
             "title": "Pay Day"
           },

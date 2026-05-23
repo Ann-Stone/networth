@@ -26,7 +26,7 @@ data (array item):
 | --- | --- | --- | --- |
 | distinct_number | string | yes | Target row business ID |
 | target_year | string | yes | YYYY |
-| setting_value | number | yes | Target amount |
+| setting_value | string | yes | Target description / value |
 | is_done | string | yes | Y/N |
 
 Example:
@@ -38,7 +38,7 @@ Example:
     {
       "distinct_number": "T-2026-01",
       "is_done": "N",
-      "setting_value": 1000000.0,
+      "setting_value": "Buy a house by end of year",
       "target_year": "2026"
     }
   ],
@@ -66,7 +66,7 @@ Body:
 | name | type | required | description |
 | --- | --- | --- | --- |
 | distinct_number | string | yes | Target row business ID |
-| setting_value | number | yes | Target amount |
+| setting_value | string | yes | Target description / value (free-form text) |
 | target_year |  | no | YYYY; defaults to the current year when omitted |
 | is_done |  | no | Y/N; defaults to N when omitted |
 
@@ -86,7 +86,7 @@ data:
 | --- | --- | --- | --- |
 | distinct_number | string | yes | Target row business ID |
 | target_year | string | yes | YYYY |
-| setting_value | number | yes | Target amount |
+| setting_value | string | yes | Target description / value |
 | is_done | string | yes | Y/N |
 
 Example:
@@ -97,7 +97,7 @@ Example:
   "data": {
     "distinct_number": "T-2026-01",
     "is_done": "N",
-    "setting_value": 1000000.0,
+    "setting_value": "Buy a house by end of year",
     "target_year": "2026"
   },
   "msg": "success"
@@ -169,7 +169,7 @@ Body:
 | name | type | required | description |
 | --- | --- | --- | --- |
 | target_year |  | no | YYYY |
-| setting_value |  | no | Target amount |
+| setting_value |  | no | Target description / value |
 | is_done |  | no | Y/N |
 
 #### Response (200)
@@ -188,7 +188,7 @@ data:
 | --- | --- | --- | --- |
 | distinct_number | string | yes | Target row business ID |
 | target_year | string | yes | YYYY |
-| setting_value | number | yes | Target amount |
+| setting_value | string | yes | Target description / value |
 | is_done | string | yes | Y/N |
 
 Example:
@@ -199,7 +199,7 @@ Example:
   "data": {
     "distinct_number": "T-2026-01",
     "is_done": "N",
-    "setting_value": 1000000.0,
+    "setting_value": "Buy a house by end of year",
     "target_year": "2026"
   },
   "msg": "success"

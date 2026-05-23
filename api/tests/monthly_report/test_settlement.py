@@ -107,7 +107,7 @@ def _seed(session: Session) -> None:
         Insurance(
             insurance_id="INS-1", insurance_name="Whole life", asset_id="AC-INS",
             in_account="USD-1", out_account="USD-1", start_date="20200101",
-            end_date="20500101", pay_type="annual", pay_day=15,
+            end_date="20500101", pay_type="annual", pay_day="01/15",
             expected_spend=1200.0, has_closed="N",
         )
     )

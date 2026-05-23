@@ -12,7 +12,7 @@ def test_target_create_example() -> None:
     js = TargetSettingCreate.model_json_schema()
     assert "example" in js
     # Bare-minimum body must validate (target_year, is_done optional).
-    obj = TargetSettingCreate(distinct_number="T-2026-01", setting_value=1000.0)
+    obj = TargetSettingCreate(distinct_number="T-2026-01", setting_value="Goal")
     assert obj.target_year is None
     assert obj.is_done is None
 

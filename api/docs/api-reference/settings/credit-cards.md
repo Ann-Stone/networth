@@ -37,6 +37,7 @@ data (array item):
 | last_day |  | no | Statement cut-off day |
 | charge_day |  | no | Charge day |
 | limit_date |  | no | Payment due day |
+| card_expiry |  | no | Card expiration year/month 'YYYY/MM' |
 | feedback_way |  | no | Rewards method |
 | fx_code | string | yes | Billing currency code |
 | in_use | string | yes | Active flag |
@@ -50,6 +51,7 @@ Example:
   "status": 1,
   "data": [
     {
+      "card_expiry": "2026/08",
       "card_name": "Chase Sapphire",
       "card_no": "4111-XXXX-XXXX-1111",
       "charge_day": 15,
@@ -92,6 +94,7 @@ Body:
 | last_day |  | no | Statement cut-off day |
 | charge_day |  | no | Charge day |
 | limit_date |  | no | Payment due day |
+| card_expiry |  | no | Card expiration year/month 'YYYY/MM' |
 | feedback_way |  | no | Rewards method |
 | fx_code | string | yes | Billing currency code |
 | in_use | string | no | Active flag |
@@ -118,6 +121,7 @@ data:
 | last_day |  | no | Statement cut-off day |
 | charge_day |  | no | Charge day |
 | limit_date |  | no | Payment due day |
+| card_expiry |  | no | Card expiration year/month 'YYYY/MM' |
 | feedback_way |  | no | Rewards method |
 | fx_code | string | yes | Billing currency code |
 | in_use | string | yes | Active flag |
@@ -130,6 +134,7 @@ Example:
 {
   "status": 1,
   "data": {
+    "card_expiry": "2026/08",
     "card_name": "Chase Sapphire",
     "card_no": "4111-XXXX-XXXX-1111",
     "charge_day": 15,
@@ -215,6 +220,7 @@ Body:
 | last_day |  | no | Statement cut-off day |
 | charge_day |  | no | Charge day |
 | limit_date |  | no | Payment due day |
+| card_expiry |  | no | Card expiration year/month 'YYYY/MM' |
 | feedback_way |  | no | Rewards method |
 | fx_code |  | no | Billing currency code |
 | in_use |  | no | Active flag |
@@ -241,6 +247,7 @@ data:
 | last_day |  | no | Statement cut-off day |
 | charge_day |  | no | Charge day |
 | limit_date |  | no | Payment due day |
+| card_expiry |  | no | Card expiration year/month 'YYYY/MM' |
 | feedback_way |  | no | Rewards method |
 | fx_code | string | yes | Billing currency code |
 | in_use | string | yes | Active flag |
@@ -253,6 +260,7 @@ Example:
 {
   "status": 1,
   "data": {
+    "card_expiry": "2026/08",
     "card_name": "Chase Sapphire",
     "card_no": "4111-XXXX-XXXX-1111",
     "charge_day": 15,

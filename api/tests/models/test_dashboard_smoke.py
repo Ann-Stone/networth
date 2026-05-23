@@ -19,7 +19,7 @@ def test_dashboard_models_roundtrip(session: Session) -> None:
     tgt = TargetSetting(
         distinct_number="T-2026-01",
         target_year="2026",
-        setting_value=1000000.0,
+        setting_value="Save 1M",
         is_done="N",
     )
 
@@ -28,4 +28,4 @@ def test_dashboard_models_roundtrip(session: Session) -> None:
 
     assert session.exec(select(FXRate)).one().buy_rate == 31.52
     assert session.exec(select(StockPriceHistory)).one().close_price == 181.8
-    assert session.exec(select(TargetSetting)).one().setting_value == 1000000.0
+    assert session.exec(select(TargetSetting)).one().setting_value == "Save 1M"

@@ -22,11 +22,11 @@ from app.services.dashboard_service import (
 def test_list_targets_returns_all(session: Session) -> None:
     create_target(
         session,
-        TargetSettingCreate(distinct_number="T1", setting_value=1.0, target_year="2025"),
+        TargetSettingCreate(distinct_number="T1", setting_value="Save 1M", target_year="2025"),
     )
     create_target(
         session,
-        TargetSettingCreate(distinct_number="T2", setting_value=2.0, target_year="2026"),
+        TargetSettingCreate(distinct_number="T2", setting_value="Save 2M", target_year="2026"),
     )
     rows = list_targets(session)
     assert [r.distinct_number for r in rows] == ["T2", "T1"]
@@ -34,7 +34,7 @@ def test_list_targets_returns_all(session: Session) -> None:
 
 def test_create_target_defaults_year_and_done(session: Session) -> None:
     out = create_target(
-        session, TargetSettingCreate(distinct_number="T-A", setting_value=500.0)
+        session, TargetSettingCreate(distinct_number="T-A", setting_value="Save 500K")
     )
     assert out.target_year == datetime.now().strftime("%Y")
     assert out.is_done == "N"
@@ -43,11 +43,11 @@ def test_create_target_defaults_year_and_done(session: Session) -> None:
 def test_update_target_is_done_only(session: Session) -> None:
     create_target(
         session,
-        TargetSettingCreate(distinct_number="T1", setting_value=1.0, target_year="2026"),
+        TargetSettingCreate(distinct_number="T1", setting_value="Save 1M", target_year="2026"),
     )
     out = update_target(session, "T1", TargetSettingUpdate(is_done="Y"))
     assert out.is_done == "Y"
-    assert out.setting_value == 1.0
+    assert out.setting_value == "Save 1M"
     assert out.target_year == "2026"
 
 
@@ -64,7 +64,7 @@ def test_delete_target_missing_returns_404(session: Session) -> None:
 
 
 def test_create_target_duplicate_409(session: Session) -> None:
-    create_target(session, TargetSettingCreate(distinct_number="T1", setting_value=1.0))
+    create_target(session, TargetSettingCreate(distinct_number="T1", setting_value="Goal A"))
     with pytest.raises(HTTPException) as ei:
-        create_target(session, TargetSettingCreate(distinct_number="T1", setting_value=2.0))
+        create_target(session, TargetSettingCreate(distinct_number="T1", setting_value="Goal B"))
     assert ei.value.status_code == 409

@@ -19,7 +19,7 @@ _INSURANCE_EXAMPLE = {
     "start_date": "20200101",
     "end_date": "20500101",
     "pay_type": "annual",
-    "pay_day": 15,
+    "pay_day": "01/15",
     "expected_spend": 1200.0,
     "has_closed": "N",
 }
@@ -44,7 +44,17 @@ class Insurance(SQLModel, table=True):
     start_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     end_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20500101"]})
     pay_type: str = Field(..., description="Premium cadence (annual / monthly / ...)", schema_extra={"examples": ["annual"]})
-    pay_day: int = Field(..., description="Day of month for premium withdrawal", schema_extra={"examples": [15]})
+    pay_day: str = Field(
+        ...,
+        max_length=23,
+        description=(
+            "Premium withdrawal date(s), free-form string whose shape "
+            "depends on pay_type: monthly = 'DD' (e.g. '15'); annual = "
+            "'MM/DD' (e.g. '01/19'); quarterly = comma-separated 'MM/DD' "
+            "list (e.g. '01/19,04/19,07/19,10/19')."
+        ),
+        schema_extra={"examples": ["01/15"]},
+    )
     expected_spend: float = Field(..., description="Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual')", schema_extra={"examples": [1200.0]})
     has_closed: str = Field(..., description="Closed flag (Y/N)", schema_extra={"examples": ["N"]})
 
@@ -60,7 +70,7 @@ class InsuranceCreate(SQLModel):
     start_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     end_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20500101"]})
     pay_type: str = Field(..., description="Premium cadence", schema_extra={"examples": ["annual"]})
-    pay_day: int = Field(..., description="Day of month", schema_extra={"examples": [15]})
+    pay_day: str = Field(..., max_length=23, description="Premium date(s); 'DD' / 'MM/DD' / 'MM/DD,...' by pay_type", schema_extra={"examples": ["01/15"]})
     expected_spend: float = Field(..., description="Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual')", schema_extra={"examples": [1200.0]})
     has_closed: HasClosed = Field(..., description="Closed flag (Y/N)", schema_extra={"examples": ["N"]})
 
@@ -75,7 +85,7 @@ class InsuranceUpdate(SQLModel):
     start_date: str | None = Field(default=None, description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     end_date: str | None = Field(default=None, description="YYYYMMDD", schema_extra={"examples": ["20500101"]})
     pay_type: str | None = Field(default=None, description="Premium cadence", schema_extra={"examples": ["annual"]})
-    pay_day: int | None = Field(default=None, description="Day of month", schema_extra={"examples": [15]})
+    pay_day: str | None = Field(default=None, max_length=23, description="Premium date(s); 'DD' / 'MM/DD' / 'MM/DD,...' by pay_type", schema_extra={"examples": ["01/15"]})
     expected_spend: float | None = Field(default=None, description="Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual')", schema_extra={"examples": [1200.0]})
     has_closed: HasClosed | None = Field(default=None, description="Closed flag", schema_extra={"examples": ["Y"]})
 
@@ -91,7 +101,7 @@ class InsuranceRead(SQLModel):
     start_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     end_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20500101"]})
     pay_type: str = Field(..., description="Premium cadence", schema_extra={"examples": ["annual"]})
-    pay_day: int = Field(..., description="Day of month", schema_extra={"examples": [15]})
+    pay_day: str = Field(..., max_length=23, description="Premium date(s); 'DD' / 'MM/DD' / 'MM/DD,...' by pay_type", schema_extra={"examples": ["01/15"]})
     expected_spend: float = Field(..., description="Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual')", schema_extra={"examples": [1200.0]})
     has_closed: str = Field(..., description="Closed flag", schema_extra={"examples": ["N"]})
 

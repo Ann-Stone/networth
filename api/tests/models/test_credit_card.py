@@ -22,6 +22,7 @@ def test_credit_card_table_fields() -> None:
         "last_day",
         "charge_day",
         "limit_date",
+        "card_expiry",
         "feedback_way",
         "fx_code",
         "in_use",

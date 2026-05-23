@@ -51,7 +51,7 @@ def test_assets_models_roundtrip(session: Session) -> None:
         start_date="20200101",
         end_date="20500101",
         pay_type="annual",
-        pay_day=15,
+        pay_day="01/15",
         expected_spend=1200.0,
         has_closed="N",
     )

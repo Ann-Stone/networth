@@ -38,7 +38,7 @@ data (array item):
 | start_date | string | yes | YYYYMMDD |
 | end_date | string | yes | YYYYMMDD |
 | pay_type | string | yes | Premium cadence |
-| pay_day | integer | yes | Day of month |
+| pay_day | string | yes | Premium date(s); 'DD' / 'MM/DD' / 'MM/DD,...' by pay_type |
 | expected_spend | number | yes | Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual') |
 | has_closed | string | yes | Closed flag |
 
@@ -57,7 +57,7 @@ Example:
       "insurance_id": "INS-001",
       "insurance_name": "Whole life policy",
       "out_account": "BANK-CHASE-01",
-      "pay_day": 15,
+      "pay_day": "01/15",
       "pay_type": "annual",
       "start_date": "20200101"
     }
@@ -94,7 +94,7 @@ Body:
 | start_date | string | yes | YYYYMMDD |
 | end_date | string | yes | YYYYMMDD |
 | pay_type | string | yes | Premium cadence |
-| pay_day | integer | yes | Day of month |
+| pay_day | string | yes | Premium date(s); 'DD' / 'MM/DD' / 'MM/DD,...' by pay_type |
 | expected_spend | number | yes | Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual') |
 | has_closed | string (enum: 'Y', 'N') | yes | Closed flag (Y/N) |
 
@@ -120,7 +120,7 @@ data:
 | start_date | string | yes | YYYYMMDD |
 | end_date | string | yes | YYYYMMDD |
 | pay_type | string | yes | Premium cadence |
-| pay_day | integer | yes | Day of month |
+| pay_day | string | yes | Premium date(s); 'DD' / 'MM/DD' / 'MM/DD,...' by pay_type |
 | expected_spend | number | yes | Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual') |
 | has_closed | string | yes | Closed flag |
 
@@ -138,7 +138,7 @@ Example:
     "insurance_id": "INS-001",
     "insurance_name": "Whole life policy",
     "out_account": "BANK-CHASE-01",
-    "pay_day": 15,
+    "pay_day": "01/15",
     "pay_type": "annual",
     "start_date": "20200101"
   },
@@ -217,7 +217,7 @@ Body:
 | start_date |  | no | YYYYMMDD |
 | end_date |  | no | YYYYMMDD |
 | pay_type |  | no | Premium cadence |
-| pay_day |  | no | Day of month |
+| pay_day |  | no | Premium date(s); 'DD' / 'MM/DD' / 'MM/DD,...' by pay_type |
 | expected_spend |  | no | Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual') |
 | has_closed |  | no | Closed flag |
 
@@ -243,7 +243,7 @@ data:
 | start_date | string | yes | YYYYMMDD |
 | end_date | string | yes | YYYYMMDD |
 | pay_type | string | yes | Premium cadence |
-| pay_day | integer | yes | Day of month |
+| pay_day | string | yes | Premium date(s); 'DD' / 'MM/DD' / 'MM/DD,...' by pay_type |
 | expected_spend | number | yes | Expected premium per pay_type cadence (e.g. annual premium amount when pay_type='annual') |
 | has_closed | string | yes | Closed flag |
 
@@ -261,7 +261,7 @@ Example:
     "insurance_id": "INS-001",
     "insurance_name": "Whole life policy",
     "out_account": "BANK-CHASE-01",
-    "pay_day": 15,
+    "pay_day": "01/15",
     "pay_type": "annual",
     "start_date": "20200101"
   },

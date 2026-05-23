@@ -11,7 +11,7 @@
           "insurance_id": "INS-001",
           "insurance_name": "Whole life policy",
           "out_account": "BANK-CHASE-01",
-          "pay_day": 15,
+          "pay_day": "01/15",
           "pay_type": "annual",
           "start_date": "20200101"
         },
@@ -81,12 +81,13 @@
             "type": "string"
           },
           "pay_day": {
-            "description": "Day of month",
+            "description": "Premium date(s); 'DD' / 'MM/DD' / 'MM/DD,...' by pay_type",
             "examples": [
-              15
+              "01/15"
             ],
+            "maxLength": 23,
             "title": "Pay Day",
-            "type": "integer"
+            "type": "string"
           },
           "pay_type": {
             "description": "Premium cadence",

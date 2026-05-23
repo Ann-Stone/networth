@@ -16,6 +16,7 @@ _CREDIT_CARD_EXAMPLE = {
     "last_day": 25,
     "charge_day": 15,
     "limit_date": 20,
+    "card_expiry": "2026/08",
     "feedback_way": "cashback",
     "fx_code": "USD",
     "in_use": "Y",
@@ -35,6 +36,12 @@ class CreditCard(SQLModel, table=True):
     last_day: int | None = Field(default=None, description="Statement cut-off day of month", schema_extra={"examples": [25]})
     charge_day: int | None = Field(default=None, description="Charge day of month", schema_extra={"examples": [15]})
     limit_date: int | None = Field(default=None, description="Payment due day of month", schema_extra={"examples": [20]})
+    card_expiry: str | None = Field(
+        default=None,
+        max_length=7,
+        description="Card expiration year/month, free-form 'YYYY/MM'",
+        schema_extra={"examples": ["2026/08"]},
+    )
     feedback_way: str | None = Field(default=None, description="Rewards method", schema_extra={"examples": ["cashback"]})
     fx_code: str = Field(..., description="Billing currency code", schema_extra={"examples": ["USD"]})
     in_use: str = Field(..., description="Active flag (Y/N)", schema_extra={"examples": ["Y"]})
@@ -51,6 +58,7 @@ class CreditCardCreate(SQLModel):
     last_day: int | None = Field(default=None, description="Statement cut-off day", schema_extra={"examples": [25]})
     charge_day: int | None = Field(default=None, description="Charge day", schema_extra={"examples": [15]})
     limit_date: int | None = Field(default=None, description="Payment due day", schema_extra={"examples": [20]})
+    card_expiry: str | None = Field(default=None, max_length=7, description="Card expiration year/month 'YYYY/MM'", schema_extra={"examples": ["2026/08"]})
     feedback_way: str | None = Field(default=None, description="Rewards method", schema_extra={"examples": ["cashback"]})
     fx_code: str = Field(..., description="Billing currency code", schema_extra={"examples": ["USD"]})
     in_use: str = Field(default="Y", description="Active flag", schema_extra={"examples": ["Y"]})
@@ -66,6 +74,7 @@ class CreditCardUpdate(SQLModel):
     last_day: int | None = Field(default=None, description="Statement cut-off day", schema_extra={"examples": [25]})
     charge_day: int | None = Field(default=None, description="Charge day", schema_extra={"examples": [15]})
     limit_date: int | None = Field(default=None, description="Payment due day", schema_extra={"examples": [20]})
+    card_expiry: str | None = Field(default=None, max_length=7, description="Card expiration year/month 'YYYY/MM'", schema_extra={"examples": ["2027/12"]})
     feedback_way: str | None = Field(default=None, description="Rewards method", schema_extra={"examples": ["cashback"]})
     fx_code: str | None = Field(default=None, description="Billing currency code", schema_extra={"examples": ["USD"]})
     in_use: str | None = Field(default=None, description="Active flag", schema_extra={"examples": ["N"]})
@@ -82,6 +91,7 @@ class CreditCardRead(SQLModel):
     last_day: int | None = Field(default=None, description="Statement cut-off day", schema_extra={"examples": [25]})
     charge_day: int | None = Field(default=None, description="Charge day", schema_extra={"examples": [15]})
     limit_date: int | None = Field(default=None, description="Payment due day", schema_extra={"examples": [20]})
+    card_expiry: str | None = Field(default=None, max_length=7, description="Card expiration year/month 'YYYY/MM'", schema_extra={"examples": ["2026/08"]})
     feedback_way: str | None = Field(default=None, description="Rewards method", schema_extra={"examples": ["cashback"]})
     fx_code: str = Field(..., description="Billing currency code", schema_extra={"examples": ["USD"]})
     in_use: str = Field(..., description="Active flag", schema_extra={"examples": ["Y"]})

@@ -36,7 +36,7 @@ def _policy(insurance_id: str = "INS-001", asset_id: str = "AC-INS-001") -> Insu
         start_date="2024-01-15",
         end_date="2050-01-15",
         pay_type="annual",
-        pay_day=15,
+        pay_day="01/15",
         expected_spend=1200.0,
         has_closed="N",
     )

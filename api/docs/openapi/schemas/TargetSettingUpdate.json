@@ -24,15 +24,16 @@
           "setting_value": {
             "anyOf": [
               {
-                "type": "number"
+                "maxLength": 45,
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Target amount",
+            "description": "Target description / value",
             "examples": [
-              1200000.0
+              "Buy a house by Q4"
             ],
             "title": "Setting Value"
           },

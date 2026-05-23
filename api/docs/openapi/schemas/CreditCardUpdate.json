@@ -6,6 +6,22 @@
           "in_use": "N"
         },
         "properties": {
+          "card_expiry": {
+            "anyOf": [
+              {
+                "maxLength": 7,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Card expiration year/month 'YYYY/MM'",
+            "examples": [
+              "2027/12"
+            ],
+            "title": "Card Expiry"
+          },
           "card_name": {
             "anyOf": [
               {
