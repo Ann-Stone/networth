@@ -1,0 +1,1 @@
+import"./rolldown-runtime-S-ySWqyJ.js";import{A as e,C as t,J as n}from"./echarts-B-BH_4AG.js";import{m as r}from"./element-plus-DOfTk_D_.js";var i=e({__name:`EmptyState`,props:{message:{}},setup(e){return(i,a)=>{let o=r;return n(),t(o,{description:e.message??`暫無資料`},null,8,[`description`])}}});export{i as t};
