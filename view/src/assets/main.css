@@ -189,12 +189,12 @@ html.light {
   --ds-negative:                  #c62828;
   --ds-neutral-text:              #717870;
 
-  --el-color-primary:             var(--ds-primary-container);
-  --el-color-primary-light-3:     color-mix(in srgb, var(--ds-primary-container) 70%, white);
-  --el-color-primary-light-5:     color-mix(in srgb, var(--ds-primary-container) 50%, white);
-  --el-color-primary-light-7:     color-mix(in srgb, var(--ds-primary-container) 30%, white);
-  --el-color-primary-light-9:     color-mix(in srgb, var(--ds-primary-container) 10%, white);
-  --el-color-primary-dark-2:      color-mix(in srgb, var(--ds-primary-container) 80%, black);
+  --el-color-primary:             var(--ds-primary);
+  --el-color-primary-light-3:     color-mix(in srgb, var(--ds-primary) 70%, white);
+  --el-color-primary-light-5:     color-mix(in srgb, var(--ds-primary) 50%, white);
+  --el-color-primary-light-7:     color-mix(in srgb, var(--ds-primary) 30%, white);
+  --el-color-primary-light-9:     color-mix(in srgb, var(--ds-primary) 10%, white);
+  --el-color-primary-dark-2:      color-mix(in srgb, var(--ds-primary) 80%, black);
   --el-bg-color:                  var(--ds-surface-container);
   --el-bg-color-page:             var(--ds-background);
   --el-bg-color-overlay:          var(--ds-surface-container-lowest);

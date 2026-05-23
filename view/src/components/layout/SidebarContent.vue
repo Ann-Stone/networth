@@ -36,7 +36,7 @@
               class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
               :class="
                 isActive(child.path)
-                  ? 'bg-primary-container/15 text-primary-container'
+                  ? 'bg-primary/15 text-primary'
                   : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               "
               @click="onNavClick"
@@ -55,7 +55,7 @@
           :class="[
             { 'justify-center': collapsed },
             isActive(item.path!)
-              ? 'bg-primary-container/15 text-primary-container'
+              ? 'bg-primary/15 text-primary'
               : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
           ]"
           @click="onNavClick"
