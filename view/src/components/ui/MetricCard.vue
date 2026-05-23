@@ -1,11 +1,25 @@
 <template>
   <div
-    class="flex flex-col gap-3 rounded-xl p-8 bg-surface-container border border-outline-variant shadow-sm"
+    class="flex flex-col gap-3 rounded-xl p-5 md:p-6 bg-surface-container border border-outline-variant shadow-sm"
   >
     <div class="flex justify-between items-start">
-      <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">
-        {{ label }}
-      </p>
+      <div class="flex items-center gap-1.5">
+        <p class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">
+          {{ label }}
+        </p>
+        <el-tooltip
+          v-if="tooltip"
+          :content="tooltip"
+          placement="top"
+          effect="dark"
+          :show-after="150"
+          raw-content
+        >
+          <el-icon class="text-on-surface-variant/70 hover:text-on-surface cursor-help">
+            <QuestionFilled />
+          </el-icon>
+        </el-tooltip>
+      </div>
       <el-icon v-if="icon" :class="iconClass">
         <component :is="icon" />
       </el-icon>
@@ -57,6 +71,7 @@
 
 <script setup lang="ts">
 import { computed, type Component } from 'vue'
+import { QuestionFilled } from '@element-plus/icons-vue'
 import MoneyDisplay from './MoneyDisplay.vue'
 import TrendBadge from './TrendBadge.vue'
 
@@ -76,6 +91,8 @@ const props = withDefaults(
     tone?: 'primary' | 'rose'
     format?: 'currency' | 'percent'
     points?: Array<{ period: string; value: number }>
+    /** Tooltip shown on hover next to label (HTML allowed via raw-content). */
+    tooltip?: string
   }>(),
   {
     currency: 'TWD',

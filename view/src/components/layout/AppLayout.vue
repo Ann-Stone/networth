@@ -19,7 +19,7 @@
       <Navbar />
 
       <!-- Page content -->
-      <main class="flex-1 overflow-y-auto p-6">
+      <main class="flex-1 overflow-y-auto p-6 flex flex-col">
         <router-view v-slot="{ Component }">
           <keep-alive :include="keepAliveViews">
             <component :is="Component" />

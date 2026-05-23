@@ -49,6 +49,7 @@ declare module 'vue' {
     ElTabPane: typeof import('element-plus/es')['ElTabPane']
     ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTag: typeof import('element-plus/es')['ElTag']
+    ElTooltip: typeof import('element-plus/es')['ElTooltip']
     EmptyState: typeof import('./components/ui/EmptyState.vue')['default']
     FormDialog: typeof import('./components/ui/FormDialog.vue')['default']
     LineChart: typeof import('./components/charts/LineChart.vue')['default']

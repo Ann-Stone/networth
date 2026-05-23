@@ -36,7 +36,7 @@ const formatted = computed(() => {
 const colorClass = computed(() => {
   if (props.positive === true) return 'text-positive'
   if (props.positive === false) return 'text-negative'
-  return 'text-neutral'
+  return ''
 })
 
 const sizeClass = computed(() => {

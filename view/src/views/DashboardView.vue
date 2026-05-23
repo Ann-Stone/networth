@@ -1,7 +1,7 @@
 <template>
-  <div class="flex flex-col gap-8">
+  <div class="h-auto md:h-full flex flex-col gap-6 md:gap-4 overflow-y-auto md:overflow-hidden">
     <section
-      class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-outline-variant"
+      class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-outline-variant shrink-0"
     >
       <el-radio-group v-model="viewMode" size="default">
         <el-radio-button label="月" value="month" />
@@ -28,7 +28,7 @@
       />
     </section>
 
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 shrink-0">
       <el-skeleton
         v-if="store.summariesLoading.asset_debt_trend"
         :rows="3"
@@ -59,6 +59,7 @@
         format="percent"
         :amount="freedomPercentValue"
         :points="freedomRatioPercentPoints"
+        :tooltip="freedomRatioTooltip"
       />
       <MetricCard
         v-else
@@ -67,6 +68,7 @@
         :amount="freedomPercentValue"
         :delta-percent="freedomYoYDelta"
         delta-label="vs 去年"
+        :tooltip="freedomRatioTooltip"
       />
 
       <el-skeleton
@@ -80,6 +82,7 @@
         format="percent"
         :amount="workFreedomPercentValue"
         :points="workFreedomRatioPercentPoints"
+        :tooltip="workFreedomRatioTooltip"
       />
       <MetricCard
         v-else
@@ -88,39 +91,43 @@
         :amount="workFreedomPercentValue"
         :delta-percent="workFreedomYoYDelta"
         delta-label="vs 去年"
+        :tooltip="workFreedomRatioTooltip"
       />
     </section>
 
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 md:grow-[3] md:basis-0 md:min-h-0">
       <div
-        class="lg:col-span-2 rounded-xl bg-surface-container border border-outline-variant p-4"
+        class="lg:col-span-2 rounded-xl bg-surface-container border border-outline-variant p-4 flex flex-col md:min-h-0"
       >
         <el-skeleton
           v-if="store.summariesLoading.asset_debt_trend"
           :rows="6"
           animated
+          class="flex-1"
         />
-        <AssetTrendChart v-else :points="assetTrendPoints" />
+        <AssetTrendChart v-else :points="assetTrendPoints" :height="appStore.isMobile ? '300px' : '100%'" class="flex-1 min-h-0" />
       </div>
-      <div class="lg:col-span-1 flex flex-col gap-6">
-        <el-skeleton v-if="store.budgetLoading" :rows="3" animated />
+      <div class="lg:col-span-1 flex flex-col gap-4 lg:gap-6 md:min-h-0 md:h-full">
+        <el-skeleton v-if="store.budgetLoading" :rows="3" animated class="shrink-0" />
         <MetricCard
           v-else
           :label="budgetCardLabel"
           format="percent"
           :amount="budgetUsagePct"
           :delta-label="budgetUsageDeltaLabel"
+          class="shrink-0"
         />
-        <el-skeleton v-if="store.giftsLoading" :rows="3" animated />
+        <el-skeleton v-if="store.giftsLoading" :rows="3" animated class="flex-1" />
         <EmptyState
           v-else-if="store.gifts.length === 0"
           :message="`${store.anchorYear} 年尚無贈與紀錄`"
+          class="flex-1 min-h-0"
         />
-        <DataListCard v-else :title="`本年贈與 (${store.anchorYear})`">
+        <DataListCard v-else :title="`本年贈與 (${store.anchorYear})`" class="md:flex-1 md:min-h-0">
           <div
             v-for="(g, idx) in store.gifts"
             :key="`${g.owner}-${idx}`"
-            class="flex items-center justify-between px-6 py-3"
+            class="flex items-center justify-between px-5 py-2.5"
           >
             <p class="text-on-surface text-sm font-semibold">{{ g.owner }}</p>
             <div class="flex items-center gap-3">
@@ -137,36 +144,39 @@
       </div>
     </section>
 
-    <section class="flex flex-col gap-4">
-      <SectionHeader title="追蹤事項">
+    <section class="flex flex-col gap-3 md:grow-[2] md:basis-0 md:min-h-0">
+      <SectionHeader title="追蹤事項" class="shrink-0">
         <template #actions>
-          <el-button
-            v-if="archivedTargets.length > 0"
-            :icon="FolderOpened"
-            size="small"
-            text
-            @click="archiveDialogVisible = true"
-          >
-            已歸檔 ({{ archivedTargets.length }})
-          </el-button>
-          <el-button type="primary" :icon="Plus" size="small" @click="openTargetCreate">
-            新增
-          </el-button>
+          <div class="flex items-center gap-2">
+            <el-button
+              :disabled="archivedTargets.length === 0"
+              :icon="FolderOpened"
+              size="small"
+              @click="archiveDialogVisible = true"
+            >
+              已歸檔 ({{ archivedTargets.length }})
+            </el-button>
+            <el-button type="primary" :icon="Plus" size="small" @click="openTargetCreate">
+              新增
+            </el-button>
+          </div>
         </template>
       </SectionHeader>
-      <el-skeleton v-if="store.targetsLoading" :rows="3" animated />
-      <EmptyState v-else-if="activeTargets.length === 0" message="尚無追蹤事項" />
-      <DataListCard v-else title="進行中">
+      <el-skeleton v-if="store.targetsLoading" :rows="3" animated class="md:flex-1" />
+      <EmptyState v-else-if="activeTargets.length === 0" message="尚無追蹤事項" class="md:flex-1 md:min-h-0" />
+      <DataListCard v-else class="md:flex-1 md:min-h-0">
         <div
           v-for="t in activeTargets"
           :key="t.distinct_number"
-          class="flex items-center justify-between px-6 py-4"
+          class="flex items-center justify-between px-5 py-3"
         >
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col gap-1 min-w-0 flex-1 pr-4">
             <p class="text-on-surface text-sm font-semibold">
-              {{ t.distinct_number }} · {{ t.target_year }}
+              {{ t.setting_value }}
             </p>
-            <p class="text-on-surface-variant text-sm">{{ t.setting_value }}</p>
+            <p class="text-on-surface-variant text-xs">
+              {{ t.target_year }} 年度 · 編號 {{ t.distinct_number }}
+            </p>
           </div>
           <div class="flex items-center gap-2">
             <el-button
@@ -201,20 +211,21 @@
           v-if="archivedTargets.length === 0"
           description="尚無已歸檔事項"
         />
-        <ul v-else class="flex flex-col divide-y divide-outline-variant/30 rounded-lg bg-surface-container-low">
+        <ul v-else class="flex flex-col divide-y divide-outline-variant/30 rounded-lg bg-surface-container-low pl-0 list-none">
           <li
             v-for="t in archivedTargets"
             :key="t.distinct_number"
             class="flex items-center justify-between px-4 py-3"
           >
-            <div class="flex flex-col gap-1 min-w-0">
+            <div class="flex flex-col gap-1 min-w-0 flex-1 pr-4">
               <p class="text-on-surface text-sm font-semibold truncate">
-                {{ t.distinct_number }} · {{ t.target_year }}
+                {{ t.setting_value }}
               </p>
-              <p class="text-on-surface-variant text-sm truncate">{{ t.setting_value }}</p>
+              <p class="text-on-surface-variant text-xs truncate">
+                {{ t.target_year }} 年度 · 編號 {{ t.distinct_number }}
+              </p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <StatusBadge value="已完成" type="success" />
               <el-button
                 :icon="RefreshLeft"
                 size="small"
@@ -259,7 +270,6 @@
         </el-form>
       </FormDialog>
     </section>
-
   </div>
 </template>
 
@@ -273,14 +283,15 @@ import SectionHeader from '@/components/ui/SectionHeader.vue'
 import DataListCard from '@/components/ui/DataListCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
-import StatusBadge from '@/components/ui/StatusBadge.vue'
 import FormDialog from '@/components/ui/FormDialog.vue'
 import AssetTrendChart from '@/components/charts/AssetTrendChart.vue'
 import { useDashboardStore, type ViewMode } from '@/stores/dashboard'
+import { useAppStore } from '@/stores/app'
 import { createTarget, updateTarget, deleteTarget } from '@/api/dashboard'
 import type { TargetSetting } from '@/types/models'
 
 const store = useDashboardStore()
+const appStore = useAppStore()
 
 // View-mode + anchor controls -------------------------------------------------
 // Local refs bound to the radio/picker. Whenever the user changes a control, we
@@ -343,6 +354,22 @@ const netWorthYoYDelta = computed<number | undefined>(() => {
 })
 
 // Freedom / work-freedom percent values --------------------------------------
+const freedomRatioTooltip = [
+  '<b>財務自由度</b>',
+  '公式：(總收入 − 固定支出) ÷ 總收入',
+  '月視角：近 12 個月滾動加總',
+  '年視角：當年累計',
+  '代表收入扣除固定開支後剩餘比例，越高越能負擔意外支出',
+].join('<br/>')
+
+const workFreedomRatioTooltip = [
+  '<b>工作自由度</b>',
+  '公式：被動收入 ÷ (被動收入 + 主動收入)',
+  '月視角：近 12 個月滾動加總',
+  '年視角：當年累計',
+  '代表收入有多少來自被動來源，越高越接近不需主動工作',
+].join('<br/>')
+
 const freedomPercentValue = computed(
   () => Math.round(store.freedomRatioCurrent * 1000) / 10,
 )
@@ -472,13 +499,7 @@ const moneyFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 })
 
-const budgetCardLabel = computed(() => {
-  if (store.viewMode === 'month') {
-    const m = store.anchor
-    return `預算使用率 (${m.slice(0, 4)}/${m.slice(4)})`
-  }
-  return `預算使用率 (${store.anchor})`
-})
+const budgetCardLabel = '預算使用率'
 
 const budgetUsagePct = computed(() => {
   const b = store.budget

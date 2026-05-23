@@ -4,7 +4,7 @@
       {{ title }}
       <span class="text-on-surface-variant font-semibold ml-1">({{ alarms.length }})</span>
     </p>
-    <ul class="flex flex-col divide-y divide-outline-variant/30 rounded-lg bg-surface-container-low">
+    <ul class="flex flex-col divide-y divide-outline-variant/30 rounded-lg bg-surface-container-low pl-0 list-none">
       <li
         v-for="(a, idx) in alarms"
         :key="`${a.date}-${idx}`"
@@ -22,7 +22,7 @@
         <div class="flex items-center gap-3 shrink-0">
           <span class="text-on-surface-variant text-xs tabular-nums">{{ a.displayDate }}</span>
           <span
-            class="tabular-nums text-xs font-bold px-2 py-0.5 rounded-full"
+            class="tabular-nums text-xs font-bold px-2 py-0.5 rounded-full w-20 inline-flex justify-center text-center"
             :class="chipColor"
           >
             {{ relativeText(a.daysUntil) }}
