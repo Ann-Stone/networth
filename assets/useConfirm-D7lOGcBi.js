@@ -1,1 +1,0 @@
-import"./rolldown-runtime-S-ySWqyJ.js";import{n as e}from"./element-plus-BOlqqOYt.js";function t(){return async t=>{try{return await e.confirm(t.message,t.title,{confirmButtonText:`確認`,cancelButtonText:`取消`,type:t.type??`warning`}),!0}catch{return!1}}}export{t};
