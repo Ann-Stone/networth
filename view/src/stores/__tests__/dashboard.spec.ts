@@ -79,3 +79,51 @@ describe('useDashboardStore — freedomRatioRolling12M', () => {
     expect(store.freedomRatioRolling12M).toBe(0)
   })
 })
+
+function makeWorkFreedomSummary(
+  points: Array<{ period: string; value: number; passive?: number; active?: number }>,
+): DashboardSummary {
+  return {
+    type: 'work_freedom_ratio',
+    points: points.map((p) => ({
+      period: p.period,
+      value: p.value,
+      breakdown:
+        p.passive === undefined && p.active === undefined
+          ? undefined
+          : { passive: p.passive ?? 0, active: p.active ?? 0 },
+    })),
+  }
+}
+
+describe('useDashboardStore — workFreedomRatioRolling12M', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('returns sumPassive / (sumPassive + sumActive) across all points', () => {
+    const store = useDashboardStore()
+    // 12 months: passive=300 each, active=700 each → 3600 / (3600+8400) = 0.3
+    const points = Array.from({ length: 12 }, (_, i) => ({
+      period: `20250${(i % 9) + 1}`,
+      value: 0.3,
+      passive: 300,
+      active: 700,
+    }))
+    store.summaries.work_freedom_ratio = makeWorkFreedomSummary(points)
+    expect(store.workFreedomRatioRolling12M).toBeCloseTo(0.3, 10)
+  })
+
+  it('returns 0 when total income is 0 (no Infinity / NaN)', () => {
+    const store = useDashboardStore()
+    store.summaries.work_freedom_ratio = makeWorkFreedomSummary([
+      { period: '202504', value: 0, passive: 0, active: 0 },
+    ])
+    expect(store.workFreedomRatioRolling12M).toBe(0)
+  })
+
+  it('returns 0 when no work_freedom_ratio summary loaded', () => {
+    const store = useDashboardStore()
+    expect(store.workFreedomRatioRolling12M).toBe(0)
+  })
+})

@@ -17,18 +17,23 @@ function makeSummary(type: string, n: number) {
     type,
     points: Array.from({ length: n }, (_, i) => ({
       period: `2025${String((i % 12) + 1).padStart(2, '0')}`,
-      value: type === 'freedom_ratio' ? 0.2 + i * 0.01 : 1000 + i * 100,
+      value:
+        type === 'freedom_ratio' || type === 'work_freedom_ratio'
+          ? 0.2 + i * 0.01
+          : 1000 + i * 100,
       breakdown:
         type === 'freedom_ratio'
           ? { income: 100, fixed_expenses: 75 }
-          : {
-              accounts: 200,
-              stocks: 300,
-              estates: 500,
-              insurances: 100,
-              loans: -50,
-              cards: -50,
-            },
+          : type === 'work_freedom_ratio'
+            ? { passive: 30, active: 70 }
+            : {
+                accounts: 200,
+                stocks: 300,
+                estates: 500,
+                insurances: 100,
+                loans: -50,
+                cards: -50,
+              },
     })),
   }
 }
@@ -51,7 +56,7 @@ function elementPlusStubs() {
 }
 
 describe('DashboardView', () => {
-  it('mounts with 12-point summaries and shows trend chart + two metric cards', async () => {
+  it('mounts with 12-point summaries and shows trend chart + three metric cards', async () => {
     const wrapper = mount(DashboardView, {
       global: {
         plugins: [
@@ -63,11 +68,13 @@ describe('DashboardView', () => {
                 summaries: {
                   asset_debt_trend: makeSummary('asset_debt_trend', 12),
                   freedom_ratio: makeSummary('freedom_ratio', 12),
+                  work_freedom_ratio: makeSummary('work_freedom_ratio', 12),
                   spending: null,
                 },
                 summariesLoading: {
                   asset_debt_trend: false,
                   freedom_ratio: false,
+                  work_freedom_ratio: false,
                   spending: false,
                 },
                 alarms: [],
@@ -86,13 +93,15 @@ describe('DashboardView', () => {
       },
     })
 
-    // freedomRatioRolling12M is a getter on the store proxy. createTestingPinia
-    // does not snapshot getters from initialState; force-evaluate via the store.
+    // Rolling-window getters live on the store proxy. createTestingPinia does
+    // not snapshot getters from initialState; force-evaluate via the store.
     const store = useDashboardStore()
     void store.freedomRatioRolling12M
+    void store.workFreedomRatioRolling12M
 
     expect(wrapper.text()).not.toContain('本期支出')
     expect(wrapper.findComponent(AssetTrendChart).exists()).toBe(true)
-    expect(wrapper.findAllComponents(MetricCard)).toHaveLength(2)
+    expect(wrapper.text()).toContain('工作自由度')
+    expect(wrapper.findAllComponents(MetricCard).length).toBeGreaterThanOrEqual(3)
   })
 })

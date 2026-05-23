@@ -75,9 +75,22 @@ function spendingPoints(period: string): DashboardSummary {
   return { type: 'spending', points }
 }
 
+function workFreedomRatioPoints(period: string): DashboardSummary {
+  // Passive grows slowly relative to active income so the rolling card has signal.
+  const points = eachPeriod(period).map((p, i) => {
+    const active = 80_000 + Math.round(Math.cos(i * 0.4) * 10_000) + i * 400
+    const passive = 6_000 + Math.round(Math.sin(i * 0.6) * 2_000) + i * 300
+    const total = passive + active
+    const value = total > 0 ? passive / total : 0
+    return { period: p, value, breakdown: { passive, active } }
+  })
+  return { type: 'work_freedom_ratio', points }
+}
+
 function summaryPoints(type: string, period: string): DashboardSummary {
   if (type === 'asset_debt_trend') return assetDebtPoints(period)
   if (type === 'freedom_ratio') return freedomRatioPoints(period)
+  if (type === 'work_freedom_ratio') return workFreedomRatioPoints(period)
   return spendingPoints(period)
 }
 

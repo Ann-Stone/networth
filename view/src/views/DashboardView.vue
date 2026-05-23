@@ -40,6 +40,18 @@
           :amount="freedomPercentValue"
           :points="freedomRatioPercentPoints"
         />
+        <el-skeleton
+          v-if="store.summariesLoading.work_freedom_ratio"
+          :rows="3"
+          animated
+        />
+        <MetricCard
+          v-else
+          label="工作自由度"
+          format="percent"
+          :amount="workFreedomPercentValue"
+          :points="workFreedomRatioPercentPoints"
+        />
       </div>
     </section>
 
@@ -229,6 +241,17 @@ const freedomPercentValue = computed(
 // card's internal MoM / YoY delta matches the displayed unit.
 const freedomRatioPercentPoints = computed(() =>
   (store.summaries.freedom_ratio?.points ?? []).map((p) => ({
+    period: p.period,
+    value: Math.round(p.value * 1000) / 10,
+  })),
+)
+
+const workFreedomPercentValue = computed(
+  () => Math.round(store.workFreedomRatioRolling12M * 1000) / 10,
+)
+
+const workFreedomRatioPercentPoints = computed(() =>
+  (store.summaries.work_freedom_ratio?.points ?? []).map((p) => ({
     period: p.period,
     value: Math.round(p.value * 1000) / 10,
   })),

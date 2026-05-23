@@ -22,7 +22,11 @@ export function trailingTwelveMonthsPeriod(now: Date = new Date()): string {
   return `${start.format('YYYYMM')}-${end.format('YYYYMM')}`
 }
 
-export type SummaryType = 'spending' | 'freedom_ratio' | 'asset_debt_trend'
+export type SummaryType =
+  | 'spending'
+  | 'freedom_ratio'
+  | 'asset_debt_trend'
+  | 'work_freedom_ratio'
 
 export interface DashboardSummaryParams {
   type: SummaryType
@@ -38,12 +42,14 @@ const emptySummaryMap = (): Record<SummaryType, DashboardSummary | null> => ({
   spending: null,
   freedom_ratio: null,
   asset_debt_trend: null,
+  work_freedom_ratio: null,
 })
 
 const emptyLoadingMap = (): Record<SummaryType, boolean> => ({
   spending: false,
   freedom_ratio: false,
   asset_debt_trend: false,
+  work_freedom_ratio: false,
 })
 
 export const useDashboardStore = defineStore('dashboard', () => {
@@ -64,6 +70,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     await Promise.all([
       fetchSummary({ type: 'asset_debt_trend', period }),
       fetchSummary({ type: 'freedom_ratio', period }),
+      fetchSummary({ type: 'work_freedom_ratio', period }),
     ])
   }
 
@@ -79,6 +86,20 @@ export const useDashboardStore = defineStore('dashboard', () => {
       fixed += p.breakdown?.fixed_expenses ?? 0
     }
     return income > 0 ? (income - fixed) / income : 0
+  })
+
+  // Rolling 12-month work-freedom ratio: passive / (passive + active).
+  // Same numerator-then-denominator strategy as freedomRatioRolling12M.
+  const workFreedomRatioRolling12M = computed<number>(() => {
+    const points = summaries.value.work_freedom_ratio?.points ?? []
+    let passive = 0
+    let active = 0
+    for (const p of points) {
+      passive += p.breakdown?.passive ?? 0
+      active += p.breakdown?.active ?? 0
+    }
+    const total = passive + active
+    return total > 0 ? passive / total : 0
   })
 
   // Alarms
@@ -135,6 +156,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     fetchSummary,
     fetchSummariesForDashboard,
     freedomRatioRolling12M,
+    workFreedomRatioRolling12M,
     alarms,
     alarmsLoading,
     fetchAlarms,
