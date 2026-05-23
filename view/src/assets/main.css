@@ -273,3 +273,42 @@ body {
   border-color: var(--el-color-primary) !important;
   box-shadow: -1px 0 0 0 var(--el-color-primary) !important;
 }
+
+/* ─── Custom Target Complete Button ─── */
+.btn-complete {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 50% !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  
+  /* Default: Dark Mode Styles */
+  background-color: transparent !important;
+  border: 1px solid var(--ds-outline-variant) !important;
+  color: var(--ds-primary) !important;
+}
+
+.btn-complete:hover {
+  background-color: var(--ds-primary-container) !important;
+  border-color: var(--ds-primary-container) !important;
+  color: var(--ds-on-primary-container) !important;
+  transform: scale(1.08) !important;
+}
+
+/* Light Mode Override */
+html.light .btn-complete {
+  background-color: var(--ds-primary-container) !important;
+  border: 1px solid transparent !important;
+  color: var(--ds-positive) !important; /* Deep forest green for high contrast */
+}
+
+html.light .btn-complete:hover {
+  background-color: var(--ds-primary) !important;
+  border-color: var(--ds-primary) !important;
+  color: var(--ds-on-primary) !important; /* White */
+  transform: scale(1.08) !important;
+}

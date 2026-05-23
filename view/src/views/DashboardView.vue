@@ -182,8 +182,7 @@
             <el-button
               :icon="Check"
               size="small"
-              text
-              type="success"
+              class="btn-complete"
               title="標記完成"
               @click="markTargetDone(t)"
             />
