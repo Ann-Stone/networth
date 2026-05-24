@@ -338,6 +338,50 @@
             :placeholder="notePlaceholder"
           />
         </el-form-item>
+
+        <template v-if="shouldShowAssetSync && formData.action_sub_table === 'Stock_Detail'">
+          <el-divider />
+          <el-alert
+            type="info"
+            :closable="false"
+            show-icon
+            title="同步資產為單向操作"
+            description="送出後會把這筆現金流同時寫入對應的資產明細。若需移除錯誤資料，請至『其他資產』頁面手動處理。"
+            class="mb-4"
+          />
+          <el-form-item label="持股">
+            <el-select
+              v-model="syncStockId"
+              placeholder="選擇持股"
+              filterable
+              style="width: 100%"
+              :disabled="stockSelectionGroups.length === 0"
+            >
+              <el-option-group
+                v-for="group in stockSelectionGroups"
+                :key="group.label"
+                :label="group.label"
+              >
+                <el-option
+                  v-for="opt in group.options"
+                  :key="opt.value"
+                  :label="opt.label"
+                  :value="opt.value"
+                />
+              </el-option-group>
+            </el-select>
+            <p
+              v-if="stockSelectionGroups.length === 0"
+              class="text-xs text-on-surface-variant mt-1"
+            >
+              尚無持股，請先到「資產負債管理 → 股票」建立
+            </p>
+          </el-form-item>
+          <StockDetailFormFields
+            v-model="syncStockDetail"
+            mode="cashflow-sync"
+          />
+        </template>
       </el-form>
     </FormDialog>
   </div>
@@ -356,10 +400,15 @@ import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
 import FormDialog from '@/components/ui/FormDialog.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import DonutChart from '@/components/charts/DonutChart.vue'
+import StockDetailFormFields, {
+  type StockDetailFormState,
+} from '@/components/forms/StockDetailFormFields.vue'
 import { useCashFlowStore } from '@/stores/cashFlow'
 import {
   createJournal,
+  createJournalWithStockTransaction,
   updateJournal,
+  updateJournalWithStockTransaction,
   deleteJournal,
   settleMonth,
   uploadStockPrices,
@@ -370,6 +419,8 @@ import {
   getCreditCardSelections,
   getInsuranceSelections,
   getLoanSelections,
+  getOtherAssetTypeSelections,
+  getStockSelections,
 } from '@/api/utilities'
 import { getCodesWithSub } from '@/api/setting'
 import {
@@ -449,6 +500,26 @@ const loanGroups = ref<SelectionGroup[]>([])
 const insuranceGroups = ref<SelectionGroup[]>([])
 const codeGroups = ref<SelectionGroup[]>([])
 const subCodeGroups = ref<SelectionGroup[]>([])
+const otherAssetDbTypes = ref<Set<string>>(new Set())
+
+// Maps Other_Asset.asset_type (DB-driven) → the capitalized form historically
+// stored in Journal.action_sub plus the matching detail table. Kept inline
+// rather than in a constants file: this is dispatch glue, not domain data.
+const OTHER_ASSET_DISPATCH: Record<
+  string,
+  { subKey: string; subTable: string; label: string }
+> = {
+  stock:     { subKey: 'Stock',     subTable: 'Stock_Detail',     label: '股票' },
+  insurance: { subKey: 'Insurance', subTable: 'Insurance_Journal', label: '保險' },
+  estate:    { subKey: 'Estate',    subTable: 'Estate_Journal',   label: '房地產' },
+}
+// Composite endpoints only exist for stock today; the others are tracked in
+// refactoring-tickets/cashflow/granular/CFL-A01.md. Filter narrows the
+// sub dropdown to what we can actually round-trip atomically.
+const SUPPORTED_SYNC_ASSET_TYPES: readonly string[] = ['stock']
+const OTHER_ASSET_SUB_TABLES = new Set(
+  Object.values(OTHER_ASSET_DISPATCH).map((m) => m.subTable),
+)
 
 const financialBehaviorGroup: SelectionGroup = {
   label: '金融行為',
@@ -460,10 +531,25 @@ const mainSelectionGroups = computed<SelectionGroup[]>(() => [
   financialBehaviorGroup,
 ])
 
+const otherAssetSubGroup = computed<SelectionGroup | null>(() => {
+  const options = Object.entries(OTHER_ASSET_DISPATCH)
+    .filter(([dbType]) => otherAssetDbTypes.value.has(dbType))
+    .filter(([dbType]) => SUPPORTED_SYNC_ASSET_TYPES.includes(dbType))
+    .map(([, m]) => ({ value: m.subKey, label: m.label }))
+  if (options.length === 0) return null
+  return { label: 'Other_Asset', options }
+})
+
 const subSelectionGroups = computed<SelectionGroup[]>(() => {
   const behavior = FINANCIAL_BEHAVIORS.find((b) => b.key === formData.value.action_main)
   if (!behavior) return subCodeGroups.value
-  if (behavior.table === 'Account') return accountGroups.value
+  if (behavior.table === 'Account') {
+    // Transfer → accounts + Other_Asset (Stock/Insurance/Estate, filtered by
+    // what's set up in DB and what the backend can sync atomically).
+    return otherAssetSubGroup.value
+      ? [...accountGroups.value, otherAssetSubGroup.value]
+      : accountGroups.value
+  }
   if (behavior.table === 'Credit_Card') return creditCardGroups.value
   if (behavior.table === 'Loan') return loanGroups.value
   if (behavior.table === 'Insurance') return insuranceGroups.value
@@ -642,6 +728,73 @@ const formRules: FormRules = {
   spending: [{ required: true, message: '請輸入金額', trigger: 'blur' }],
 }
 
+// ─── Sync-to-asset (Stock) ────────────────────────────────────────────────
+// The user triggers this implicitly by picking an "其他資產" sub-category
+// under Transfer (legacy 轉帳→股票 semantics). When triggered, the form
+// expands to capture the holding + amount, then submits via the composite
+// endpoint so Journal + Stock_Detail land atomically.
+const originalActionSub = ref<string | null>(null) // captured on dialog open
+const syncStockId = ref('')
+const stockSelectionGroups = ref<SelectionGroup[]>([])
+
+function emptyStockSyncDetail(): StockDetailFormState {
+  return {
+    stock_id: '',
+    excute_type: 'buy',
+    excute_amount: 0,
+    excute_price: 0,
+    excute_date: '',
+    account_id: '',
+    account_name: '',
+    memo: null,
+  }
+}
+const syncStockDetail = ref<StockDetailFormState>(emptyStockSyncDetail())
+
+async function loadStockSelections() {
+  if (stockSelectionGroups.value.length > 0) return
+  try {
+    stockSelectionGroups.value = await getStockSelections()
+  } catch {
+    stockSelectionGroups.value = []
+  }
+}
+
+async function loadOtherAssetTypes() {
+  if (otherAssetDbTypes.value.size > 0) return
+  try {
+    const groups = await getOtherAssetTypeSelections()
+    // Normalize to lowercase: legacy data has mixed casing ("Stock" vs "stock"),
+    // dispatch map keys are lowercase for consistency.
+    const values = groups[0]?.options.map((o) => o.value.toLowerCase()) ?? []
+    otherAssetDbTypes.value = new Set(values)
+  } catch {
+    otherAssetDbTypes.value = new Set()
+  }
+}
+
+function resetSyncState() {
+  syncStockId.value = ''
+  syncStockDetail.value = emptyStockSyncDetail()
+}
+
+// Sync panel opens when the user has picked an "其他資產" sub-category and
+// the edit-mode guard allows it. Edit-mode guard: only when the original
+// sub was empty — protects existing detail rows from being silently doubled.
+const shouldShowAssetSync = computed<boolean>(() => {
+  const table = formData.value.action_sub_table
+  if (!table || !OTHER_ASSET_SUB_TABLES.has(table)) return false
+  if (formMode.value === 'create') return true
+  return !originalActionSub.value
+})
+
+// Lazy-load the stock dropdown the first time the sync panel becomes visible.
+watch(shouldShowAssetSync, (visible) => {
+  if (visible && formData.value.action_sub_table === 'Stock_Detail') {
+    void loadStockSelections()
+  }
+})
+
 function findCodeType(groups: SelectionGroup[], value: string): string {
   for (const group of groups) {
     if (group.options.some((opt) => opt.value === value)) return group.label
@@ -684,6 +837,14 @@ function onActionSubChange(value: string | number | boolean | undefined) {
   }
   formData.value.action_sub = v
   const behavior = FINANCIAL_BEHAVIORS.find((b) => b.key === formData.value.action_main)
+  // Transfer → Other_Asset (Stock / Insurance / Estate): dispatch matches the
+  // legacy account-book-view convention so existing rows keep rendering.
+  const otherAssetEntry = Object.values(OTHER_ASSET_DISPATCH).find((m) => m.subKey === v)
+  if (behavior?.table === 'Account' && otherAssetEntry) {
+    formData.value.action_sub_table = otherAssetEntry.subTable
+    formData.value.action_sub_type = 'Asset'
+    return
+  }
   if (behavior) {
     formData.value.action_sub_table = behavior.table
     formData.value.action_sub_type = findCodeType(subSelectionGroups.value, v)
@@ -697,8 +858,14 @@ async function openCreateJournal() {
   formMode.value = 'create'
   formData.value = emptyForm()
   subCodeGroups.value = []
+  originalActionSub.value = null
+  resetSyncState()
   journalDialogVisible.value = true
-  await Promise.all([loadSpendWaySelections(), loadCodeSelections()])
+  await Promise.all([
+    loadSpendWaySelections(),
+    loadCodeSelections(),
+    loadOtherAssetTypes(),
+  ])
 }
 
 async function editJournal(row: Journal) {
@@ -720,8 +887,14 @@ async function editJournal(row: Journal) {
     invoice_number: row.invoice_number ?? null,
     note: row.note ?? null,
   }
+  originalActionSub.value = row.action_sub ?? null
+  resetSyncState()
   journalDialogVisible.value = true
-  await Promise.all([loadSpendWaySelections(), loadCodeSelections()])
+  await Promise.all([
+    loadSpendWaySelections(),
+    loadCodeSelections(),
+    loadOtherAssetTypes(),
+  ])
   const behavior = FINANCIAL_BEHAVIORS.find((b) => b.key === row.action_main)
   if (behavior) {
     if (behavior.table === 'Loan') await loadLoanSelections()
@@ -753,12 +926,44 @@ async function submitJournal() {
       invoice_number: formData.value.invoice_number || null,
       note: formData.value.note || null,
     }
+    const syncStock =
+      shouldShowAssetSync.value &&
+      formData.value.action_sub_table === 'Stock_Detail'
+    if (syncStock && !syncStockId.value) {
+      ElMessage.error('請選擇持股')
+      return
+    }
+    const stockDetailPayload = syncStock
+      ? {
+          stock_id: syncStockId.value,
+          excute_type: syncStockDetail.value.excute_type as
+            | 'buy' | 'sell' | 'stock' | 'cash',
+          excute_amount: Number(syncStockDetail.value.excute_amount ?? 0),
+        }
+      : null
+
     if (formMode.value === 'create') {
-      await createJournal(payload)
-      ElMessage.success('新增成功')
+      if (stockDetailPayload) {
+        await createJournalWithStockTransaction({
+          journal: payload,
+          stock_detail: stockDetailPayload,
+        })
+        ElMessage.success('新增成功（已同步到股票明細）')
+      } else {
+        await createJournal(payload)
+        ElMessage.success('新增成功')
+      }
     } else if (formData.value.distinct_number !== undefined) {
-      await updateJournal(formData.value.distinct_number, payload)
-      ElMessage.success('更新成功')
+      if (stockDetailPayload) {
+        await updateJournalWithStockTransaction(formData.value.distinct_number, {
+          journal: payload,
+          stock_detail: stockDetailPayload,
+        })
+        ElMessage.success('更新成功（已同步到股票明細）')
+      } else {
+        await updateJournal(formData.value.distinct_number, payload)
+        ElMessage.success('更新成功')
+      }
     }
     journalDialogVisible.value = false
     await store.fetchJournals()

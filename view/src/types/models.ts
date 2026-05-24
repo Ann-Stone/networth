@@ -211,6 +211,38 @@ export interface JournalListResponse {
   gain_loss: number
 }
 
+// ─── Monthly Report — Journal + Stock_Detail composite endpoint ──────────────
+// POST /monthly-report/journals/stock-transaction writes a Journal row and a
+// Stock_Detail row in a single transaction. excute_price is filled by the
+// backend from journal.spending (sign preserved); account_id/account_name
+// are resolved from journal.spend_way.
+
+export interface StockTransactionDetailCreate {
+  stock_id: string
+  excute_type: 'buy' | 'sell' | 'stock' | 'cash'
+  excute_amount?: number
+  excute_date?: string | null
+  memo?: string | null
+}
+
+export interface JournalStockTransactionCreate {
+  journal: JournalCreate
+  stock_detail: StockTransactionDetailCreate
+}
+
+export interface JournalStockTransactionUpdate {
+  journal: JournalUpdate
+  stock_detail: StockTransactionDetailCreate
+}
+
+export interface JournalStockTransactionRead {
+  journal: Journal
+  stock_detail: StockJournal
+}
+
+export type SelectionStock = SelectionGroup
+export type SelectionOtherAssetType = SelectionGroup
+
 // ─── Monthly Report — Journal analytics ──────────────────────────────────────
 
 export interface JournalExpenditureBudgetRow {

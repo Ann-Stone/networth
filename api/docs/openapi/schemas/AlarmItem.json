@@ -3,22 +3,35 @@
     "schemas": {
       "AlarmItem": {
         "example": {
-          "content": "Pay credit card bill",
-          "date": "05/15"
+          "alarm_type": "Y",
+          "content": "報稅",
+          "date": "20260531"
         },
         "properties": {
+          "alarm_type": {
+            "description": "Recurrence type: 'Y' yearly, 'M' monthly",
+            "enum": [
+              "Y",
+              "M"
+            ],
+            "examples": [
+              "Y"
+            ],
+            "title": "Alarm Type",
+            "type": "string"
+          },
           "content": {
             "description": "Alarm content",
             "examples": [
-              "Pay credit card bill"
+              "報稅"
             ],
             "title": "Content",
             "type": "string"
           },
           "date": {
-            "description": "Display date: MM/DD for monthly-recurring, raw alarm_date otherwise",
+            "description": "Expanded occurrence date in YYYYMMDD",
             "examples": [
-              "05/15"
+              "20260531"
             ],
             "title": "Date",
             "type": "string"
@@ -26,7 +39,8 @@
         },
         "required": [
           "date",
-          "content"
+          "content",
+          "alarm_type"
         ],
         "title": "AlarmItem",
         "type": "object"

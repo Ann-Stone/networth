@@ -662,58 +662,11 @@
         :rules="stockDetailFormRules"
         label-width="110px"
       >
-        <el-form-item label="持有 ID">
-          <el-input :model-value="stockDetailForm.stock_id" disabled />
-        </el-form-item>
-        <el-form-item label="日期" prop="excute_date">
-          <el-date-picker
-            v-model="stockDetailFormDate"
-            type="date"
-            format="YYYY/MM/DD"
-            :clearable="false"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="類型" prop="excute_type">
-          <el-select v-model="stockDetailForm.excute_type" style="width: 100%">
-            <el-option label="買入 (buy)" value="buy" />
-            <el-option label="賣出 (sell)" value="sell" />
-            <el-option label="股票股利 (stock)" value="stock" />
-            <el-option label="現金股利 (cash)" value="cash" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="數量" prop="excute_amount">
-          <el-input-number
-            v-model="stockDetailForm.excute_amount"
-            :precision="2"
-            :step="1"
-            controls-position="right"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="單價" prop="excute_price">
-          <el-input-number
-            v-model="stockDetailForm.excute_price"
-            :precision="2"
-            :step="1"
-            controls-position="right"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="帳戶 ID" prop="account_id">
-          <el-input v-model="stockDetailForm.account_id" placeholder="例如 BANK-CHASE-01" />
-        </el-form-item>
-        <el-form-item label="帳戶名稱" prop="account_name">
-          <el-input v-model="stockDetailForm.account_name" placeholder="例如 Chase Checking" />
-        </el-form-item>
-        <el-form-item label="備註">
-          <el-input
-            v-model="stockDetailForm.memo"
-            type="textarea"
-            :rows="2"
-            placeholder="(可選)"
-          />
-        </el-form-item>
+        <StockDetailFormFields
+          v-model="stockDetailForm"
+          mode="asset-manage"
+          show-stock-id-input
+        />
       </el-form>
     </FormDialog>
 
@@ -1206,6 +1159,9 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
 import FormDialog from '@/components/ui/FormDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import StockDetailFormFields, {
+  STOCK_DETAIL_FULL_RULES,
+} from '@/components/forms/StockDetailFormFields.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useOtherAssetsStore } from '@/stores/otherAssets'
 import {
@@ -1268,9 +1224,11 @@ const confirm = useConfirm()
 const activeTab = ref<string>('stocks')
 
 // ─── Stock category options ─────────────────────────────────────────────────
+// Legacy data has mixed casing on asset_type ("Stock" vs "stock"); compare
+// case-insensitively so both forms surface in the dropdown.
 const stockCategoryOptions = computed(() =>
   [...store.otherAssets]
-    .filter((a) => a.asset_type === 'stock' && a.in_use === 'Y')
+    .filter((a) => a.asset_type.toLowerCase() === 'stock' && a.in_use === 'Y')
     .sort((a, b) => a.asset_index - b.asset_index),
 )
 
@@ -1417,25 +1375,7 @@ function emptyStockDetailForm(stockId: string): StockDetailFormState {
 }
 
 const stockDetailForm = ref<StockDetailFormState>(emptyStockDetailForm(''))
-
-const stockDetailFormDate = computed<Date | null>({
-  get: () =>
-    stockDetailForm.value.excute_date
-      ? dayjs(stockDetailForm.value.excute_date, 'YYYYMMDD').toDate()
-      : null,
-  set: (date) => {
-    stockDetailForm.value.excute_date = date ? dayjs(date).format('YYYYMMDD') : ''
-  },
-})
-
-const stockDetailFormRules: FormRules = {
-  excute_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
-  excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
-  excute_amount: [{ required: true, message: '請輸入數量', trigger: 'blur' }],
-  excute_price: [{ required: true, message: '請輸入單價', trigger: 'blur' }],
-  account_id: [{ required: true, message: '請輸入帳戶 ID', trigger: 'blur' }],
-  account_name: [{ required: true, message: '請輸入帳戶名稱', trigger: 'blur' }],
-}
+const stockDetailFormRules: FormRules = STOCK_DETAIL_FULL_RULES
 
 function openCreateStockDetail(stock: StockAsset) {
   stockDetailFormMode.value = 'create'
@@ -1504,7 +1444,7 @@ async function handleDeleteStockDetail(stock: StockAsset, detail: StockJournal) 
 // ─── Estates ────────────────────────────────────────────────────────────────
 const estateCategoryOptions = computed(() =>
   [...store.otherAssets]
-    .filter((a) => a.asset_type === 'estate' && a.in_use === 'Y')
+    .filter((a) => a.asset_type.toLowerCase() === 'estate' && a.in_use === 'Y')
     .sort((a, b) => a.asset_index - b.asset_index),
 )
 
@@ -1776,7 +1716,7 @@ async function handleDeleteEstateDetail(estate: EstateAsset, detail: EstateJourn
 // ─── Insurances ─────────────────────────────────────────────────────────────
 const insuranceCategoryOptions = computed(() =>
   [...store.otherAssets]
-    .filter((a) => a.asset_type === 'insurance' && a.in_use === 'Y')
+    .filter((a) => a.asset_type.toLowerCase() === 'insurance' && a.in_use === 'Y')
     .sort((a, b) => a.asset_index - b.asset_index),
 )
 

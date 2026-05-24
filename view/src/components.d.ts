@@ -19,6 +19,7 @@ declare module 'vue' {
     BarChart: typeof import('./components/charts/BarChart.vue')['default']
     DataListCard: typeof import('./components/ui/DataListCard.vue')['default']
     DonutChart: typeof import('./components/charts/DonutChart.vue')['default']
+    ElAlert: typeof import('element-plus/es')['ElAlert']
     ElBreadcrumb: typeof import('element-plus/es')['ElBreadcrumb']
     ElBreadcrumbItem: typeof import('element-plus/es')['ElBreadcrumbItem']
     ElButton: typeof import('element-plus/es')['ElButton']
@@ -26,6 +27,7 @@ declare module 'vue' {
     ElConfigProvider: typeof import('element-plus/es')['ElConfigProvider']
     ElDatePicker: typeof import('element-plus/es')['ElDatePicker']
     ElDialog: typeof import('element-plus/es')['ElDialog']
+    ElDivider: typeof import('element-plus/es')['ElDivider']
     ElDropdown: typeof import('element-plus/es')['ElDropdown']
     ElDropdownItem: typeof import('element-plus/es')['ElDropdownItem']
     ElDropdownMenu: typeof import('element-plus/es')['ElDropdownMenu']
@@ -66,6 +68,7 @@ declare module 'vue' {
     SidebarContent: typeof import('./components/layout/SidebarContent.vue')['default']
     SidebarNavButton: typeof import('./components/layout/SidebarNavButton.vue')['default']
     StatusBadge: typeof import('./components/ui/StatusBadge.vue')['default']
+    StockDetailFormFields: typeof import('./components/forms/StockDetailFormFields.vue')['default']
     TrendBadge: typeof import('./components/ui/TrendBadge.vue')['default']
   }
   export interface GlobalDirectives {

@@ -24,7 +24,7 @@ data (array item):
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| distinct_number | string | yes | Target row business ID |
+| distinct_number | string | yes | Sequential serial ID |
 | target_year | string | yes | YYYY |
 | setting_value | string | yes | Target description / value |
 | is_done | string | yes | Y/N |
@@ -36,9 +36,9 @@ Example:
   "status": 1,
   "data": [
     {
-      "distinct_number": "T-2026-01",
+      "distinct_number": "11",
       "is_done": "N",
-      "setting_value": "Buy a house by end of year",
+      "setting_value": "存頭期款 200 萬",
       "target_year": "2026"
     }
   ],
@@ -65,7 +65,6 @@ Body:
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| distinct_number | string | yes | Target row business ID |
 | setting_value | string | yes | Target description / value (free-form text) |
 | target_year |  | no | YYYY; defaults to the current year when omitted |
 | is_done |  | no | Y/N; defaults to N when omitted |
@@ -84,7 +83,7 @@ data:
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| distinct_number | string | yes | Target row business ID |
+| distinct_number | string | yes | Sequential serial ID |
 | target_year | string | yes | YYYY |
 | setting_value | string | yes | Target description / value |
 | is_done | string | yes | Y/N |
@@ -95,9 +94,9 @@ Example:
 {
   "status": 1,
   "data": {
-    "distinct_number": "T-2026-01",
+    "distinct_number": "11",
     "is_done": "N",
-    "setting_value": "Buy a house by end of year",
+    "setting_value": "存頭期款 200 萬",
     "target_year": "2026"
   },
   "msg": "success"
@@ -186,7 +185,7 @@ data:
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| distinct_number | string | yes | Target row business ID |
+| distinct_number | string | yes | Sequential serial ID |
 | target_year | string | yes | YYYY |
 | setting_value | string | yes | Target description / value |
 | is_done | string | yes | Y/N |
@@ -197,9 +196,9 @@ Example:
 {
   "status": 1,
   "data": {
-    "distinct_number": "T-2026-01",
+    "distinct_number": "11",
     "is_done": "N",
-    "setting_value": "Buy a house by end of year",
+    "setting_value": "存頭期款 200 萬",
     "target_year": "2026"
   },
   "msg": "success"

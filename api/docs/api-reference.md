@@ -30,7 +30,7 @@ Frontend tickets that touch a single resource (`/settings/accounts`, `/assets/st
 | Sub-router | Markdown | OpenAPI slice | Endpoints |
 | --- | --- | --- | --- |
 | `balance` | [api-reference/monthly-report/balance.md](api-reference/monthly-report/balance.md) | [openapi/monthly-report/balance.json](openapi/monthly-report/balance.json) | 1 |
-| `journals` | [api-reference/monthly-report/journals.md](api-reference/monthly-report/journals.md) | [openapi/monthly-report/journals.json](openapi/monthly-report/journals.json) | 4 |
+| `journals` | [api-reference/monthly-report/journals.md](api-reference/monthly-report/journals.md) | [openapi/monthly-report/journals.json](openapi/monthly-report/journals.json) | 6 |
 | `journals-analytics` | [api-reference/monthly-report/journals-analytics.md](api-reference/monthly-report/journals-analytics.md) | [openapi/monthly-report/journals-analytics.json](openapi/monthly-report/journals-analytics.json) | 4 |
 | `stock-prices` | [api-reference/monthly-report/stock-prices.md](api-reference/monthly-report/stock-prices.md) | [openapi/monthly-report/stock-prices.json](openapi/monthly-report/stock-prices.json) | 2 |
 
@@ -72,7 +72,7 @@ Frontend tickets that touch a single resource (`/settings/accounts`, `/assets/st
 | Sub-router | Markdown | OpenAPI slice | Endpoints |
 | --- | --- | --- | --- |
 | `import` | [api-reference/utilities/import.md](api-reference/utilities/import.md) | [openapi/utilities/import.json](openapi/utilities/import.json) | 3 |
-| `selections` | [api-reference/utilities/selections.md](api-reference/utilities/selections.md) | [openapi/utilities/selections.json](openapi/utilities/selections.json) | 6 |
+| `selections` | [api-reference/utilities/selections.md](api-reference/utilities/selections.md) | [openapi/utilities/selections.json](openapi/utilities/selections.json) | 8 |
 
 ### Health
 

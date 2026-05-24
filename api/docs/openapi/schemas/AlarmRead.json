@@ -3,17 +3,16 @@
     "schemas": {
       "AlarmRead": {
         "example": {
-          "alarm_date": "20260115",
+          "alarm_date": "0531",
           "alarm_id": 1,
-          "alarm_type": "credit-card-charge",
-          "content": "Chase Sapphire autopay",
-          "due_date": "20260120"
+          "alarm_type": "Y",
+          "content": "報稅"
         },
         "properties": {
           "alarm_date": {
-            "description": "YYYYMMDD",
+            "description": "Recurring anchor: MMDD for Y, DD for M",
             "examples": [
-              "20260115"
+              "0531"
             ],
             "title": "Alarm Date",
             "type": "string"
@@ -27,9 +26,13 @@
             "type": "integer"
           },
           "alarm_type": {
-            "description": "Reminder category",
+            "description": "Recurrence: 'Y' yearly, 'M' monthly",
+            "enum": [
+              "Y",
+              "M"
+            ],
             "examples": [
-              "credit-card-charge"
+              "Y"
             ],
             "title": "Alarm Type",
             "type": "string"
@@ -37,7 +40,7 @@
           "content": {
             "description": "Reminder text",
             "examples": [
-              "Chase Sapphire autopay"
+              "報稅"
             ],
             "title": "Content",
             "type": "string"
@@ -51,9 +54,9 @@
                 "type": "null"
               }
             ],
-            "description": "YYYYMMDD",
+            "description": "Optional YYYYMM cutoff",
             "examples": [
-              "20260120"
+              "202612"
             ],
             "title": "Due Date"
           }

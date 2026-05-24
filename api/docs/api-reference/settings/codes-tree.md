@@ -27,9 +27,7 @@ data (array item):
 | code_id | string | yes | Business identifier |
 | code_type | string | yes | code type |
 | name | string | yes | Display name |
-| parent_id |  | no | Parent code id |
-| code_group |  | no | Group code |
-| code_group_name |  | no | Group name |
+| parent_id |  | no | Parent code_id |
 | in_use | string | yes | Active flag |
 | code_index | integer | yes | Dropdown order |
 | sub_codes | array<CodeDataRead> | no | Nested sub-codes |
@@ -41,8 +39,6 @@ Example:
   "status": 1,
   "data": [
     {
-      "code_group": "expense-main",
-      "code_group_name": "Daily expense",
       "code_id": "E01",
       "code_index": 1,
       "code_type": "Floating",
@@ -91,9 +87,7 @@ data (array item):
 | code_id | string | yes | Business identifier |
 | code_type | string | yes | code type |
 | name | string | yes | Display name |
-| parent_id |  | no | Parent code id |
-| code_group |  | no | Group code |
-| code_group_name |  | no | Group name |
+| parent_id |  | no | Parent code_id |
 | in_use | string | yes | Active flag |
 | code_index | integer | yes | Dropdown order |
 
@@ -104,8 +98,6 @@ Example:
   "status": 1,
   "data": [
     {
-      "code_group": "expense-main",
-      "code_group_name": "Daily expense",
       "code_id": "E01",
       "code_index": 1,
       "code_type": "Floating",

@@ -19,9 +19,7 @@ Body:
 | code_id | string | yes | Business identifier |
 | code_type | string | yes | Code category: Fixed / Floating / Invest / Income / Transfer / etc. |
 | name | string | yes | Display name |
-| parent_id |  | no | Parent code id; null for main codes |
-| code_group |  | no | Group code |
-| code_group_name |  | no | Group name |
+| parent_id |  | no | Parent code_id; null for main codes |
 | in_use | string | no | Active flag |
 | code_index |  | no | Dropdown order; auto-filled with max+1 when omitted |
 
@@ -42,9 +40,7 @@ data:
 | code_id | string | yes | Business identifier |
 | code_type | string | yes | code type |
 | name | string | yes | Display name |
-| parent_id |  | no | Parent code id |
-| code_group |  | no | Group code |
-| code_group_name |  | no | Group name |
+| parent_id |  | no | Parent code_id |
 | in_use | string | yes | Active flag |
 | code_index | integer | yes | Dropdown order |
 
@@ -54,8 +50,6 @@ Example:
 {
   "status": 1,
   "data": {
-    "code_group": "expense-main",
-    "code_group_name": "Daily expense",
     "code_id": "E01",
     "code_index": 1,
     "code_type": "Floating",
@@ -132,9 +126,7 @@ Body:
 | --- | --- | --- | --- |
 | code_type |  | no | code type |
 | name |  | no | Display name |
-| parent_id |  | no | Parent code id |
-| code_group |  | no | Group code |
-| code_group_name |  | no | Group name |
+| parent_id |  | no | Parent code_id |
 | in_use |  | no | Active flag |
 | code_index |  | no | Dropdown order |
 
@@ -155,9 +147,7 @@ data:
 | code_id | string | yes | Business identifier |
 | code_type | string | yes | code type |
 | name | string | yes | Display name |
-| parent_id |  | no | Parent code id |
-| code_group |  | no | Group code |
-| code_group_name |  | no | Group name |
+| parent_id |  | no | Parent code_id |
 | in_use | string | yes | Active flag |
 | code_index | integer | yes | Dropdown order |
 
@@ -167,8 +157,6 @@ Example:
 {
   "status": 1,
   "data": {
-    "code_group": "expense-main",
-    "code_group_name": "Daily expense",
     "code_id": "E01",
     "code_index": 1,
     "code_type": "Floating",

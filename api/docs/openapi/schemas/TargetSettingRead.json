@@ -3,16 +3,16 @@
     "schemas": {
       "TargetSettingRead": {
         "example": {
-          "distinct_number": "T-2026-01",
+          "distinct_number": "11",
           "is_done": "N",
-          "setting_value": "Buy a house by end of year",
+          "setting_value": "存頭期款 200 萬",
           "target_year": "2026"
         },
         "properties": {
           "distinct_number": {
-            "description": "Target row business ID",
+            "description": "Sequential serial ID",
             "examples": [
-              "T-2026-01"
+              "11"
             ],
             "title": "Distinct Number",
             "type": "string"
@@ -28,7 +28,7 @@
           "setting_value": {
             "description": "Target description / value",
             "examples": [
-              "Buy a house by end of year"
+              "存頭期款 200 萬"
             ],
             "maxLength": 45,
             "title": "Setting Value",

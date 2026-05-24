@@ -6,36 +6,6 @@
           "in_use": "N"
         },
         "properties": {
-          "code_group": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Group code",
-            "examples": [
-              "expense-main"
-            ],
-            "title": "Code Group"
-          },
-          "code_group_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Group name",
-            "examples": [
-              "Daily expense"
-            ],
-            "title": "Code Group Name"
-          },
           "code_index": {
             "anyOf": [
               {
@@ -105,7 +75,7 @@
                 "type": "null"
               }
             ],
-            "description": "Parent code id",
+            "description": "Parent code_id",
             "examples": [
               null
             ],

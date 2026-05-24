@@ -5,6 +5,7 @@ import {
   _codesSnapshot,
   _creditCardsSnapshot,
 } from './settings'
+import { _stocksSnapshot } from './assets'
 import type { SelectionGroup } from '@/types/models'
 
 function groupAccounts(): SelectionGroup[] {
@@ -68,6 +69,31 @@ export const utilitiesHandlers = [
       { label: '信貸',     value: 'LN_PERSONAL' },
     ] }] satisfies SelectionGroup[]),
   ),
+  http.get('*/utilities/selections/other-asset-types', () =>
+    ok([
+      {
+        label: 'Other_Asset',
+        options: [
+          { label: 'stock',     value: 'stock' },
+          { label: 'insurance', value: 'insurance' },
+          { label: 'estate',    value: 'estate' },
+        ],
+      },
+    ] satisfies SelectionGroup[]),
+  ),
+  http.get('*/utilities/selections/stocks', () => {
+    const stocks = _stocksSnapshot()
+    const byAsset: Record<string, SelectionGroup> = {}
+    for (const s of stocks) {
+      let group = byAsset[s.asset_id]
+      if (!group) {
+        group = { label: s.asset_id, options: [] }
+        byAsset[s.asset_id] = group
+      }
+      group.options.push({ label: `${s.stock_code} ${s.stock_name}`, value: s.stock_id })
+    }
+    return ok(Object.values(byAsset))
+  }),
   // Import endpoints — return immediate stub success
   http.post('*/utilities/import/stock-prices', () => ok({ message: 'mock: stock-prices imported' })),
   http.post('*/utilities/import/fx-rates',     () => ok({ message: 'mock: fx-rates imported' })),

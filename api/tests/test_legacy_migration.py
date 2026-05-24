@@ -89,8 +89,11 @@ def target_engine(tmp_path: Path):
 
 @pytest.fixture(scope="session")
 def _legacy_fixture_path() -> Path:
-    """Build ``legacy_tiny.db`` once per session (it isn't committed; api/.gitignore drops *.db)."""
-    build_legacy_tiny.build(FIXTURE)
+    """Return the committed ``legacy_tiny.db`` fixture path.
+    Only try to rebuild it if the file does not exist (allowing CI to run on the pre-committed db).
+    """
+    if not FIXTURE.exists():
+        build_legacy_tiny.build(FIXTURE)
     return FIXTURE
 
 

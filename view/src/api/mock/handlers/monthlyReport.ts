@@ -127,6 +127,85 @@ export const monthlyReportHandlers = [
     journals.push(created)
     return ok(created)
   }),
+  // Composite endpoint: Journal + Stock_Detail in one atomic write.
+  // The mock mirrors backend behaviour: excute_price = journal.spending
+  // (signed pass-through), account is resolved from journal.spend_way.
+  http.post('*/monthly-report/journals/stock-transaction', async ({ request }) => {
+    const body = (await request.json()) as {
+      journal: JournalCreate
+      stock_detail: {
+        stock_id: string
+        excute_type: 'buy' | 'sell' | 'stock' | 'cash'
+        excute_amount?: number
+        excute_date?: string | null
+        memo?: string | null
+      }
+    }
+    journalSeq += 1
+    const j: Journal = {
+      distinct_number: journalSeq,
+      vesting_month: body.journal.vesting_month,
+      spend_date: body.journal.spend_date,
+      spend_way: body.journal.spend_way,
+      spend_way_type: body.journal.spend_way_type,
+      spend_way_table: body.journal.spend_way_table,
+      action_main: body.journal.action_main,
+      action_main_type: body.journal.action_main_type,
+      action_main_table: body.journal.action_main_table,
+      action_sub: body.journal.action_sub ?? null,
+      action_sub_type: body.journal.action_sub_type ?? null,
+      action_sub_table: body.journal.action_sub_table ?? null,
+      spending: body.journal.spending,
+      invoice_number: body.journal.invoice_number ?? null,
+      note: body.journal.note ?? null,
+    }
+    journals.push(j)
+    const stock_detail = {
+      distinct_number: journalSeq + 1000,
+      stock_id: body.stock_detail.stock_id,
+      excute_type: body.stock_detail.excute_type,
+      excute_amount: body.stock_detail.excute_amount ?? 0,
+      excute_price: j.spending,
+      excute_date: body.stock_detail.excute_date || j.spend_date,
+      account_id: j.spend_way,
+      account_name: j.spend_way,
+      memo: body.stock_detail.memo ?? j.note,
+    }
+    return ok({ journal: j, stock_detail })
+  }),
+  // Composite update: PUT /journals/:id/stock-transaction — mirrors the
+  // backend's atomic-update semantics for re-classifying a previously-untagged
+  // journal as a stock transaction (excute_price = signed journal.spending).
+  http.put('*/monthly-report/journals/:id/stock-transaction', async ({ params, request }) => {
+    const id = Number(params.id)
+    const body = (await request.json()) as {
+      journal: JournalUpdate
+      stock_detail: {
+        stock_id: string
+        excute_type: 'buy' | 'sell' | 'stock' | 'cash'
+        excute_amount?: number
+        excute_date?: string | null
+        memo?: string | null
+      }
+    }
+    const idx = journals.findIndex((j) => j.distinct_number === id)
+    const cur = journals[idx]
+    if (!cur) return fail('journal not found', 404)
+    const next: Journal = { ...cur, ...body.journal }
+    journals[idx] = next
+    const stock_detail = {
+      distinct_number: id + 2000,
+      stock_id: body.stock_detail.stock_id,
+      excute_type: body.stock_detail.excute_type,
+      excute_amount: body.stock_detail.excute_amount ?? 0,
+      excute_price: next.spending,
+      excute_date: body.stock_detail.excute_date || next.spend_date,
+      account_id: next.spend_way,
+      account_name: next.spend_way,
+      memo: body.stock_detail.memo ?? next.note,
+    }
+    return ok({ journal: next, stock_detail })
+  }),
   http.put('*/monthly-report/journals/:id', async ({ params, request }) => {
     const id = Number(params.id)
     const body = (await request.json()) as JournalUpdate

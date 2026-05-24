@@ -102,17 +102,17 @@ Example:
 | --- | --- | --- |
 | 500 | Unhandled server error — wrapped by global exception handler | `{"status": 0, "error": "RuntimeError: unexpected failure", "msg": "fail"}` |
 
-### GET /utilities/selections/codes/{code_group}
+### GET /utilities/selections/codes/{parent_id}
 
 **List sub-codes for a parent code**
 
-Return children of the parent code identified by code_group as a single 'sub' group.
+Return children of the parent code (parent_id) as a single 'sub' group.
 
 #### Request
 
 | name | in | type | required | description |
 | --- | --- | --- | --- | --- |
-| code_group | path | string | yes | Parent code_id |
+| parent_id | path | string | yes | Parent code_id |
 
 #### Response (200)
 
@@ -262,6 +262,104 @@ Example:
 **List loans as a single group**
 
 Return loans in one group labelled 'Loan'.
+
+#### Response (200)
+
+Envelope:
+
+| name | type | required | description |
+| --- | --- | --- | --- |
+| status | integer | no | 1 = success, 0 = fail |
+| data |  | no | Response payload. Shape depends on the endpoint. |
+| msg | string | no | Human-readable status message |
+
+data (array item):
+
+| name | type | required | description |
+| --- | --- | --- | --- |
+| label | string | yes | Group label (e.g. account type) |
+| options | array<SelectionOption> | yes | Options that belong to this group |
+
+Example:
+
+```json
+{
+  "status": 1,
+  "data": [
+    {
+      "label": "BANK",
+      "options": [
+        {
+          "label": "Cash — NTD",
+          "value": "1"
+        }
+      ]
+    }
+  ],
+  "msg": "success"
+}
+```
+
+#### Errors
+
+| status | description | example |
+| --- | --- | --- |
+| 500 | Unhandled server error — wrapped by global exception handler | `{"status": 0, "error": "RuntimeError: unexpected failure", "msg": "fail"}` |
+
+### GET /utilities/selections/other-asset-types
+
+**List distinct asset_type values from Other_Asset**
+
+Return one group whose options are the distinct asset_type values across active Other_Asset rows. Drives the 'transfer to other asset' sub-category dropdown so it stays in sync with the user's asset setup.
+
+#### Response (200)
+
+Envelope:
+
+| name | type | required | description |
+| --- | --- | --- | --- |
+| status | integer | no | 1 = success, 0 = fail |
+| data |  | no | Response payload. Shape depends on the endpoint. |
+| msg | string | no | Human-readable status message |
+
+data (array item):
+
+| name | type | required | description |
+| --- | --- | --- | --- |
+| label | string | yes | Group label (e.g. account type) |
+| options | array<SelectionOption> | yes | Options that belong to this group |
+
+Example:
+
+```json
+{
+  "status": 1,
+  "data": [
+    {
+      "label": "BANK",
+      "options": [
+        {
+          "label": "Cash — NTD",
+          "value": "1"
+        }
+      ]
+    }
+  ],
+  "msg": "success"
+}
+```
+
+#### Errors
+
+| status | description | example |
+| --- | --- | --- |
+| 500 | Unhandled server error — wrapped by global exception handler | `{"status": 0, "error": "RuntimeError: unexpected failure", "msg": "fail"}` |
+
+### GET /utilities/selections/stocks
+
+**List stock holdings grouped by asset_id**
+
+Return every Stock_Journal row grouped by its parent asset_id; each option's label is '<stock_code> <stock_name>' for filterable dropdowns.
 
 #### Response (200)
 

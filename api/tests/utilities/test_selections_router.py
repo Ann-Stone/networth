@@ -4,6 +4,8 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
+from app.models.assets.other_asset import OtherAsset
+from app.models.assets.stock import StockJournal
 from app.models.settings.account import Account
 from app.models.settings.code_data import CodeData
 
@@ -32,6 +34,8 @@ def test_all_selection_endpoints_return_envelope(client: TestClient, session: Se
         "/utilities/selections/credit-cards",
         "/utilities/selections/loans",
         "/utilities/selections/insurances",
+        "/utilities/selections/other-asset-types",
+        "/utilities/selections/stocks",
         "/utilities/selections/codes",
     ):
         resp = client.get(path)
@@ -49,7 +53,95 @@ def test_account_selection_groups_happy(client: TestClient, session: Session) ->
     assert body["status"] == 1
     assert body["data"][0]["label"] == "CASH"
     assert body["data"][0]["options"][0]["label"] == "Cash NTD"
-    assert body["data"][0]["options"][0]["value"]  # stringified id
+    # Value is the business account_id so Journal.spend_way persists in the
+    # form every other backend service looks it up by.
+    assert body["data"][0]["options"][0]["value"] == "AC1"
+
+
+def test_stock_selection_grouped_by_asset_id(client: TestClient, session: Session) -> None:
+    session.add(
+        StockJournal(
+            stock_id="STK-H-001",
+            stock_code="AAPL",
+            stock_name="Apple Inc.",
+            asset_id="AC-STK-001",
+            expected_spend=10000.0,
+        )
+    )
+    session.add(
+        StockJournal(
+            stock_id="STK-H-002",
+            stock_code="TSLA",
+            stock_name="Tesla",
+            asset_id="AC-STK-002",
+            expected_spend=5000.0,
+        )
+    )
+    session.commit()
+
+    resp = client.get("/utilities/selections/stocks")
+    assert resp.status_code == 200
+    groups = resp.json()["data"]
+    labels = {g["label"] for g in groups}
+    assert labels == {"AC-STK-001", "AC-STK-002"}
+    first = next(g for g in groups if g["label"] == "AC-STK-001")
+    assert first["options"][0]["value"] == "STK-H-001"
+    assert first["options"][0]["label"] == "AAPL Apple Inc."
+
+
+def test_other_asset_type_selection_distinct(
+    client: TestClient, session: Session
+) -> None:
+    session.add(
+        OtherAsset(
+            asset_id="AC-STK-001",
+            asset_name="US equities",
+            asset_type="stock",
+            vesting_nation="US",
+            in_use="Y",
+            asset_index=1,
+        )
+    )
+    session.add(
+        OtherAsset(
+            asset_id="AC-STK-002",
+            asset_name="TW equities",
+            asset_type="stock",
+            vesting_nation="TW",
+            in_use="Y",
+            asset_index=2,
+        )
+    )
+    session.add(
+        OtherAsset(
+            asset_id="AC-INS-001",
+            asset_name="Term life",
+            asset_type="insurance",
+            vesting_nation="TW",
+            in_use="Y",
+            asset_index=3,
+        )
+    )
+    session.add(
+        OtherAsset(
+            asset_id="AC-EST-IGN",
+            asset_name="Old land",
+            asset_type="estate",
+            vesting_nation="TW",
+            in_use="N",  # filtered out
+            asset_index=4,
+        )
+    )
+    session.commit()
+
+    resp = client.get("/utilities/selections/other-asset-types")
+    assert resp.status_code == 200
+    groups = resp.json()["data"]
+    assert len(groups) == 1
+    assert groups[0]["label"] == "Other_Asset"
+    values = [o["value"] for o in groups[0]["options"]]
+    # stock appears once even though two rows have it; estate excluded (in_use=N).
+    assert values == ["stock", "insurance"]
 
 
 def test_credit_card_selection_empty(client: TestClient, session: Session) -> None:

@@ -7,6 +7,8 @@ from sqlmodel import Session, select
 
 from app.models.assets.insurance import Insurance
 from app.models.assets.loan import Loan
+from app.models.assets.other_asset import OtherAsset
+from app.models.assets.stock import StockJournal
 from app.models.settings.account import Account
 from app.models.settings.code_data import CodeData
 from app.models.settings.credit_card import CreditCard
@@ -18,6 +20,11 @@ def get_account_selection_groups(session: Session) -> list[SelectionGroup]:
 
     Rows are queried ordered by account_index so options inside each group
     follow that order; group order is the first-seen account_type.
+
+    The option value is the business ``account_id`` (not the autoincrement
+    PK) so that Journal.spend_way persists in the same form every other
+    backend service looks it up by (``compute_gain_loss``, settlement,
+    composite endpoints, etc.).
     """
     rows = session.exec(
         select(Account)
@@ -30,7 +37,7 @@ def get_account_selection_groups(session: Session) -> list[SelectionGroup]:
     return [
         SelectionGroup(
             label=key,
-            options=[SelectionOption(value=str(a.id), label=a.name) for a in items],
+            options=[SelectionOption(value=a.account_id, label=a.name) for a in items],
         )
         for key, items in grouped.items()
     ]
@@ -72,6 +79,60 @@ def get_loan_selection_groups(session: Session) -> list[SelectionGroup]:
             label="Loan",
             options=[SelectionOption(value=l.loan_id, label=l.loan_name) for l in rows],
         )
+    ]
+
+
+def get_other_asset_type_selection_groups(session: Session) -> list[SelectionGroup]:
+    """Distinct asset_type values from active Other_Asset rows, one group.
+
+    Frontend uses this to drive the "transfer to other asset" sub-category
+    dropdown, so it stays in sync with whatever asset categories the user has
+    set up in `/setting`. Labels mirror the values verbatim; presentation
+    translation (e.g. "stock" → "股票") happens client-side via the existing
+    selection-label map.
+    """
+    rows = session.exec(
+        select(OtherAsset)
+        .where(OtherAsset.in_use == "Y")
+        .order_by(OtherAsset.asset_index.asc(), OtherAsset.asset_id.asc())
+    ).all()
+    seen: set[str] = set()
+    options: list[SelectionOption] = []
+    for r in rows:
+        if r.asset_type in seen:
+            continue
+        seen.add(r.asset_type)
+        options.append(SelectionOption(value=r.asset_type, label=r.asset_type))
+    if not options:
+        return []
+    return [SelectionGroup(label="Other_Asset", options=options)]
+
+
+def get_stock_selection_groups(session: Session) -> list[SelectionGroup]:
+    """Stock holdings grouped by asset_id (the parent stock account category).
+
+    Each option's label is ``"<stock_code> <stock_name>"`` so the user can
+    pick by ticker or by company name in a filterable dropdown.
+    """
+    rows = session.exec(
+        select(StockJournal).order_by(
+            StockJournal.asset_id.asc(), StockJournal.stock_id.asc()
+        )
+    ).all()
+    if not rows:
+        return []
+    grouped: dict[str, list[StockJournal]] = {}
+    for s in rows:
+        grouped.setdefault(s.asset_id, []).append(s)
+    return [
+        SelectionGroup(
+            label=key,
+            options=[
+                SelectionOption(value=s.stock_id, label=f"{s.stock_code} {s.stock_name}")
+                for s in items
+            ],
+        )
+        for key, items in grouped.items()
     ]
 
 

@@ -3,18 +3,9 @@
     "schemas": {
       "TargetSettingCreate": {
         "example": {
-          "distinct_number": "T-2026-01",
-          "setting_value": "Buy a house by end of year"
+          "setting_value": "存頭期款 200 萬"
         },
         "properties": {
-          "distinct_number": {
-            "description": "Target row business ID",
-            "examples": [
-              "T-2026-01"
-            ],
-            "title": "Distinct Number",
-            "type": "string"
-          },
           "is_done": {
             "anyOf": [
               {
@@ -33,7 +24,7 @@
           "setting_value": {
             "description": "Target description / value (free-form text)",
             "examples": [
-              "Buy a house by end of year"
+              "存頭期款 200 萬"
             ],
             "maxLength": 45,
             "title": "Setting Value",
@@ -56,7 +47,6 @@
           }
         },
         "required": [
-          "distinct_number",
           "setting_value"
         ],
         "title": "TargetSettingCreate",
