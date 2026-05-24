@@ -4,6 +4,9 @@ A self-hosted personal-finance system: a Vue 3 SPA dashboard backed by a FastAPI
 
 > No authentication. Single-user, single-machine by design.
 
+🔗 **Demo**: [https://ann-stone.github.io/networth/dashboard](https://ann-stone.github.io/networth/dashboard)
+
+
 ## Layout
 
 | Path     | Role                          | Stack                                                                |
