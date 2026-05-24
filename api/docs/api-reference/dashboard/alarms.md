@@ -24,8 +24,9 @@ data (array item):
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| date | string | yes | Display date: MM/DD for monthly-recurring, raw alarm_date otherwise |
+| date | string | yes | Expanded occurrence date in YYYYMMDD |
 | content | string | yes | Alarm content |
+| alarm_type | string (enum: 'Y', 'M') | yes | Recurrence type: 'Y' yearly, 'M' monthly |
 
 Example:
 
@@ -34,8 +35,9 @@ Example:
   "status": 1,
   "data": [
     {
-      "content": "Pay credit card bill",
-      "date": "05/15"
+      "alarm_type": "Y",
+      "content": "報稅",
+      "date": "20260531"
     }
   ],
   "msg": "success"

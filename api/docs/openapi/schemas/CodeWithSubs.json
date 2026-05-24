@@ -3,8 +3,6 @@
     "schemas": {
       "CodeWithSubs": {
         "example": {
-          "code_group": "expense-main",
-          "code_group_name": "Daily expense",
           "code_id": "E01",
           "code_index": 1,
           "code_type": "Floating",
@@ -13,36 +11,6 @@
           "sub_codes": []
         },
         "properties": {
-          "code_group": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Group code",
-            "examples": [
-              "expense-main"
-            ],
-            "title": "Code Group"
-          },
-          "code_group_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Group name",
-            "examples": [
-              "Daily expense"
-            ],
-            "title": "Code Group Name"
-          },
           "code_id": {
             "description": "Business identifier",
             "examples": [
@@ -92,7 +60,7 @@
                 "type": "null"
               }
             ],
-            "description": "Parent code id",
+            "description": "Parent code_id",
             "examples": [
               null
             ],

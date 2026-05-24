@@ -81,22 +81,22 @@
         ]
       }
     },
-    "/utilities/selections/codes/{code_group}": {
+    "/utilities/selections/codes/{parent_id}": {
       "get": {
-        "description": "Return children of the parent code identified by code_group as a single 'sub' group.",
-        "operationId": "list_sub_code_selections_utilities_selections_codes__code_group__get",
+        "description": "Return children of the parent code (parent_id) as a single 'sub' group.",
+        "operationId": "list_sub_code_selections_utilities_selections_codes__parent_id__get",
         "parameters": [
           {
             "description": "Parent code_id",
             "in": "path",
-            "name": "code_group",
+            "name": "parent_id",
             "required": true,
             "schema": {
               "description": "Parent code_id",
               "examples": [
                 "92"
               ],
-              "title": "Code Group",
+              "title": "Parent Id",
               "type": "string"
             }
           }
@@ -283,6 +283,82 @@
           }
         },
         "summary": "List loans as a single group",
+        "tags": [
+          "utilities",
+          "utilities:selections"
+        ]
+      }
+    },
+    "/utilities/selections/other-asset-types": {
+      "get": {
+        "description": "Return one group whose options are the distinct asset_type values across active Other_Asset rows. Drives the 'transfer to other asset' sub-category dropdown so it stays in sync with the user's asset setup.",
+        "operationId": "list_other_asset_type_selections_utilities_selections_other_asset_types_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_list_SelectionGroup__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "RuntimeError: unexpected failure",
+                  "msg": "fail",
+                  "status": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unhandled server error — wrapped by global exception handler"
+          }
+        },
+        "summary": "List distinct asset_type values from Other_Asset",
+        "tags": [
+          "utilities",
+          "utilities:selections"
+        ]
+      }
+    },
+    "/utilities/selections/stocks": {
+      "get": {
+        "description": "Return every Stock_Journal row grouped by its parent asset_id; each option's label is '<stock_code> <stock_name>' for filterable dropdowns.",
+        "operationId": "list_stock_selections_utilities_selections_stocks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_list_SelectionGroup__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "RuntimeError: unexpected failure",
+                  "msg": "fail",
+                  "status": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unhandled server error — wrapped by global exception handler"
+          }
+        },
+        "summary": "List stock holdings grouped by asset_id",
         "tags": [
           "utilities",
           "utilities:selections"

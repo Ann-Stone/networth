@@ -3,7 +3,7 @@
     "schemas": {
       "AlarmUpdate": {
         "example": {
-          "content": "Updated text"
+          "content": "報稅"
         },
         "properties": {
           "alarm_date": {
@@ -15,24 +15,28 @@
                 "type": "null"
               }
             ],
-            "description": "YYYYMMDD",
+            "description": "Recurring anchor: MMDD for Y, DD for M",
             "examples": [
-              "20260115"
+              "0531"
             ],
             "title": "Alarm Date"
           },
           "alarm_type": {
             "anyOf": [
               {
+                "enum": [
+                  "Y",
+                  "M"
+                ],
                 "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Reminder category",
+            "description": "Recurrence: 'Y' yearly, 'M' monthly",
             "examples": [
-              "credit-card-charge"
+              "Y"
             ],
             "title": "Alarm Type"
           },
@@ -47,7 +51,7 @@
             ],
             "description": "Reminder text",
             "examples": [
-              "Updated text"
+              "報稅"
             ],
             "title": "Content"
           },
@@ -60,9 +64,9 @@
                 "type": "null"
               }
             ],
-            "description": "YYYYMMDD",
+            "description": "Optional YYYYMM cutoff",
             "examples": [
-              "20260125"
+              "202612"
             ],
             "title": "Due Date"
           }

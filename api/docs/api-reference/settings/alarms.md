@@ -25,10 +25,10 @@ data (array item):
 | name | type | required | description |
 | --- | --- | --- | --- |
 | alarm_id | integer | yes | Autoincrement PK |
-| alarm_type | string | yes | Reminder category |
-| alarm_date | string | yes | YYYYMMDD |
+| alarm_type | string (enum: 'Y', 'M') | yes | Recurrence: 'Y' yearly, 'M' monthly |
+| alarm_date | string | yes | Recurring anchor: MMDD for Y, DD for M |
 | content | string | yes | Reminder text |
-| due_date |  | no | YYYYMMDD |
+| due_date |  | no | Optional YYYYMM cutoff |
 
 Example:
 
@@ -37,11 +37,10 @@ Example:
   "status": 1,
   "data": [
     {
-      "alarm_date": "20260115",
+      "alarm_date": "0531",
       "alarm_id": 1,
-      "alarm_type": "credit-card-charge",
-      "content": "Chase Sapphire autopay",
-      "due_date": "20260120"
+      "alarm_type": "Y",
+      "content": "報稅"
     }
   ],
   "msg": "success"
@@ -67,10 +66,10 @@ Body:
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| alarm_type | string | yes | Reminder category |
-| alarm_date | string | yes | YYYYMMDD |
+| alarm_type | string (enum: 'Y', 'M') | yes | Recurrence: 'Y' yearly, 'M' monthly |
+| alarm_date | string | yes | Recurring anchor: MMDD for Y, DD for M |
 | content | string | yes | Reminder text |
-| due_date |  | no | YYYYMMDD |
+| due_date |  | no | Optional YYYYMM cutoff |
 
 #### Response (200)
 
@@ -87,10 +86,10 @@ data:
 | name | type | required | description |
 | --- | --- | --- | --- |
 | alarm_id | integer | yes | Autoincrement PK |
-| alarm_type | string | yes | Reminder category |
-| alarm_date | string | yes | YYYYMMDD |
+| alarm_type | string (enum: 'Y', 'M') | yes | Recurrence: 'Y' yearly, 'M' monthly |
+| alarm_date | string | yes | Recurring anchor: MMDD for Y, DD for M |
 | content | string | yes | Reminder text |
-| due_date |  | no | YYYYMMDD |
+| due_date |  | no | Optional YYYYMM cutoff |
 
 Example:
 
@@ -98,11 +97,10 @@ Example:
 {
   "status": 1,
   "data": {
-    "alarm_date": "20260115",
+    "alarm_date": "0531",
     "alarm_id": 1,
-    "alarm_type": "credit-card-charge",
-    "content": "Chase Sapphire autopay",
-    "due_date": "20260120"
+    "alarm_type": "Y",
+    "content": "報稅"
   },
   "msg": "success"
 }
@@ -142,10 +140,10 @@ data (array item):
 | name | type | required | description |
 | --- | --- | --- | --- |
 | alarm_id | integer | yes | Autoincrement PK |
-| alarm_type | string | yes | Reminder category |
-| alarm_date | string | yes | YYYYMMDD |
+| alarm_type | string (enum: 'Y', 'M') | yes | Recurrence: 'Y' yearly, 'M' monthly |
+| alarm_date | string | yes | Recurring anchor: MMDD for Y, DD for M |
 | content | string | yes | Reminder text |
-| due_date |  | no | YYYYMMDD |
+| due_date |  | no | Optional YYYYMM cutoff |
 
 Example:
 
@@ -154,11 +152,10 @@ Example:
   "status": 1,
   "data": [
     {
-      "alarm_date": "20260115",
+      "alarm_date": "0531",
       "alarm_id": 1,
-      "alarm_type": "credit-card-charge",
-      "content": "Chase Sapphire autopay",
-      "due_date": "20260120"
+      "alarm_type": "Y",
+      "content": "報稅"
     }
   ],
   "msg": "success"
@@ -228,10 +225,10 @@ Body:
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| alarm_type |  | no | Reminder category |
-| alarm_date |  | no | YYYYMMDD |
+| alarm_type |  | no | Recurrence: 'Y' yearly, 'M' monthly |
+| alarm_date |  | no | Recurring anchor: MMDD for Y, DD for M |
 | content |  | no | Reminder text |
-| due_date |  | no | YYYYMMDD |
+| due_date |  | no | Optional YYYYMM cutoff |
 
 #### Response (200)
 
@@ -248,10 +245,10 @@ data:
 | name | type | required | description |
 | --- | --- | --- | --- |
 | alarm_id | integer | yes | Autoincrement PK |
-| alarm_type | string | yes | Reminder category |
-| alarm_date | string | yes | YYYYMMDD |
+| alarm_type | string (enum: 'Y', 'M') | yes | Recurrence: 'Y' yearly, 'M' monthly |
+| alarm_date | string | yes | Recurring anchor: MMDD for Y, DD for M |
 | content | string | yes | Reminder text |
-| due_date |  | no | YYYYMMDD |
+| due_date |  | no | Optional YYYYMM cutoff |
 
 Example:
 
@@ -259,11 +256,10 @@ Example:
 {
   "status": 1,
   "data": {
-    "alarm_date": "20260115",
+    "alarm_date": "0531",
     "alarm_id": 1,
-    "alarm_type": "credit-card-charge",
-    "content": "Chase Sapphire autopay",
-    "due_date": "20260120"
+    "alarm_type": "Y",
+    "content": "報稅"
   },
   "msg": "success"
 }

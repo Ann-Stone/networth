@@ -11,12 +11,18 @@ from app.models.monthly_report.analytics import (
     InvestRatioResponse,
     LiabilityResponse,
 )
+from app.models.assets.stock import StockDetailRead
 from app.models.monthly_report.journal import (
     Journal,
     JournalCreate,
     JournalMonthRead,
     JournalRead,
     JournalUpdate,
+)
+from app.models.monthly_report.journal_composite import (
+    JournalStockTransactionCreate,
+    JournalStockTransactionRead,
+    JournalStockTransactionUpdate,
 )
 from app.schemas.response import (
     INTERNAL_ERROR,
@@ -32,9 +38,11 @@ from app.services.monthly_report_service import (
     compute_invest_ratio,
     compute_liability,
     create_journal,
+    create_journal_with_stock_transaction,
     delete_journal,
     list_journals_by_month,
     update_journal,
+    update_journal_with_stock_transaction,
 )
 
 router = APIRouter()
@@ -79,6 +87,74 @@ def post_journal(
 ) -> ApiResponse[JournalRead]:
     row = create_journal(session, payload)
     return ApiResponse(data=JournalRead.model_validate(row, from_attributes=True))
+
+
+@router.post(
+    "/stock-transaction",
+    summary="Create a journal entry + stock transaction atomically",
+    description=(
+        "Persist a Journal row and a Stock_Detail row in a single database "
+        "transaction. excute_price is copied verbatim from journal.spending "
+        "(sign preserved); account_id/account_name are resolved from "
+        "journal.spend_way (account or credit card)."
+    ),
+    response_model=ApiResponse[JournalStockTransactionRead],
+    status_code=201,
+    responses={
+        404: error_response(
+            "Settling source or stock not found",
+            error_payload="Stock not found: STK-H-001",
+        ),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
+)
+def post_journal_stock_transaction(
+    payload: JournalStockTransactionCreate,
+    session: Session = Depends(get_session),
+) -> ApiResponse[JournalStockTransactionRead]:
+    journal_row, detail_row = create_journal_with_stock_transaction(session, payload)
+    return ApiResponse(
+        data=JournalStockTransactionRead(
+            journal=JournalRead.model_validate(journal_row, from_attributes=True),
+            stock_detail=StockDetailRead.model_validate(detail_row, from_attributes=True),
+        )
+    )
+
+
+@router.put(
+    "/{journal_id}/stock-transaction",
+    summary="Update a journal entry + create stock transaction atomically",
+    description=(
+        "Apply a partial Journal update and insert a brand-new Stock_Detail row "
+        "in a single database transaction. Intended for the case where a journal "
+        "was originally untagged (action_sub null) and is being re-classified as "
+        "a stock transaction. Both writes succeed or both roll back."
+    ),
+    response_model=ApiResponse[JournalStockTransactionRead],
+    responses={
+        404: error_response(
+            "Journal, settling source, or stock not found",
+            error_payload="Journal not found: 42",
+        ),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
+)
+def put_journal_stock_transaction(
+    journal_id: int,
+    payload: JournalStockTransactionUpdate,
+    session: Session = Depends(get_session),
+) -> ApiResponse[JournalStockTransactionRead]:
+    journal_row, detail_row = update_journal_with_stock_transaction(
+        session, journal_id, payload
+    )
+    return ApiResponse(
+        data=JournalStockTransactionRead(
+            journal=JournalRead.model_validate(journal_row, from_attributes=True),
+            stock_detail=StockDetailRead.model_validate(detail_row, from_attributes=True),
+        )
+    )
 
 
 @router.put(

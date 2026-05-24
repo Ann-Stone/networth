@@ -17,10 +17,15 @@ from app.models.monthly_report.analytics import (
     LiabilityItem,
     LiabilityResponse,
 )
+from app.models.assets.stock import StockDetail, StockJournal
 from app.models.monthly_report.journal import (
     Journal,
     JournalCreate,
     JournalUpdate,
+)
+from app.models.monthly_report.journal_composite import (
+    JournalStockTransactionCreate,
+    JournalStockTransactionUpdate,
 )
 from app.models.settings.account import Account
 from app.models.settings.budget import Budget
@@ -138,6 +143,137 @@ def delete_journal(session: Session, journal_id: int) -> None:
         raise HTTPException(status_code=404, detail=f"Journal not found: {journal_id}")
     session.delete(journal)
     session.commit()
+
+
+def _resolve_settling_account(
+    session: Session, spend_way_type: str, spend_way: str
+) -> tuple[str, str]:
+    """Resolve (account_id, account_name) for a Stock_Detail row.
+
+    Accepts both account-funded and credit-card-funded journals — the latter
+    records the credit_card_id/card_name in account_* fields so the holding
+    history remains traceable. Caller has already validated the journal payload.
+    """
+    if spend_way_type == "account":
+        account = session.exec(
+            select(Account).where(Account.account_id == spend_way)
+        ).first()
+        if account is None:
+            raise HTTPException(status_code=404, detail=f"Account not found: {spend_way}")
+        return account.account_id, account.name
+    if spend_way_type == "credit_card":
+        card = session.exec(
+            select(CreditCard).where(CreditCard.credit_card_id == spend_way)
+        ).first()
+        if card is None:
+            raise HTTPException(status_code=404, detail=f"Credit card not found: {spend_way}")
+        return card.credit_card_id, card.card_name
+    raise HTTPException(
+        status_code=422,
+        detail=f"Unsupported spend_way_type for stock transaction: {spend_way_type}",
+    )
+
+
+def _build_stock_detail(
+    journal_row: Journal,
+    detail_payload,
+    account_id: str,
+    account_name: str,
+) -> StockDetail:
+    return StockDetail(
+        stock_id=detail_payload.stock_id,
+        excute_type=detail_payload.excute_type,
+        excute_amount=detail_payload.excute_amount,
+        # Signed pass-through: a buy is negative, a sell is positive — the
+        # detail mirrors the journal's cash-flow sign exactly.
+        excute_price=journal_row.spending,
+        excute_date=detail_payload.excute_date or journal_row.spend_date,
+        account_id=account_id,
+        account_name=account_name,
+        memo=detail_payload.memo if detail_payload.memo is not None else journal_row.note,
+    )
+
+
+def create_journal_with_stock_transaction(
+    session: Session, payload: JournalStockTransactionCreate
+) -> tuple[Journal, StockDetail]:
+    """Insert a Journal row and a Stock_Detail row in a single transaction.
+
+    ``excute_price`` is copied verbatim from ``journal.spending`` — the sign is
+    load-bearing (buy/outflow stays negative, sell/inflow stays positive). The
+    settling source is looked up from ``journal.spend_way`` (account or credit
+    card) so the two rows can never disagree on which payment method funded
+    the trade.
+
+    Either both rows persist or neither does: validation errors raise before
+    ``session.commit()``, so the surrounding session is rolled back by the
+    FastAPI dependency teardown.
+    """
+    j = payload.journal
+    d = payload.stock_detail
+
+    account_id, account_name = _resolve_settling_account(session, j.spend_way_type, j.spend_way)
+
+    holding = session.get(StockJournal, d.stock_id)
+    if holding is None:
+        raise HTTPException(status_code=404, detail=f"Stock not found: {d.stock_id}")
+
+    journal_data = j.model_dump()
+    journal_data["spend_date"] = normalize_spend_date(journal_data["spend_date"])
+    journal_row = Journal(**journal_data)
+    session.add(journal_row)
+    session.flush()  # assigns distinct_number without committing
+
+    detail = _build_stock_detail(journal_row, d, account_id, account_name)
+    session.add(detail)
+    session.commit()
+    session.refresh(journal_row)
+    session.refresh(detail)
+    return journal_row, detail
+
+
+def update_journal_with_stock_transaction(
+    session: Session,
+    journal_id: int,
+    payload: JournalStockTransactionUpdate,
+) -> tuple[Journal, StockDetail]:
+    """Update an existing Journal and insert a new Stock_Detail atomically.
+
+    Used when a user edits a journal whose original ``action_sub`` was empty
+    and now points to a syncable asset (e.g. Stock). The detail row is always
+    created fresh — partial updates of existing details should go through the
+    independent Stock_Detail endpoints. Either both writes commit or neither.
+    """
+    j = payload.journal
+    d = payload.stock_detail
+
+    journal_row = session.get(Journal, journal_id)
+    if journal_row is None:
+        raise HTTPException(status_code=404, detail=f"Journal not found: {journal_id}")
+
+    updates = j.model_dump(exclude_unset=True)
+    if "spend_date" in updates and updates["spend_date"] is not None:
+        updates["spend_date"] = normalize_spend_date(updates["spend_date"])
+    for field, value in updates.items():
+        setattr(journal_row, field, value)
+
+    account_id, account_name = _resolve_settling_account(
+        session, journal_row.spend_way_type, journal_row.spend_way
+    )
+
+    holding = session.get(StockJournal, d.stock_id)
+    if holding is None:
+        raise HTTPException(status_code=404, detail=f"Stock not found: {d.stock_id}")
+
+    session.add(journal_row)
+    session.flush()
+
+    detail = _build_stock_detail(journal_row, d, account_id, account_name)
+    session.add(detail)
+    session.commit()
+    session.refresh(journal_row)
+    session.refresh(detail)
+    return journal_row, detail
 
 
 # ---------- Analytics ----------

@@ -78,6 +78,94 @@
         ]
       }
     },
+    "/monthly-report/journals/stock-transaction": {
+      "post": {
+        "description": "Persist a Journal row and a Stock_Detail row in a single database transaction. excute_price is copied verbatim from journal.spending (sign preserved); account_id/account_name are resolved from journal.spend_way (account or credit card).",
+        "operationId": "post_journal_stock_transaction_monthly_report_journals_stock_transaction_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JournalStockTransactionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_JournalStockTransactionRead_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Stock not found: STK-H-001",
+                  "msg": "fail",
+                  "status": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Settling source or stock not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": [
+                    {
+                      "input": {},
+                      "loc": [
+                        "body",
+                        "field_name"
+                      ],
+                      "msg": "Field required",
+                      "type": "missing"
+                    }
+                  ],
+                  "msg": "fail",
+                  "status": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Validation error — request payload failed Pydantic validation"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "RuntimeError: unexpected failure",
+                  "msg": "fail",
+                  "status": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unhandled server error — wrapped by global exception handler"
+          }
+        },
+        "summary": "Create a journal entry + stock transaction atomically",
+        "tags": [
+          "monthly_report",
+          "monthly-report"
+        ]
+      }
+    },
     "/monthly-report/journals/{journal_id}": {
       "delete": {
         "description": "Delete a Journal identified by distinct_number.",
@@ -264,6 +352,105 @@
         ]
       }
     },
+    "/monthly-report/journals/{journal_id}/stock-transaction": {
+      "put": {
+        "description": "Apply a partial Journal update and insert a brand-new Stock_Detail row in a single database transaction. Intended for the case where a journal was originally untagged (action_sub null) and is being re-classified as a stock transaction. Both writes succeed or both roll back.",
+        "operationId": "put_journal_stock_transaction_monthly_report_journals__journal_id__stock_transaction_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "journal_id",
+            "required": true,
+            "schema": {
+              "title": "Journal Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JournalStockTransactionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_JournalStockTransactionRead_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Journal not found: 42",
+                  "msg": "fail",
+                  "status": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Journal, settling source, or stock not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": [
+                    {
+                      "input": {},
+                      "loc": [
+                        "body",
+                        "field_name"
+                      ],
+                      "msg": "Field required",
+                      "type": "missing"
+                    }
+                  ],
+                  "msg": "fail",
+                  "status": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Validation error — request payload failed Pydantic validation"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "RuntimeError: unexpected failure",
+                  "msg": "fail",
+                  "status": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unhandled server error — wrapped by global exception handler"
+          }
+        },
+        "summary": "Update a journal entry + create stock transaction atomically",
+        "tags": [
+          "monthly_report",
+          "monthly-report"
+        ]
+      }
+    },
     "/monthly-report/journals/{vesting_month}": {
       "get": {
         "description": "Return all Journal entries whose vesting_month matches the path parameter, ordered by spend_date. The response also includes the FX-converted gain/loss total for the month.",
@@ -342,11 +529,17 @@
   "x-schema-files": [
     "schemas/ApiResponse_JournalMonthRead_.json",
     "schemas/ApiResponse_JournalRead_.json",
+    "schemas/ApiResponse_JournalStockTransactionRead_.json",
     "schemas/ApiResponse_dict_.json",
     "schemas/JournalCreate.json",
     "schemas/JournalMonthRead.json",
     "schemas/JournalRead.json",
-    "schemas/JournalUpdate.json"
+    "schemas/JournalStockTransactionCreate.json",
+    "schemas/JournalStockTransactionRead.json",
+    "schemas/JournalStockTransactionUpdate.json",
+    "schemas/JournalUpdate.json",
+    "schemas/StockDetailRead.json",
+    "schemas/StockTransactionDetailCreate.json"
   ],
   "x-shared-file": "_shared.json"
 }

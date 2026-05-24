@@ -20,6 +20,8 @@ from app.services.utility_service import (
     get_credit_card_selection_groups,
     get_insurance_selection_groups,
     get_loan_selection_groups,
+    get_other_asset_type_selection_groups,
+    get_stock_selection_groups,
     get_sub_code_selection_groups,
 )
 
@@ -65,6 +67,39 @@ def list_loan_selections(
     session: Session = Depends(get_session),
 ) -> ApiResponse[list[SelectionGroup]]:
     return ApiResponse(data=get_loan_selection_groups(session))
+
+
+@router.get(
+    "/other-asset-types",
+    summary="List distinct asset_type values from Other_Asset",
+    description=(
+        "Return one group whose options are the distinct asset_type values "
+        "across active Other_Asset rows. Drives the 'transfer to other asset' "
+        "sub-category dropdown so it stays in sync with the user's asset setup."
+    ),
+    response_model=ApiResponse[list[SelectionGroup]],
+    responses=_COMMON_RESPONSES,
+)
+def list_other_asset_type_selections(
+    session: Session = Depends(get_session),
+) -> ApiResponse[list[SelectionGroup]]:
+    return ApiResponse(data=get_other_asset_type_selection_groups(session))
+
+
+@router.get(
+    "/stocks",
+    summary="List stock holdings grouped by asset_id",
+    description=(
+        "Return every Stock_Journal row grouped by its parent asset_id; each "
+        "option's label is '<stock_code> <stock_name>' for filterable dropdowns."
+    ),
+    response_model=ApiResponse[list[SelectionGroup]],
+    responses=_COMMON_RESPONSES,
+)
+def list_stock_selections(
+    session: Session = Depends(get_session),
+) -> ApiResponse[list[SelectionGroup]]:
+    return ApiResponse(data=get_stock_selection_groups(session))
 
 
 @router.get(
