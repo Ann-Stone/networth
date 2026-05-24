@@ -9,6 +9,9 @@
           format="YYYY/MM"
           :clearable="false"
         />
+        <el-button :icon="TrendCharts" @click="openStockPriceSnapshot">
+          股價快照
+        </el-button>
         <el-button type="warning" :loading="settling" @click="confirmSettle">
           執行月結
         </el-button>
@@ -28,11 +31,19 @@
       <template v-else>
         <el-table :data="store.journals" stripe border style="width: 100%">
           <el-table-column prop="spend_date" label="日期" width="110" />
-          <el-table-column prop="spend_way" label="帳戶" min-width="140" />
-          <el-table-column prop="action_main_type" label="類別" width="120" />
-          <el-table-column prop="action_sub_type" label="子類" width="120">
+          <el-table-column label="帳戶" min-width="140">
             <template #default="{ row }">
-              <span>{{ row.action_sub_type ?? '-' }}</span>
+              <span>{{ spendWayLabel(row) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="類別" width="140">
+            <template #default="{ row }">
+              <span>{{ actionMainLabel(row) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="子類" width="140">
+            <template #default="{ row }">
+              <span>{{ actionSubLabel(row) }}</span>
             </template>
           </el-table-column>
           <el-table-column label="金額" width="180" align="right">
@@ -49,8 +60,9 @@
               <span>{{ row.note ?? '' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="160" align="center">
+          <el-table-column label="操作" width="180" align="center">
             <template #default="{ row }">
+              <div class="flex items-center justify-center gap-2 whitespace-nowrap">
               <el-button size="small" :icon="Edit" @click="editJournal(row)">編輯</el-button>
               <el-popconfirm
                 title="確定刪除這筆日記帳?"
@@ -60,6 +72,7 @@
                   <el-button size="small" type="danger" :icon="Delete">刪除</el-button>
                 </template>
               </el-popconfirm>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -138,14 +151,16 @@
       </el-tabs>
     </section>
 
-    <section class="flex flex-col gap-4">
-      <SectionHeader title="股價快照">
-        <template #actions>
-          <el-button type="primary" :icon="Plus" size="small" @click="openStockPriceDialog">
-            新增股價
-          </el-button>
-        </template>
-      </SectionHeader>
+    <el-dialog
+      v-model="stockPriceSnapshotVisible"
+      title="股價快照"
+      width="640px"
+    >
+      <div class="flex justify-end mb-3">
+        <el-button type="primary" :icon="Plus" size="small" @click="openStockPriceDialog">
+          新增股價
+        </el-button>
+      </div>
       <el-skeleton v-if="store.stockPricesLoading" :rows="3" animated />
       <EmptyState
         v-else-if="store.stockPrices.length === 0"
@@ -160,7 +175,7 @@
           </template>
         </el-table-column>
       </el-table>
-    </section>
+    </el-dialog>
 
     <FormDialog
       v-model="stockPriceDialogVisible"
@@ -232,7 +247,7 @@
             <el-option-group
               v-for="group in activeSpendWayGroups"
               :key="group.label"
-              :label="group.label"
+              :label="translateGroupLabel(group.label)"
             >
               <el-option
                 v-for="opt in group.options"
@@ -252,9 +267,9 @@
             @change="onActionMainChange"
           >
             <el-option-group
-              v-for="group in codeGroups"
-              :key="group.label"
-              :label="group.label"
+              v-for="(group, idx) in mainSelectionGroups"
+              :key="`${group.label}-${idx}`"
+              :label="translateGroupLabel(group.label)"
             >
               <el-option
                 v-for="opt in group.options"
@@ -276,19 +291,28 @@
             :disabled="!formData.action_main"
             @change="onActionSubChange"
           >
-            <el-option-group
-              v-for="group in subCodeGroups"
-              :key="group.label"
-              :label="group.label"
+            <template
+              v-for="(group, idx) in subSelectionGroups"
+              :key="`${group.label}-${idx}`"
             >
-              <el-option
-                v-for="opt in group.options"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-                :data-type="group.label"
-              />
-            </el-option-group>
+              <template v-if="group.label === 'sub'">
+                <el-option
+                  v-for="opt in group.options"
+                  :key="opt.value"
+                  :label="opt.label"
+                  :value="opt.value"
+                />
+              </template>
+              <el-option-group v-else :label="translateGroupLabel(group.label)">
+                <el-option
+                  v-for="opt in group.options"
+                  :key="opt.value"
+                  :label="opt.label"
+                  :value="opt.value"
+                  :data-type="group.label"
+                />
+              </el-option-group>
+            </template>
           </el-select>
         </el-form-item>
         <el-form-item label="金額" prop="spending">
@@ -307,7 +331,12 @@
           <el-input v-model="formData.invoice_number" placeholder="(可選)" />
         </el-form-item>
         <el-form-item label="備註">
-          <el-input v-model="formData.note" type="textarea" :rows="2" placeholder="(可選)" />
+          <el-input
+            v-model="formData.note"
+            type="textarea"
+            :rows="2"
+            :placeholder="notePlaceholder"
+          />
         </el-form-item>
       </el-form>
     </FormDialog>
@@ -319,7 +348,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import dayjs from 'dayjs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Plus, Edit, Delete } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, TrendCharts } from '@element-plus/icons-vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -339,8 +368,17 @@ import {
   getAccountSelections,
   getCodeSelections,
   getCreditCardSelections,
+  getInsuranceSelections,
+  getLoanSelections,
 } from '@/api/utilities'
-import type { Journal, JournalCreate, SelectionGroup } from '@/types/models'
+import { getCodesWithSub } from '@/api/setting'
+import {
+  FINANCIAL_BEHAVIORS,
+  getFinancialBehaviorLabel,
+} from '@/constants/financialBehavior'
+import { getNotePlaceholder } from '@/constants/noteHints'
+import { translateGroupLabel } from '@/constants/selectionLabels'
+import type { CodeDataWithSub, Journal, JournalCreate, SelectionGroup } from '@/types/models'
 
 const store = useCashFlowStore()
 
@@ -407,12 +445,112 @@ const budgetChart = computed(() => {
 // ─── Selection caches ──────────────────────────────────────────────────────
 const accountGroups = ref<SelectionGroup[]>([])
 const creditCardGroups = ref<SelectionGroup[]>([])
+const loanGroups = ref<SelectionGroup[]>([])
+const insuranceGroups = ref<SelectionGroup[]>([])
 const codeGroups = ref<SelectionGroup[]>([])
 const subCodeGroups = ref<SelectionGroup[]>([])
+
+const financialBehaviorGroup: SelectionGroup = {
+  label: '金融行為',
+  options: FINANCIAL_BEHAVIORS.map((b) => ({ value: b.key, label: b.label })),
+}
+
+const mainSelectionGroups = computed<SelectionGroup[]>(() => [
+  ...codeGroups.value,
+  financialBehaviorGroup,
+])
+
+const subSelectionGroups = computed<SelectionGroup[]>(() => {
+  const behavior = FINANCIAL_BEHAVIORS.find((b) => b.key === formData.value.action_main)
+  if (!behavior) return subCodeGroups.value
+  if (behavior.table === 'Account') return accountGroups.value
+  if (behavior.table === 'Credit_Card') return creditCardGroups.value
+  if (behavior.table === 'Loan') return loanGroups.value
+  if (behavior.table === 'Insurance') return insuranceGroups.value
+  return []
+})
+
+const notePlaceholder = computed<string>(() => {
+  const main = formData.value.action_main
+  if (!main) return '(可選)'
+  if (FINANCIAL_BEHAVIORS.some((b) => b.key === main)) {
+    return getNotePlaceholder(main)
+  }
+  const mainName = codeNameMap.value.get(main)
+  if (!mainName) return '(可選)'
+  const sub = formData.value.action_sub
+  const subName = sub ? codeNameMap.value.get(sub) : undefined
+  return getNotePlaceholder(mainName, subName ?? undefined)
+})
 
 const activeSpendWayGroups = computed(() =>
   formData.value.spend_way_type === 'credit_card' ? creditCardGroups.value : accountGroups.value,
 )
+
+const codeTree = ref<CodeDataWithSub[]>([])
+
+const codeNameMap = computed(() => {
+  const map = new Map<string, string>()
+  for (const c of codeTree.value) {
+    map.set(c.code_id, c.name)
+    for (const sub of c.sub_codes ?? []) map.set(sub.code_id, sub.name)
+  }
+  return map
+})
+
+function codeName(id?: string | null): string {
+  if (!id) return '-'
+  return codeNameMap.value.get(id) ?? id
+}
+
+function isCodeTable(table?: string | null): boolean {
+  return table === 'Code_Data' || table === 'Code'
+}
+
+function actionMainLabel(row: Journal): string {
+  if (!row.action_main || row.action_main === 'No') return '-'
+  if (isCodeTable(row.action_main_table)) return codeName(row.action_main)
+  const behavior = getFinancialBehaviorLabel(row.action_main, row.action_main_table)
+  return behavior ?? row.action_main
+}
+
+function actionSubLabel(row: Journal): string {
+  if (!row.action_sub || row.action_sub === 'No') return '-'
+  if (isCodeTable(row.action_sub_table)) return codeName(row.action_sub)
+  const table = row.action_sub_table ?? ''
+  if (table === 'Account' || table === 'Credit_Card') {
+    return spendWayLabelMap.value.get(`${table}:${row.action_sub}`) ?? row.action_sub
+  }
+  if (table === 'Stock_Detail') return row.action_sub === 'Stock' ? '股票' : row.action_sub
+  if (table === 'Insurance_Journal') return '保險'
+  if (table === 'Estate_Journal') return '房地產'
+  return row.action_sub
+}
+
+async function loadCodeTree() {
+  if (codeTree.value.length === 0) {
+    codeTree.value = await getCodesWithSub()
+  }
+}
+
+const spendWayLabelMap = computed(() => {
+  const map = new Map<string, string>()
+  const collect = (groups: SelectionGroup[], table: 'Account' | 'Credit_Card') => {
+    for (const group of groups) {
+      for (const opt of group.options) {
+        map.set(`${table}:${opt.value}`, opt.label)
+      }
+    }
+  }
+  collect(accountGroups.value, 'Account')
+  collect(creditCardGroups.value, 'Credit_Card')
+  return map
+})
+
+function spendWayLabel(row: Journal): string {
+  const key = `${row.spend_way_table}:${row.spend_way}`
+  return spendWayLabelMap.value.get(key) ?? row.spend_way
+}
 
 async function loadSpendWaySelections() {
   if (accountGroups.value.length === 0) {
@@ -420,6 +558,26 @@ async function loadSpendWaySelections() {
   }
   if (creditCardGroups.value.length === 0) {
     creditCardGroups.value = await getCreditCardSelections()
+  }
+}
+
+async function loadLoanSelections() {
+  if (loanGroups.value.length === 0) {
+    try {
+      loanGroups.value = await getLoanSelections()
+    } catch {
+      loanGroups.value = []
+    }
+  }
+}
+
+async function loadInsuranceSelections() {
+  if (insuranceGroups.value.length === 0) {
+    try {
+      insuranceGroups.value = await getInsuranceSelections()
+    } catch {
+      insuranceGroups.value = []
+    }
   }
 }
 
@@ -499,11 +657,21 @@ function onSpendWayTypeChange(value: string | number | boolean | undefined) {
 
 async function onActionMainChange(value: string | number | boolean | undefined) {
   const v = value ? String(value) : ''
-  formData.value.action_main_type = findCodeType(codeGroups.value, v)
   formData.value.action_sub = null
   formData.value.action_sub_type = null
   formData.value.action_sub_table = null
-  await loadSubCodeSelections(v)
+  const behavior = FINANCIAL_BEHAVIORS.find((b) => b.key === v)
+  if (behavior) {
+    formData.value.action_main_type = behavior.key
+    formData.value.action_main_table = behavior.table
+    subCodeGroups.value = []
+    if (behavior.table === 'Loan') await loadLoanSelections()
+    if (behavior.table === 'Insurance') await loadInsuranceSelections()
+  } else {
+    formData.value.action_main_type = findCodeType(codeGroups.value, v)
+    formData.value.action_main_table = 'Code_Data'
+    await loadSubCodeSelections(v)
+  }
 }
 
 function onActionSubChange(value: string | number | boolean | undefined) {
@@ -515,8 +683,14 @@ function onActionSubChange(value: string | number | boolean | undefined) {
     return
   }
   formData.value.action_sub = v
-  formData.value.action_sub_type = findCodeType(subCodeGroups.value, v)
-  formData.value.action_sub_table = 'Code_Data'
+  const behavior = FINANCIAL_BEHAVIORS.find((b) => b.key === formData.value.action_main)
+  if (behavior) {
+    formData.value.action_sub_table = behavior.table
+    formData.value.action_sub_type = findCodeType(subSelectionGroups.value, v)
+  } else {
+    formData.value.action_sub_table = 'Code_Data'
+    formData.value.action_sub_type = findCodeType(subCodeGroups.value, v)
+  }
 }
 
 async function openCreateJournal() {
@@ -548,7 +722,13 @@ async function editJournal(row: Journal) {
   }
   journalDialogVisible.value = true
   await Promise.all([loadSpendWaySelections(), loadCodeSelections()])
-  if (row.action_main) await loadSubCodeSelections(row.action_main)
+  const behavior = FINANCIAL_BEHAVIORS.find((b) => b.key === row.action_main)
+  if (behavior) {
+    if (behavior.table === 'Loan') await loadLoanSelections()
+    if (behavior.table === 'Insurance') await loadInsuranceSelections()
+  } else if (row.action_main) {
+    await loadSubCodeSelections(row.action_main)
+  }
 }
 
 async function submitJournal() {
@@ -619,7 +799,12 @@ async function confirmSettle() {
 }
 
 // ─── Stock prices ──────────────────────────────────────────────────────────
+const stockPriceSnapshotVisible = ref(false)
 const stockPriceDialogVisible = ref(false)
+
+function openStockPriceSnapshot() {
+  stockPriceSnapshotVisible.value = true
+}
 const stockPriceSubmitting = ref(false)
 const stockPriceFormRef = ref<FormInstance>()
 
@@ -696,6 +881,8 @@ watch(
 onMounted(() => {
   store.fetchJournals()
   store.fetchStockPrices()
+  void loadSpendWaySelections()
+  void loadCodeTree()
   void loadChartTab(activeChartTab.value)
 })
 </script>

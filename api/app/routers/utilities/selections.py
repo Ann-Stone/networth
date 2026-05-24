@@ -94,9 +94,9 @@ def list_code_selections(
 
 
 @router.get(
-    "/codes/{code_group}",
+    "/codes/{parent_id}",
     summary="List sub-codes for a parent code",
-    description="Return children of the parent code identified by code_group as a single 'sub' group.",
+    description="Return children of the parent code (parent_id) as a single 'sub' group.",
     response_model=ApiResponse[list[SelectionGroup]],
     responses={
         **_COMMON_RESPONSES,
@@ -108,10 +108,10 @@ def list_code_selections(
     },
 )
 def list_sub_code_selections(
-    code_group: Annotated[
+    parent_id: Annotated[
         str,
         Path(..., description="Parent code_id", examples=["92"]),
     ],
     session: Session = Depends(get_session),
 ) -> ApiResponse[list[SelectionGroup]]:
-    return ApiResponse(data=get_sub_code_selection_groups(session, code_group))
+    return ApiResponse(data=get_sub_code_selection_groups(session, parent_id))

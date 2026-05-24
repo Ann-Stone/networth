@@ -30,20 +30,20 @@ let accountSeq = accounts.length
 // ─── Codes / Sub-codes ───────────────────────────────────────────────────────
 
 let codes: CodeData[] = [
-  { code_id: 'INC',  code_type: 'Income',   name: '收入',   parent_id: null, code_group: null, code_group_name: null, in_use: 'Y', code_index: 1 },
-  { code_id: 'FIX',  code_type: 'Fixed',    name: '固定支出', parent_id: null, code_group: null, code_group_name: null, in_use: 'Y', code_index: 2 },
-  { code_id: 'FLT',  code_type: 'Floating', name: '浮動支出', parent_id: null, code_group: null, code_group_name: null, in_use: 'Y', code_index: 3 },
-  { code_id: 'INV',  code_type: 'Invest',   name: '投資',   parent_id: null, code_group: null, code_group_name: null, in_use: 'Y', code_index: 4 },
-  { code_id: 'TRF',  code_type: 'Transfer', name: '轉帳',   parent_id: null, code_group: null, code_group_name: null, in_use: 'Y', code_index: 5 },
+  { code_id: 'INC',  code_type: 'Income',   name: '收入',   parent_id: null, in_use: 'Y', code_index: 1 },
+  { code_id: 'FIX',  code_type: 'Fixed',    name: '固定支出', parent_id: null, in_use: 'Y', code_index: 2 },
+  { code_id: 'FLT',  code_type: 'Floating', name: '浮動支出', parent_id: null, in_use: 'Y', code_index: 3 },
+  { code_id: 'INV',  code_type: 'Invest',   name: '投資',   parent_id: null, in_use: 'Y', code_index: 4 },
+  { code_id: 'TRF',  code_type: 'Transfer', name: '轉帳',   parent_id: null, in_use: 'Y', code_index: 5 },
   // Sub-codes
-  { code_id: 'INC_SAL',  code_type: 'Income',   name: '薪資',   parent_id: 'INC', code_group: 'salary',  code_group_name: '薪資',   in_use: 'Y', code_index: 1 },
-  { code_id: 'INC_BNS',  code_type: 'Income',   name: '獎金',   parent_id: 'INC', code_group: 'bonus',   code_group_name: '獎金',   in_use: 'Y', code_index: 2 },
-  { code_id: 'FIX_RNT',  code_type: 'Fixed',    name: '房租',   parent_id: 'FIX', code_group: 'rent',    code_group_name: '房租',   in_use: 'Y', code_index: 1 },
-  { code_id: 'FIX_UTL',  code_type: 'Fixed',    name: '水電',   parent_id: 'FIX', code_group: 'utility', code_group_name: '水電',   in_use: 'Y', code_index: 2 },
-  { code_id: 'FLT_FOOD', code_type: 'Floating', name: '伙食',   parent_id: 'FLT', code_group: 'food',    code_group_name: '伙食',   in_use: 'Y', code_index: 1 },
-  { code_id: 'FLT_TRP',  code_type: 'Floating', name: '交通',   parent_id: 'FLT', code_group: 'transit', code_group_name: '交通',   in_use: 'Y', code_index: 2 },
-  { code_id: 'INV_STK',  code_type: 'Invest',   name: '股票',   parent_id: 'INV', code_group: 'stock',   code_group_name: '股票',   in_use: 'Y', code_index: 1 },
-  { code_id: 'TRF_TRF',  code_type: 'Transfer', name: '一般轉帳', parent_id: 'TRF', code_group: 'transfer', code_group_name: '一般轉帳', in_use: 'Y', code_index: 1 },
+  { code_id: 'INC_SAL',  code_type: 'Income',   name: '薪資',   parent_id: 'INC', in_use: 'Y', code_index: 1 },
+  { code_id: 'INC_BNS',  code_type: 'Income',   name: '獎金',   parent_id: 'INC', in_use: 'Y', code_index: 2 },
+  { code_id: 'FIX_RNT',  code_type: 'Fixed',    name: '房租',   parent_id: 'FIX', in_use: 'Y', code_index: 1 },
+  { code_id: 'FIX_UTL',  code_type: 'Fixed',    name: '水電',   parent_id: 'FIX', in_use: 'Y', code_index: 2 },
+  { code_id: 'FLT_FOOD', code_type: 'Floating', name: '伙食',   parent_id: 'FLT', in_use: 'Y', code_index: 1 },
+  { code_id: 'FLT_TRP',  code_type: 'Floating', name: '交通',   parent_id: 'FLT', in_use: 'Y', code_index: 2 },
+  { code_id: 'INV_STK',  code_type: 'Invest',   name: '股票',   parent_id: 'INV', in_use: 'Y', code_index: 1 },
+  { code_id: 'TRF_TRF',  code_type: 'Transfer', name: '一般轉帳', parent_id: 'TRF', in_use: 'Y', code_index: 1 },
 ]
 
 function buildCodesTree(): CodeDataWithSub[] {
@@ -167,8 +167,6 @@ export const settingsHandlers = [
       code_type: body.code_type,
       name: body.name,
       parent_id: body.parent_id ?? null,
-      code_group: body.code_group ?? null,
-      code_group_name: body.code_group_name ?? null,
       in_use: body.in_use ?? 'Y',
       code_index: body.code_index ?? codes.length + 1,
     }
@@ -199,8 +197,6 @@ export const settingsHandlers = [
       code_type: body.code_type,
       name: body.name,
       parent_id: body.parent_id ?? null,
-      code_group: body.code_group ?? null,
-      code_group_name: body.code_group_name ?? null,
       in_use: body.in_use ?? 'Y',
       code_index: body.code_index ?? codes.length + 1,
     }

@@ -1,7 +1,6 @@
 """Utility domain service functions — dropdown selection groups."""
 from __future__ import annotations
 
-from itertools import groupby
 
 from fastapi import HTTPException
 from sqlmodel import Session, select
@@ -15,23 +14,26 @@ from app.models.utilities.selection import SelectionGroup, SelectionOption
 
 
 def get_account_selection_groups(session: Session) -> list[SelectionGroup]:
-    """Active accounts grouped by account_type, ordered by account_index ASC."""
+    """Active accounts consolidated into one group per account_type.
+
+    Rows are queried ordered by account_index so options inside each group
+    follow that order; group order is the first-seen account_type.
+    """
     rows = session.exec(
         select(Account)
         .where(Account.in_use == "Y")
         .order_by(Account.account_index.asc(), Account.id.asc())
     ).all()
-    groups: list[SelectionGroup] = []
-    for key, items in groupby(rows, key=lambda a: a.account_type):
-        groups.append(
-            SelectionGroup(
-                label=key,
-                options=[
-                    SelectionOption(value=str(a.id), label=a.name) for a in items
-                ],
-            )
+    grouped: dict[str, list[Account]] = {}
+    for a in rows:
+        grouped.setdefault(a.account_type, []).append(a)
+    return [
+        SelectionGroup(
+            label=key,
+            options=[SelectionOption(value=str(a.id), label=a.name) for a in items],
         )
-    return groups
+        for key, items in grouped.items()
+    ]
 
 
 def get_credit_card_selection_groups(session: Session) -> list[SelectionGroup]:
@@ -97,12 +99,10 @@ def get_insurance_selection_groups(session: Session) -> list[SelectionGroup]:
 
 
 def get_code_selection_groups(session: Session) -> list[SelectionGroup]:
-    """Top-level codes (parent_id IS NULL) grouped by code_type.
+    """Top-level codes (parent_id IS NULL) consolidated into one group per code_type.
 
-    Granular spec text says `code_group IS NULL`; the actual model uses
-    `parent_id` for parent/child hierarchy and `code_group` for an unrelated
-    domain bucket. We use `parent_id IS NULL` to match legacy
-    `query4Selection` semantics (top-level = no parent).
+    Rows are queried ordered by code_index so options inside each group follow
+    that order; group order is the first-seen code_type.
     """
     rows = session.exec(
         select(CodeData)
@@ -110,37 +110,35 @@ def get_code_selection_groups(session: Session) -> list[SelectionGroup]:
         .where(CodeData.parent_id.is_(None))
         .order_by(CodeData.code_index.asc(), CodeData.code_id.asc())
     ).all()
-    groups: list[SelectionGroup] = []
-    for key, items in groupby(rows, key=lambda c: c.code_type):
-        groups.append(
-            SelectionGroup(
-                label=key,
-                options=[
-                    SelectionOption(value=c.code_id, label=c.name) for c in items
-                ],
-            )
+    grouped: dict[str, list[CodeData]] = {}
+    for c in rows:
+        grouped.setdefault(c.code_type, []).append(c)
+    return [
+        SelectionGroup(
+            label=key,
+            options=[SelectionOption(value=c.code_id, label=c.name) for c in items],
         )
-    return groups
+        for key, items in grouped.items()
+    ]
 
 
 def get_sub_code_selection_groups(
-    session: Session, code_group: str
+    session: Session, parent_id: str
 ) -> list[SelectionGroup]:
     """Children of a parent code, returned as a single 'sub' group.
 
-    `code_group` here is the parent code_id (path param). Raises 404 when the
-    parent has no children.
+    Raises 404 when the parent has no children.
     """
     rows = session.exec(
         select(CodeData)
-        .where(CodeData.parent_id == code_group)
+        .where(CodeData.parent_id == parent_id)
         .where(CodeData.in_use == "Y")
         .order_by(CodeData.code_index.asc(), CodeData.code_id.asc())
     ).all()
     if not rows:
         raise HTTPException(
             status_code=404,
-            detail=f"No sub-codes for parent: {code_group}",
+            detail=f"No sub-codes for parent: {parent_id}",
         )
     return [
         SelectionGroup(

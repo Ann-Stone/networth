@@ -238,8 +238,6 @@ def seed_codes(session: Session) -> tuple[list[CodeData], list[CodeData]]:
             code_type=code_type,
             name=name,
             parent_id=None,
-            code_group=f"grp-{code_type.lower()}",
-            code_group_name=f"{code_type} group",
             in_use="Y",
             code_index=idx,
         )
@@ -253,8 +251,6 @@ def seed_codes(session: Session) -> tuple[list[CodeData], list[CodeData]]:
             code_type=code_type,
             name=name,
             parent_id=parent_id,
-            code_group=f"grp-{code_type.lower()}",
-            code_group_name=f"{code_type} group",
             in_use="Y",
             code_index=idx,
         )

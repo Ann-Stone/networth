@@ -45,14 +45,12 @@ def test_get_account_selection_groups(session: Session) -> None:
     session.commit()
 
     groups = get_account_selection_groups(session)
-    # Legacy groupby preserves index order and fragments groups when types
-    # interleave. Index 1=CASH, 2=BANK, 3=CASH, 4 inactive → 3 groups.
-    assert [g.label for g in groups] == ["CASH", "BANK", "CASH"]
-    assert [o.label for g in groups for o in g.options] == [
-        "Cash NTD",
-        "Savings",
-        "Wallet",
-    ]
+    # Same account_type is consolidated into a single group regardless of
+    # interleaved indexes. Group order follows first-seen account_type
+    # (CASH appears at index 1 → first; BANK at index 2 → second).
+    assert [g.label for g in groups] == ["CASH", "BANK"]
+    assert [o.label for o in groups[0].options] == ["Cash NTD", "Wallet"]
+    assert [o.label for o in groups[1].options] == ["Savings"]
     # values are stringified ids
     assert all(isinstance(o.value, str) for g in groups for o in g.options)
 
@@ -163,8 +161,6 @@ def _make_code(**overrides) -> CodeData:
         code_type="Floating",
         name="Food",
         parent_id=None,
-        code_group=None,
-        code_group_name=None,
         in_use="Y",
         code_index=1,
     )

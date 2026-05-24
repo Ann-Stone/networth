@@ -18,8 +18,7 @@ def test_settings_models_roundtrip(session: Session) -> None:
         code_id="INC01",
         code_type="income",
         name="Salary",
-        code_group="income-main",
-        code_group_name="Salary income",
+        parent_id=None,
         in_use="Y",
         code_index=1,
     )

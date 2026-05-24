@@ -112,8 +112,6 @@ export interface CodeData {
   code_type: string
   name: string
   parent_id?: string | null
-  code_group?: string | null
-  code_group_name?: string | null
   in_use: string        // Y/N
   code_index: number
 }
@@ -127,8 +125,6 @@ export interface CodeDataCreate {
   code_type: string
   name: string
   parent_id?: string | null
-  code_group?: string | null
-  code_group_name?: string | null
   in_use?: string
   code_index?: number
 }

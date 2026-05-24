@@ -342,16 +342,26 @@ def _open_legacy(path: Path) -> sqlite3.Connection:
 # ---------------------------------------------------------------------------
 
 def migrate_codes(src: sqlite3.Connection, session: Session) -> int:
-    """Migrate ``Code_Data``. Legacy ``code_id INT`` → new ``code_id: str``."""
+    """Migrate ``Code_Data``. Legacy ``code_id INT`` → new ``code_id: str``.
+
+    Legacy used ``code_group`` for parent/child hierarchy and stored the parent
+    name in ``code_group_name``. The new schema uses ``parent_id`` only — pull
+    hierarchy from ``code_group`` (fall back to ``parent_id`` if present in a
+    newer snapshot) and discard the denormalized parent-name column.
+    """
     count = 0
     for row in src.execute("SELECT * FROM Code_Data"):
+        keys = row.keys()
+        parent = None
+        if "parent_id" in keys and row["parent_id"] is not None:
+            parent = _opt_str(row["parent_id"])
+        elif "code_group" in keys:
+            parent = _opt_str(row["code_group"])
         session.merge(CodeData(
             code_id=_str(row["code_id"]),
             code_type=row["code_type"],
             name=row["name"],
-            parent_id=_opt_str(row["parent_id"]) if "parent_id" in row.keys() else None,
-            code_group=_opt_str(row["code_group"]),
-            code_group_name=_opt_str(row["code_group_name"]),
+            parent_id=parent,
             in_use=row["in_use"],
             code_index=_opt_int(row["code_index"]) or 0,
         ))

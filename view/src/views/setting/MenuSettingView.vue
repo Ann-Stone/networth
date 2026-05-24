@@ -103,9 +103,6 @@
                   <StatusBadge :value="row.in_use" />
                 </template>
               </el-table-column>
-              <el-table-column prop="code_group" label="群組" min-width="120">
-                <template #default="{ row }">{{ row.code_group ?? '—' }}</template>
-              </el-table-column>
               <el-table-column prop="code_index" label="排序" width="80" />
               <el-table-column label="操作" width="160" fixed="right">
                 <template #default="{ row }">
@@ -289,9 +286,6 @@
             <el-radio value="Y">啟用</el-radio>
             <el-radio value="N">停用</el-radio>
           </el-radio-group>
-        </el-form-item>
-        <el-form-item label="群組">
-          <el-input v-model="codeGroupModel" />
         </el-form-item>
         <el-form-item label="排序">
           <el-input-number
@@ -597,20 +591,12 @@ function emptyCodeForm(): CodeDataCreate {
     code_type: 'Floating',
     name: '',
     parent_id: null,
-    code_group: null,
     in_use: 'Y',
     code_index: undefined,
   }
 }
 
 const codeForm = ref<CodeDataCreate>(emptyCodeForm())
-
-const codeGroupModel = computed<string>({
-  get: () => codeForm.value.code_group ?? '',
-  set: (v) => {
-    codeForm.value.code_group = v ? v : null
-  },
-})
 
 const codeIndexModel = computed<number | undefined>({
   get: () => codeForm.value.code_index,
@@ -640,7 +626,6 @@ function openEditCode(row: CodeDataWithSub) {
     code_type: row.code_type,
     name: row.name,
     parent_id: row.parent_id ?? null,
-    code_group: row.code_group ?? null,
     in_use: row.in_use,
     code_index: row.code_index,
   }
@@ -695,7 +680,6 @@ function emptySubCodeForm(parent: CodeDataWithSub): CodeDataCreate {
     code_type: parent.code_type,
     name: '',
     parent_id: parent.code_id,
-    code_group: parent.code_group ?? null,
     in_use: 'Y',
     code_index: undefined,
   }
@@ -729,7 +713,6 @@ function openEditSubCode(parent: CodeDataWithSub, row: CodeData) {
     code_type: row.code_type || parent.code_type,
     name: row.name,
     parent_id: parent.code_id,
-    code_group: row.code_group ?? parent.code_group ?? null,
     in_use: row.in_use,
     code_index: row.code_index,
   }
