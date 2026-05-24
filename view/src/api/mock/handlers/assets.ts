@@ -40,6 +40,8 @@ let stocks: StockAsset[] = [
   { stock_id: 'STK_VOO',  stock_code: 'VOO',  stock_name: 'Vanguard S&P500', asset_id: 'STK_US', expected_spend: 300000 },
 ]
 
+export const _stocksSnapshot = (): readonly StockAsset[] => stocks
+
 let stockJournals: StockJournal[] = [
   { distinct_number: 1, stock_id: 'STK_0050', excute_type: 'buy',   excute_amount: 1000, excute_price: 165.0, excute_date: '20260105', account_id: 'BANK_CTBC', account_name: '中信活存', memo: '年初加碼' },
   { distinct_number: 2, stock_id: 'STK_0050', excute_type: 'cash',  excute_amount: 1000, excute_price: 4.5,   excute_date: '20260315', account_id: 'BANK_CTBC', account_name: '中信活存', memo: '現金股利' },

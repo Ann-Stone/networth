@@ -20,6 +20,7 @@ const GROUP_LABEL_TRANSLATIONS: Record<string, string> = {
   Credit_Card: '信用卡',
   Loan: '貸款',
   Insurance: '保險',
+  Other_Asset: '其他資產',
   // Code types (main category groups)
   Floating: '浮動支出',
   Fixed: '固定支出',

@@ -6,6 +6,8 @@ import type {
   SelectionCreditCard,
   SelectionInsurance,
   SelectionLoan,
+  SelectionOtherAssetType,
+  SelectionStock,
 } from '@/types/models'
 
 // ─── Selection dropdowns ─────────────────────────────────────────────────────
@@ -31,6 +33,14 @@ export function getInsuranceSelections(): Promise<SelectionInsurance[]> {
 
 export function getLoanSelections(): Promise<SelectionLoan[]> {
   return request.get('/utilities/selections/loans')
+}
+
+export function getOtherAssetTypeSelections(): Promise<SelectionOtherAssetType[]> {
+  return request.get('/utilities/selections/other-asset-types')
+}
+
+export function getStockSelections(): Promise<SelectionStock[]> {
+  return request.get('/utilities/selections/stocks')
 }
 
 // ─── Import endpoints (background tasks) ─────────────────────────────────────

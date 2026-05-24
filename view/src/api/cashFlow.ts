@@ -8,6 +8,9 @@ import type {
   JournalExpenditureRatio,
   JournalInvestRatio,
   JournalLiability,
+  JournalStockTransactionCreate,
+  JournalStockTransactionRead,
+  JournalStockTransactionUpdate,
   SettleResult,
   StockPriceEntry,
   StockPriceHistory,
@@ -29,6 +32,19 @@ export function updateJournal(id: number, data: JournalUpdate): Promise<Journal>
 
 export function deleteJournal(id: number): Promise<null> {
   return request.delete(`/monthly-report/journals/${id}`)
+}
+
+export function createJournalWithStockTransaction(
+  data: JournalStockTransactionCreate,
+): Promise<JournalStockTransactionRead> {
+  return request.post('/monthly-report/journals/stock-transaction', data)
+}
+
+export function updateJournalWithStockTransaction(
+  id: number,
+  data: JournalStockTransactionUpdate,
+): Promise<JournalStockTransactionRead> {
+  return request.put(`/monthly-report/journals/${id}/stock-transaction`, data)
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
