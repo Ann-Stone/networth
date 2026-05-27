@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
 from app.database import get_session
-from app.models.settings.budget import BudgetRead, BudgetUpdate
+from app.models.settings.budget import BudgetCreate, BudgetRead, BudgetUpdate
 from app.schemas.response import (
     INTERNAL_ERROR,
     VALIDATION_ERROR,
@@ -14,10 +14,11 @@ from app.schemas.response import (
     not_found_error,
 )
 from app.services.setting_service import (
+    apply_budget,
     bulk_update_budgets,
-    copy_budget_from_previous,
     list_budget_year_range,
     list_budgets_by_year,
+    suggest_budget,
 )
 
 router = APIRouter(prefix="/budgets", tags=["settings:budgets"])
@@ -78,11 +79,14 @@ def bulk_update_budgets_endpoint(
 
 
 @router.post(
-    "/{year}/copy-from-previous",
-    summary="Copy budget from previous year journal",
+    "/{year}/suggest",
+    summary="Suggest budget from recent years",
     description=(
-        "Compute budget for {year} by averaging the previous year's Journal "
-        "amounts per action_main_type across 12 months, then upsert into Budget."
+        "Compute a suggested budget for {year} from the last up-to-3 years of "
+        "Journal spending: per-calendar-month median for ordinary Fixed/Floating "
+        "categories, and a single annual-total median envelope (annual_amount) for "
+        "categories flagged is_annual_event. Returns the suggestion WITHOUT "
+        "persisting so the client can preview and edit before applying."
     ),
     response_model=ApiResponse[list[BudgetRead]],
     responses={
@@ -90,9 +94,31 @@ def bulk_update_budgets_endpoint(
         500: INTERNAL_ERROR,
     },
 )
-def copy_budget_from_previous_endpoint(
+def suggest_budget_endpoint(
     year: int,
     session: Session = Depends(get_session),
 ) -> ApiResponse[list[BudgetRead]]:
-    rows = copy_budget_from_previous(session, year)
+    rows = suggest_budget(session, year)
+    return ApiResponse(data=[BudgetRead.model_validate(r, from_attributes=True) for r in rows])
+
+
+@router.post(
+    "/{year}/apply",
+    summary="Apply (upsert) budget rows",
+    description=(
+        "Upsert the provided budget rows, inserting rows that do not exist yet. "
+        "Use this to persist a (possibly edited) suggestion for a brand-new year."
+    ),
+    response_model=ApiResponse[list[BudgetRead]],
+    responses={
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
+)
+def apply_budget_endpoint(
+    year: int,
+    payload: list[BudgetCreate],
+    session: Session = Depends(get_session),
+) -> ApiResponse[list[BudgetRead]]:
+    rows = apply_budget(session, payload)
     return ApiResponse(data=[BudgetRead.model_validate(r, from_attributes=True) for r in rows])

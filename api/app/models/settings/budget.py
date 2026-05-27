@@ -69,6 +69,11 @@ class Budget(SQLModel, table=True):
     expected10: float = _expected_field("10")
     expected11: float = _expected_field("11")
     expected12: float = _expected_field("12")
+    annual_amount: float | None = Field(
+        default=None,
+        description="Annual envelope for annual-event categories; null for ordinary categories",
+        schema_extra={"examples": [None]},
+    )
 
     model_config = ConfigDict(json_schema_extra={"example": _BUDGET_EXAMPLE})
 
@@ -90,6 +95,9 @@ class BudgetCreate(SQLModel):
     expected10: float = Field(..., description="Month 10 expected", schema_extra={"examples": [100000.0]})
     expected11: float = Field(..., description="Month 11 expected", schema_extra={"examples": [100000.0]})
     expected12: float = Field(..., description="Month 12 expected", schema_extra={"examples": [200000.0]})
+    annual_amount: float | None = Field(
+        default=None, description="Annual envelope for annual-event categories", schema_extra={"examples": [None]}
+    )
 
     model_config = ConfigDict(json_schema_extra={"example": _BUDGET_EXAMPLE})
 
@@ -119,6 +127,9 @@ class BudgetUpdate(SQLModel):
     expected10: float | None = Field(default=None, description="Month 10 expected", schema_extra={"examples": [100000.0]})
     expected11: float | None = Field(default=None, description="Month 11 expected", schema_extra={"examples": [100000.0]})
     expected12: float | None = Field(default=None, description="Month 12 expected", schema_extra={"examples": [200000.0]})
+    annual_amount: float | None = Field(
+        default=None, description="Annual envelope for annual-event categories", schema_extra={"examples": [None]}
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -144,5 +155,8 @@ class BudgetRead(SQLModel):
     expected10: float = Field(..., description="Month 10 expected", schema_extra={"examples": [100000.0]})
     expected11: float = Field(..., description="Month 11 expected", schema_extra={"examples": [100000.0]})
     expected12: float = Field(..., description="Month 12 expected", schema_extra={"examples": [200000.0]})
+    annual_amount: float | None = Field(
+        default=None, description="Annual envelope for annual-event categories", schema_extra={"examples": [None]}
+    )
 
     model_config = ConfigDict(json_schema_extra={"example": _BUDGET_EXAMPLE})

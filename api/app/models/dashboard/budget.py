@@ -34,9 +34,20 @@ class BudgetLine(SQLModel):
 class BudgetRead(SQLModel):
     type: BudgetType = Field(..., description="Aggregation granularity", schema_extra={"examples": ["monthly"]})
     period: str = Field(..., description="YYYYMM for monthly, YYYY for yearly", schema_extra={"examples": ["202403"]})
-    lines: list[BudgetLine] = Field(..., description="Per-category rows", schema_extra={"examples": [[]]})
+    lines: list[BudgetLine] = Field(..., description="Per-category rows (ordinary monthly categories)", schema_extra={"examples": [[]]})
     total_planned: float = Field(..., description="Sum of planned across lines", schema_extra={"examples": [10000.0]})
     total_actual: float = Field(..., description="Sum of actual across lines", schema_extra={"examples": [8700.0]})
+    event_lines: list[BudgetLine] = Field(
+        default_factory=list,
+        description="Annual-event categories: planned=annual envelope, actual=year-to-date. Excluded from lines/totals.",
+        schema_extra={"examples": [[]]},
+    )
+    event_total_planned: float = Field(
+        default=0.0, description="Sum of planned across event_lines", schema_extra={"examples": [0.0]}
+    )
+    event_total_actual: float = Field(
+        default=0.0, description="Sum of actual across event_lines", schema_extra={"examples": [0.0]}
+    )
 
     model_config = ConfigDict(
         json_schema_extra={

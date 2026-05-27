@@ -20,6 +20,9 @@ def test_budget_composite_pk_and_fk() -> None:
     for mm in (f"{m:02d}" for m in range(1, 13)):
         assert f"expected{mm}" in table.c
 
+    # Annual-event envelope column present
+    assert "annual_amount" in table.c
+
     for schema_cls in (Budget, BudgetCreate, BudgetUpdate, BudgetRead):
         js = schema_cls.model_json_schema()
         assert "example" in js

@@ -22,6 +22,7 @@ def test_code_data_table_fields() -> None:
         "parent_id",
         "in_use",
         "code_index",
+        "is_annual_event",
     }
     assert set(table.c.keys()) == expected
 

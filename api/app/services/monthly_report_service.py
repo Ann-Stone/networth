@@ -29,6 +29,7 @@ from app.models.monthly_report.journal_composite import (
 )
 from app.models.settings.account import Account
 from app.models.settings.budget import Budget
+from app.models.settings.code_data import CodeData
 from app.models.settings.credit_card import CreditCard
 
 BASE_CURRENCY = "TWD"
@@ -332,15 +333,23 @@ def compute_expenditure_budget(
     mm = vesting_month[-2:]
     budget_field = f"expected{mm}"
 
+    event_codes = {
+        c.code_id for c in session.exec(select(CodeData)).all() if c.is_annual_event
+    }
+
     budget_rows = list(session.exec(select(Budget).where(Budget.budget_year == year)).all())
     expected_by_type: dict[str, float] = {}
     for b in budget_rows:
+        if b.category_code in event_codes:
+            continue
         amt = float(getattr(b, budget_field) or 0.0)
         expected_by_type[b.code_type] = expected_by_type.get(b.code_type, 0.0) + amt
 
     journals = list_journals_by_month(session, vesting_month)
     actual_by_type: dict[str, float] = {}
     for j in journals:
+        if j.action_main in event_codes:
+            continue
         actual_by_type[j.action_main_type] = (
             actual_by_type.get(j.action_main_type, 0.0) + abs(j.spending)
         )

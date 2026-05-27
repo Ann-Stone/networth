@@ -12,6 +12,7 @@ _CODE_EXAMPLE = {
     "parent_id": None,
     "in_use": "Y",
     "code_index": 1,
+    "is_annual_event": False,
 }
 
 
@@ -34,6 +35,11 @@ class CodeData(SQLModel, table=True):
     )
     in_use: str = Field(..., description="Active flag (Y/N)", schema_extra={"examples": ["Y"]})
     code_index: int = Field(..., description="Dropdown order, ORDER BY ASC", schema_extra={"examples": [1]})
+    is_annual_event: bool = Field(
+        default=False,
+        description="Budget as a single annual envelope instead of 12 monthly amounts",
+        schema_extra={"examples": [False]},
+    )
 
     model_config = ConfigDict(json_schema_extra={"example": _CODE_EXAMPLE})
 
@@ -55,6 +61,9 @@ class CodeDataCreate(SQLModel):
         description="Dropdown order; auto-filled with max+1 when omitted",
         schema_extra={"examples": [1]},
     )
+    is_annual_event: bool = Field(
+        default=False, description="Budget as a single annual envelope", schema_extra={"examples": [False]}
+    )
 
     model_config = ConfigDict(json_schema_extra={"example": _CODE_EXAMPLE})
 
@@ -65,6 +74,9 @@ class CodeDataUpdate(SQLModel):
     parent_id: str | None = Field(default=None, description="Parent code_id", schema_extra={"examples": [None]})
     in_use: str | None = Field(default=None, description="Active flag", schema_extra={"examples": ["N"]})
     code_index: int | None = Field(default=None, description="Dropdown order", schema_extra={"examples": [2]})
+    is_annual_event: bool | None = Field(
+        default=None, description="Budget as a single annual envelope", schema_extra={"examples": [True]}
+    )
 
     model_config = ConfigDict(json_schema_extra={"example": {"in_use": "N"}})
 
@@ -76,6 +88,9 @@ class CodeDataRead(SQLModel):
     parent_id: str | None = Field(default=None, description="Parent code_id", schema_extra={"examples": [None]})
     in_use: str = Field(..., description="Active flag", schema_extra={"examples": ["Y"]})
     code_index: int = Field(..., description="Dropdown order", schema_extra={"examples": [1]})
+    is_annual_event: bool = Field(
+        default=False, description="Budget as a single annual envelope", schema_extra={"examples": [False]}
+    )
 
     model_config = ConfigDict(json_schema_extra={"example": _CODE_EXAMPLE})
 

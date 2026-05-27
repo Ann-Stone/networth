@@ -71,6 +71,22 @@ def test_all_with_sub_shape(session: Session) -> None:
     assert rows[0].sub_codes[0].code_id == "E0101"
 
 
+def test_is_annual_event_create_and_update(session: Session) -> None:
+    create_main_code(
+        session,
+        CodeDataCreate(**_main_payload(code_id="EV1", name="LunarNY", is_annual_event=True)),
+    )
+    assert session.get(CodeData, "EV1").is_annual_event is True
+
+    update_main_code(session, "EV1", CodeDataUpdate(is_annual_event=False))
+    assert session.get(CodeData, "EV1").is_annual_event is False
+
+
+def test_is_annual_event_defaults_false(session: Session) -> None:
+    create_main_code(session, CodeDataCreate(**_main_payload(code_id="E02", name="Transit")))
+    assert session.get(CodeData, "E02").is_annual_event is False
+
+
 def test_list_main(session: Session) -> None:
     create_main_code(session, CodeDataCreate(**_main_payload(code_id="A", name="A", code_index=2)))
     create_main_code(session, CodeDataCreate(**_main_payload(code_id="B", name="B", code_index=1)))

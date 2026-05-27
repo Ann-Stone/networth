@@ -249,43 +249,74 @@ def get_budget_usage(session: Session, type: BudgetType, period: str) -> BudgetR
             Journal.vesting_month <= f"{year}12"
         )
 
+    event_codes = {
+        c.code_id for c in session.exec(select(CodeData)).all() if c.is_annual_event
+    }
+
     budget_rows = list(session.exec(select(Budget).where(Budget.budget_year == year)).all())
     planned_by_cat: dict[str, float] = {}
     name_by_cat: dict[str, str] = {}
+    event_planned_by_cat: dict[str, float] = {}
+    event_name_by_cat: dict[str, str] = {}
     for b in budget_rows:
+        name = b.category_name or b.category_code
+        if b.category_code in event_codes:
+            event_planned_by_cat[b.category_code] = float(b.annual_amount or 0.0)
+            event_name_by_cat[b.category_code] = name
+            continue
         if budget_field is not None:
             planned_by_cat[b.category_code] = float(getattr(b, budget_field) or 0.0)
         else:
             planned_by_cat[b.category_code] = sum(
                 float(getattr(b, f"expected{m:02d}") or 0.0) for m in range(1, 13)
             )
-        name_by_cat[b.category_code] = b.category_name or b.category_code
+        name_by_cat[b.category_code] = name
 
-    journals = list(session.exec(select(Journal).where(journal_filter)).all())
-    actual_by_cat: dict[str, float] = {}
-    for j in journals:
-        actual_by_cat[j.action_main] = actual_by_cat.get(j.action_main, 0.0) + abs(j.spending)
+    # Ordinary actual: the requested period (this month, or full year), events excluded.
+    ordinary_actual: dict[str, float] = {}
+    for j in session.exec(select(Journal).where(journal_filter)).all():
+        if j.action_main in event_codes:
+            continue
+        ordinary_actual[j.action_main] = ordinary_actual.get(j.action_main, 0.0) + abs(j.spending)
 
-    categories = sorted(set(planned_by_cat) | set(actual_by_cat))
-    lines: list[BudgetLine] = []
-    for cat in categories:
-        planned = planned_by_cat.get(cat, 0.0)
-        actual = actual_by_cat.get(cat, 0.0)
-        usage = round(actual * 100 / planned, 2) if planned else 0.0
-        lines.append(
-            BudgetLine(
-                category=name_by_cat.get(cat, cat),
-                planned=round(planned, 2),
-                actual=round(actual, 2),
-                usage_pct=usage,
+    # Event actual vs the annual envelope: year-to-date for monthly, full year for yearly.
+    if type == BudgetType.monthly:
+        event_filter = (Journal.vesting_month >= f"{year}01") & (Journal.vesting_month <= period)
+    else:
+        event_filter = journal_filter
+    event_actual: dict[str, float] = {}
+    for j in session.exec(select(Journal).where(event_filter)).all():
+        if j.action_main not in event_codes:
+            continue
+        event_actual[j.action_main] = event_actual.get(j.action_main, 0.0) + abs(j.spending)
+
+    def _lines(planned_map: dict[str, float], name_map: dict[str, str], actual_map: dict[str, float]) -> list[BudgetLine]:
+        out: list[BudgetLine] = []
+        for cat in sorted(set(planned_map) | set(actual_map)):
+            planned = planned_map.get(cat, 0.0)
+            actual = actual_map.get(cat, 0.0)
+            usage = round(actual * 100 / planned, 2) if planned else 0.0
+            out.append(
+                BudgetLine(
+                    category=name_map.get(cat, cat),
+                    planned=round(planned, 2),
+                    actual=round(actual, 2),
+                    usage_pct=usage,
+                )
             )
-        )
+        return out
+
+    lines = _lines(planned_by_cat, name_by_cat, ordinary_actual)
+    event_lines = _lines(event_planned_by_cat, event_name_by_cat, event_actual)
     return BudgetRead(
         type=type,
         period=period,
         lines=lines,
         total_planned=round(sum(l.planned for l in lines), 2),
         total_actual=round(sum(l.actual for l in lines), 2),
+        event_lines=event_lines,
+        event_total_planned=round(sum(l.planned for l in event_lines), 2),
+        event_total_actual=round(sum(l.actual for l in event_lines), 2),
     )
 
 

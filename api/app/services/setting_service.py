@@ -1,6 +1,7 @@
 """Settings domain service functions (flat, session-as-parameter)."""
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date
 
 from dateutil import parser as date_parser
@@ -10,7 +11,7 @@ from sqlmodel import Session, select
 
 from app.models.settings.account import Account, AccountCreate, AccountUpdate
 from app.models.settings.alarm import Alarm, AlarmCreate, AlarmUpdate
-from app.models.settings.budget import Budget, BudgetUpdate
+from app.models.settings.budget import Budget, BudgetCreate, BudgetUpdate
 from app.models.settings.credit_card import CreditCard, CreditCardCreate, CreditCardUpdate
 from app.models.monthly_report.journal import Journal
 from app.models.settings.code_data import (
@@ -330,50 +331,110 @@ def delete_credit_card(session: Session, credit_card_id: str) -> None:
     session.commit()
 
 
-def copy_budget_from_previous(session: Session, next_year: int) -> list[Budget]:
-    prev_year = str(next_year - 1)
-    next_year_str = str(next_year)
+def _median(values: list[float]) -> float:
+    """Median of a list; mean of the two middle values for even counts; 0 when empty."""
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    n = len(ordered)
+    mid = n // 2
+    if n % 2 == 1:
+        return ordered[mid]
+    return (ordered[mid - 1] + ordered[mid]) / 2.0
+
+
+def suggest_budget(session: Session, year: int) -> list[Budget]:
+    """Compute (without persisting) suggested Budget rows for ``year``.
+
+    Uses the last up-to-3 years of Journal spending for each active Fixed/Floating
+    main category, keyed by ``action_main`` (the category code). Ordinary categories
+    get a robust per-calendar-month estimate (median across the years that have data,
+    so recurring seasonality survives while one-off month spikes are damped).
+    Annual-event categories instead get a single ``annual_amount`` envelope = median
+    of the years' annual totals. Transfer/invest/income journals are excluded because
+    only Fixed/Floating categories are emitted.
+    """
+    year_str = str(year)
+    years = [year - 1, year - 2, year - 3]
+    lo, hi = f"{year - 3}01", f"{year - 1}12"
+
+    codes = session.exec(
+        select(CodeData).where(
+            CodeData.parent_id.is_(None),
+            CodeData.code_type.in_(_BUDGET_TRIGGER_TYPES),
+            CodeData.in_use == "Y",
+        )
+    ).all()
 
     journals = session.exec(
-        select(Journal).where(Journal.spend_date.like(f"{prev_year}%"))
+        select(Journal).where(Journal.vesting_month >= lo, Journal.vesting_month <= hi)
     ).all()
-    if not journals:
-        return []
 
-    totals: dict[str, float] = {}
+    # sums[code_id][year][month] = sum of |spending|
+    sums: dict[str, dict[int, dict[int, float]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(float))
+    )
     for j in journals:
-        totals[j.action_main_type] = totals.get(j.action_main_type, 0.0) + abs(j.spending or 0.0)
-
-    monthly_avg = {k: v / 12.0 for k, v in totals.items()}
-
-    code_map: dict[str, CodeData] = {
-        c.code_id: c
-        for c in session.exec(select(CodeData).where(CodeData.code_id.in_(monthly_avg.keys()))).all()
-    }
+        vm = j.vesting_month or ""
+        if len(vm) != 6:
+            continue
+        y, m = int(vm[:4]), int(vm[4:6])
+        sums[j.action_main][y][m] += abs(j.spending or 0.0)
 
     rows: list[Budget] = []
-    for category_code, avg in monthly_avg.items():
-        existing = session.get(Budget, (next_year_str, category_code))
-        if existing is not None:
-            for m in range(1, 13):
-                setattr(existing, f"expected{m:02d}", avg)
-            session.add(existing)
-            rows.append(existing)
-        else:
-            code = code_map.get(category_code)
-            new_row = Budget(
-                budget_year=next_year_str,
-                category_code=category_code,
-                category_name=code.name if code else category_code,
-                code_type=code.code_type if code else "",
-                **{f"expected{m:02d}": avg for m in range(1, 13)},
+    for code in sorted(codes, key=lambda c: c.code_id):
+        per_year = sums.get(code.code_id, {})
+        present_years = [y for y in years if y in per_year]
+
+        if code.is_annual_event:
+            totals = [sum(per_year[y].values()) for y in present_years]
+            rows.append(
+                Budget(
+                    budget_year=year_str,
+                    category_code=code.code_id,
+                    category_name=code.name,
+                    code_type=code.code_type,
+                    annual_amount=round(_median(totals), 2),
+                    **{f"expected{m:02d}": 0.0 for m in range(1, 13)},
+                )
             )
-            session.add(new_row)
-            rows.append(new_row)
-    session.commit()
-    for r in rows:
-        session.refresh(r)
+        else:
+            monthly = {
+                f"expected{m:02d}": round(
+                    _median([per_year[y].get(m, 0.0) for y in present_years]), 2
+                )
+                for m in range(1, 13)
+            }
+            rows.append(
+                Budget(
+                    budget_year=year_str,
+                    category_code=code.code_id,
+                    category_name=code.name,
+                    code_type=code.code_type,
+                    annual_amount=None,
+                    **monthly,
+                )
+            )
     return rows
+
+
+def apply_budget(session: Session, items: list[BudgetCreate]) -> list[Budget]:
+    """Upsert full budget rows (insert when missing) by (budget_year, category_code)."""
+    for item in items:
+        data = item.model_dump()
+        existing = session.get(Budget, (item.budget_year, item.category_code))
+        if existing is not None:
+            for k, v in data.items():
+                setattr(existing, k, v)
+            session.add(existing)
+        else:
+            session.add(Budget(**data))
+    session.commit()
+    return [
+        row
+        for item in items
+        if (row := session.get(Budget, (item.budget_year, item.category_code))) is not None
+    ]
 
 
 # ---------- Alarm ----------
