@@ -100,9 +100,23 @@ function dashboardBudget(type: string, period: string): DashboardBudget {
   const year = period.slice(0, 4)
   const monthIdx = type === 'monthly' ? Number(period.slice(4, 6)) : 0
   const yearBudgets = _budgetsForYear(year)
-  const lines: DashboardBudgetLine[] = yearBudgets
-    .filter((b) => b.code_type !== 'Income' && b.code_type !== 'Transfer')
-    .map((b) => {
+  const ordinary: DashboardBudgetLine[] = []
+  const events: DashboardBudgetLine[] = []
+  for (const b of yearBudgets) {
+    if (b.code_type === 'Income' || b.code_type === 'Transfer') continue
+    const isEvent = (b.annual_amount ?? 0) > 0
+    if (isEvent) {
+      const planned = Number(b.annual_amount) || 0
+      // Monthly view → YTD actual through `monthIdx`; yearly → whole-year actual.
+      const fraction = type === 'monthly' ? Math.min(1, monthIdx / 12) : 1
+      const actual = Math.round(planned * fraction * (0.4 + Math.random() * 0.4))
+      events.push({
+        category: b.category_name,
+        planned,
+        actual,
+        usage_pct: planned ? actual / planned : 0,
+      })
+    } else {
       let planned: number
       if (type === 'monthly') {
         const key = `expected${String(monthIdx).padStart(2, '0')}` as keyof typeof b
@@ -111,16 +125,24 @@ function dashboardBudget(type: string, period: string): DashboardBudget {
         planned = (b.expected01 + b.expected02 + b.expected03 + b.expected04 + b.expected05 + b.expected06 + b.expected07 + b.expected08 + b.expected09 + b.expected10 + b.expected11 + b.expected12)
       }
       const actual = Math.round(planned * (0.55 + Math.random() * 0.4))
-      return {
+      ordinary.push({
         category: b.category_name,
         planned,
         actual,
         usage_pct: planned ? actual / planned : 0,
-      }
-    })
-  const total_planned = lines.reduce((s, l) => s + l.planned, 0)
-  const total_actual = lines.reduce((s, l) => s + l.actual, 0)
-  return { type, period, lines, total_planned, total_actual }
+      })
+    }
+  }
+  return {
+    type,
+    period,
+    lines: ordinary,
+    total_planned: ordinary.reduce((s, l) => s + l.planned, 0),
+    total_actual: ordinary.reduce((s, l) => s + l.actual, 0),
+    event_lines: events,
+    event_total_planned: events.reduce((s, l) => s + l.planned, 0),
+    event_total_actual: events.reduce((s, l) => s + l.actual, 0),
+  }
 }
 
 // ─── Gifts ───────────────────────────────────────────────────────────────────

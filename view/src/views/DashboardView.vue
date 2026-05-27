@@ -117,6 +117,14 @@
           :delta-label="budgetUsageDeltaLabel"
           class="shrink-0"
         />
+        <MetricCard
+          v-if="!store.budgetLoading && hasEventBudget"
+          label="年度事件信封"
+          format="percent"
+          :amount="eventUsagePct"
+          :delta-label="eventUsageDeltaLabel"
+          class="shrink-0"
+        />
         <el-skeleton v-if="store.giftsLoading" :rows="3" animated class="flex-1" />
         <EmptyState
           v-else-if="store.gifts.length === 0"
@@ -512,6 +520,24 @@ const budgetUsageDeltaLabel = computed(() => {
     return store.viewMode === 'month' ? '本月尚無預算' : '本年尚無預算'
   }
   return `實際 ${moneyFormatter.format(b.total_actual)} / 預算 ${moneyFormatter.format(b.total_planned)}`
+})
+
+const hasEventBudget = computed(() => {
+  const b = store.budget
+  return !!b && Array.isArray(b.event_lines) && b.event_lines.length > 0 && b.event_total_planned > 0
+})
+
+const eventUsagePct = computed(() => {
+  const b = store.budget
+  if (!b || !b.event_total_planned) return 0
+  return Math.round((b.event_total_actual / b.event_total_planned) * 1000) / 10
+})
+
+const eventUsageDeltaLabel = computed(() => {
+  const b = store.budget
+  if (!b || !b.event_total_planned) return '尚無年度事件額度'
+  const ytd = store.viewMode === 'month' ? '年初至今' : '全年'
+  return `${ytd} ${moneyFormatter.format(b.event_total_actual)} / 額度 ${moneyFormatter.format(b.event_total_planned)}`
 })
 
 function giftRateClass(rate: number): string {

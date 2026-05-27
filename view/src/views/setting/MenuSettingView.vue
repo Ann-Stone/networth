@@ -98,6 +98,12 @@
               <el-table-column prop="code_id" label="分類 ID" min-width="120" />
               <el-table-column prop="name" label="名稱" min-width="160" />
               <el-table-column prop="code_type" label="類型" min-width="110" />
+              <el-table-column label="年度事件" width="100">
+                <template #default="{ row }">
+                  <el-tag v-if="row.is_annual_event" size="small" type="warning">事件</el-tag>
+                  <span v-else class="text-on-surface-muted">—</span>
+                </template>
+              </el-table-column>
               <el-table-column label="啟用" width="80">
                 <template #default="{ row }">
                   <StatusBadge :value="row.in_use" />
@@ -296,6 +302,14 @@
             controls-position="right"
             style="width: 100%"
           />
+        </el-form-item>
+        <el-form-item label="年度事件">
+          <div class="flex flex-col gap-1">
+            <el-switch v-model="codeForm.is_annual_event" />
+            <span class="text-xs text-on-surface-muted">
+              開啟後此分類改以「全年一筆額度」編列,不分攤到 12 個月 (如過年、年節送禮)
+            </span>
+          </div>
         </el-form-item>
       </el-form>
     </FormDialog>
@@ -593,6 +607,7 @@ function emptyCodeForm(): CodeDataCreate {
     parent_id: null,
     in_use: 'Y',
     code_index: undefined,
+    is_annual_event: false,
   }
 }
 
@@ -628,6 +643,7 @@ function openEditCode(row: CodeDataWithSub) {
     parent_id: row.parent_id ?? null,
     in_use: row.in_use,
     code_index: row.code_index,
+    is_annual_event: row.is_annual_event,
   }
   codeDialogVisible.value = true
 }

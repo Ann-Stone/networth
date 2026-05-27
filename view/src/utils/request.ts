@@ -3,8 +3,18 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 import type { ApiResponse } from '@/types/models'
 
+// In mock mode the MSW service worker is registered under Vite's `base`
+// (`/networth/`), so its scope only covers `/networth/*`. Requests to `/api/*`
+// fall outside the scope, miss MSW entirely, and hit the (non-running) dev
+// proxy target. Align the baseURL to land inside the worker's scope; handlers
+// use `*/<resource>` wildcards so they still match.
+const baseURL =
+  import.meta.env.VITE_USE_MOCK === 'true'
+    ? `${import.meta.env.BASE_URL}api`
+    : import.meta.env.VITE_API_BASE_URL || '/api'
+
 const service: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL,
   timeout: 10000,
 })
 

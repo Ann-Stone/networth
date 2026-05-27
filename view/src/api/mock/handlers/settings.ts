@@ -30,20 +30,20 @@ let accountSeq = accounts.length
 // ─── Codes / Sub-codes ───────────────────────────────────────────────────────
 
 let codes: CodeData[] = [
-  { code_id: 'INC',  code_type: 'Income',   name: '收入',   parent_id: null, in_use: 'Y', code_index: 1 },
-  { code_id: 'FIX',  code_type: 'Fixed',    name: '固定支出', parent_id: null, in_use: 'Y', code_index: 2 },
-  { code_id: 'FLT',  code_type: 'Floating', name: '浮動支出', parent_id: null, in_use: 'Y', code_index: 3 },
-  { code_id: 'INV',  code_type: 'Invest',   name: '投資',   parent_id: null, in_use: 'Y', code_index: 4 },
-  { code_id: 'TRF',  code_type: 'Transfer', name: '轉帳',   parent_id: null, in_use: 'Y', code_index: 5 },
+  { code_id: 'INC',  code_type: 'Income',   name: '收入',   parent_id: null, in_use: 'Y', code_index: 1, is_annual_event: false },
+  { code_id: 'FIX',  code_type: 'Fixed',    name: '固定支出', parent_id: null, in_use: 'Y', code_index: 2, is_annual_event: false },
+  { code_id: 'FLT',  code_type: 'Floating', name: '浮動支出', parent_id: null, in_use: 'Y', code_index: 3, is_annual_event: false },
+  { code_id: 'INV',  code_type: 'Invest',   name: '投資',   parent_id: null, in_use: 'Y', code_index: 4, is_annual_event: false },
+  { code_id: 'TRF',  code_type: 'Transfer', name: '轉帳',   parent_id: null, in_use: 'Y', code_index: 5, is_annual_event: false },
   // Sub-codes
-  { code_id: 'INC_SAL',  code_type: 'Income',   name: '薪資',   parent_id: 'INC', in_use: 'Y', code_index: 1 },
-  { code_id: 'INC_BNS',  code_type: 'Income',   name: '獎金',   parent_id: 'INC', in_use: 'Y', code_index: 2 },
-  { code_id: 'FIX_RNT',  code_type: 'Fixed',    name: '房租',   parent_id: 'FIX', in_use: 'Y', code_index: 1 },
-  { code_id: 'FIX_UTL',  code_type: 'Fixed',    name: '水電',   parent_id: 'FIX', in_use: 'Y', code_index: 2 },
-  { code_id: 'FLT_FOOD', code_type: 'Floating', name: '伙食',   parent_id: 'FLT', in_use: 'Y', code_index: 1 },
-  { code_id: 'FLT_TRP',  code_type: 'Floating', name: '交通',   parent_id: 'FLT', in_use: 'Y', code_index: 2 },
-  { code_id: 'INV_STK',  code_type: 'Invest',   name: '股票',   parent_id: 'INV', in_use: 'Y', code_index: 1 },
-  { code_id: 'TRF_TRF',  code_type: 'Transfer', name: '一般轉帳', parent_id: 'TRF', in_use: 'Y', code_index: 1 },
+  { code_id: 'INC_SAL',  code_type: 'Income',   name: '薪資',   parent_id: 'INC', in_use: 'Y', code_index: 1, is_annual_event: false },
+  { code_id: 'INC_BNS',  code_type: 'Income',   name: '獎金',   parent_id: 'INC', in_use: 'Y', code_index: 2, is_annual_event: false },
+  { code_id: 'FIX_RNT',  code_type: 'Fixed',    name: '房租',   parent_id: 'FIX', in_use: 'Y', code_index: 1, is_annual_event: false },
+  { code_id: 'FIX_UTL',  code_type: 'Fixed',    name: '水電',   parent_id: 'FIX', in_use: 'Y', code_index: 2, is_annual_event: false },
+  { code_id: 'FLT_FOOD', code_type: 'Floating', name: '伙食',   parent_id: 'FLT', in_use: 'Y', code_index: 1, is_annual_event: false },
+  { code_id: 'FLT_TRP',  code_type: 'Floating', name: '交通',   parent_id: 'FLT', in_use: 'Y', code_index: 2, is_annual_event: false },
+  { code_id: 'INV_STK',  code_type: 'Invest',   name: '股票',   parent_id: 'INV', in_use: 'Y', code_index: 1, is_annual_event: false },
+  { code_id: 'TRF_TRF',  code_type: 'Transfer', name: '一般轉帳', parent_id: 'TRF', in_use: 'Y', code_index: 1, is_annual_event: false },
 ]
 
 function buildCodesTree(): CodeDataWithSub[] {
@@ -62,47 +62,41 @@ let creditCards: CreditCard[] = [
 ]
 
 // ─── Budgets ─────────────────────────────────────────────────────────────────
+//
+// Mirrors the real backend: budgets are keyed by *main* code (parent_id IS NULL)
+// and the suggest endpoint only emits Fixed/Floating categories (the
+// _BUDGET_TRIGGER_TYPES in setting_service.suggest_budget). Income / Invest /
+// Transfer never appear in the budget table.
 
-const BUDGET_CATEGORIES: Array<{ category_code: string; category_name: string; code_type: string }> = [
-  { category_code: 'INC_SAL',  category_name: '薪資',     code_type: 'Income'   },
-  { category_code: 'INC_BNS',  category_name: '獎金',     code_type: 'Income'   },
-  { category_code: 'FIX_RNT',  category_name: '房租',     code_type: 'Fixed'    },
-  { category_code: 'FIX_UTL',  category_name: '水電',     code_type: 'Fixed'    },
-  { category_code: 'FLT_FOOD', category_name: '伙食',     code_type: 'Floating' },
-  { category_code: 'FLT_TRP',  category_name: '交通',     code_type: 'Floating' },
-  { category_code: 'INV_STK',  category_name: '股票',     code_type: 'Invest'   },
-]
+const BASE_MONTHLY: Record<string, number> = { FIX: 21000, FLT: 15000 }
+const BASE_ANNUAL: Record<string, number> = { FIX: 60000, FLT: 50000 }
 
-function makeYearBudgets(year: string, base: Record<string, number>): Budget[] {
-  return BUDGET_CATEGORIES.map((cat) => ({
-    budget_year: year,
-    category_code: cat.category_code,
-    category_name: cat.category_name,
-    code_type: cat.code_type,
-    expected01: base[cat.category_code] ?? 0,
-    expected02: base[cat.category_code] ?? 0,
-    expected03: base[cat.category_code] ?? 0,
-    expected04: base[cat.category_code] ?? 0,
-    expected05: base[cat.category_code] ?? 0,
-    expected06: base[cat.category_code] ?? 0,
-    expected07: base[cat.category_code] ?? 0,
-    expected08: base[cat.category_code] ?? 0,
-    expected09: base[cat.category_code] ?? 0,
-    expected10: base[cat.category_code] ?? 0,
-    expected11: base[cat.category_code] ?? 0,
-    expected12: base[cat.category_code] ?? 0,
-  }))
+function budgetMains(): CodeData[] {
+  return codes.filter((c) => !c.parent_id && (c.code_type === 'Fixed' || c.code_type === 'Floating'))
 }
 
-const BASE_AMOUNTS: Record<string, number> = {
-  INC_SAL: 80000, INC_BNS: 10000, FIX_RNT: 18000, FIX_UTL: 3000,
-  FLT_FOOD: 12000, FLT_TRP: 3000, INV_STK: 15000,
+function makeYearBudgets(year: string): Budget[] {
+  return budgetMains().map((c) => {
+    const isEvent = !!c.is_annual_event
+    const monthly = isEvent ? 0 : BASE_MONTHLY[c.code_id] ?? 0
+    return {
+      budget_year: year,
+      category_code: c.code_id,
+      category_name: c.name,
+      code_type: c.code_type,
+      expected01: monthly, expected02: monthly, expected03: monthly,
+      expected04: monthly, expected05: monthly, expected06: monthly,
+      expected07: monthly, expected08: monthly, expected09: monthly,
+      expected10: monthly, expected11: monthly, expected12: monthly,
+      annual_amount: isEvent ? BASE_ANNUAL[c.code_id] ?? 0 : null,
+    }
+  })
 }
 
 let budgetsByYear: Record<string, Budget[]> = {
-  '2024': makeYearBudgets('2024', BASE_AMOUNTS),
-  '2025': makeYearBudgets('2025', BASE_AMOUNTS),
-  '2026': makeYearBudgets('2026', BASE_AMOUNTS),
+  '2024': makeYearBudgets('2024'),
+  '2025': makeYearBudgets('2025'),
+  '2026': makeYearBudgets('2026'),
 }
 
 // ─── Alarms ──────────────────────────────────────────────────────────────────
@@ -169,6 +163,7 @@ export const settingsHandlers = [
       parent_id: body.parent_id ?? null,
       in_use: body.in_use ?? 'Y',
       code_index: body.code_index ?? codes.length + 1,
+      is_annual_event: body.is_annual_event ?? false,
     }
     codes.push(created)
     return ok(created)
@@ -199,6 +194,7 @@ export const settingsHandlers = [
       parent_id: body.parent_id ?? null,
       in_use: body.in_use ?? 'Y',
       code_index: body.code_index ?? codes.length + 1,
+      is_annual_event: body.is_annual_event ?? false,
     }
     codes.push(created)
     return ok(created)
@@ -260,16 +256,21 @@ export const settingsHandlers = [
     const years = Object.keys(budgetsByYear).sort()
     return ok(years)
   }),
-  http.post('*/settings/budgets/:year/copy-from-previous', ({ params }) => {
+  http.post('*/settings/budgets/:year/suggest', ({ params }) => {
     const year = String(params.year)
-    const prev = String(Number(year) - 1)
-    const src = budgetsByYear[prev] ?? makeYearBudgets(prev, BASE_AMOUNTS)
-    budgetsByYear[year] = src.map((b) => ({ ...b, budget_year: year }))
+    // Re-derive the suggestion from current main codes so toggling
+    // is_annual_event in 選單設定 is reflected immediately in the preview.
+    return ok(makeYearBudgets(year))
+  }),
+  http.post('*/settings/budgets/:year/apply', async ({ params, request }) => {
+    const year = String(params.year)
+    const body = (await request.json()) as Budget[]
+    budgetsByYear[year] = body.map((b) => ({ ...b, budget_year: year }))
     return ok(budgetsByYear[year])
   }),
   http.get('*/settings/budgets/:year', ({ params }) => {
     const year = String(params.year)
-    if (!budgetsByYear[year]) budgetsByYear[year] = makeYearBudgets(year, BASE_AMOUNTS)
+    if (!budgetsByYear[year]) budgetsByYear[year] = makeYearBudgets(year)
     return ok(budgetsByYear[year])
   }),
   http.put('*/settings/budgets', async ({ request }) => {
@@ -327,6 +328,6 @@ export function _codesSnapshot() { return codes }
 export function _creditCardsSnapshot() { return creditCards }
 export function _alarmsSnapshot() { return alarms }
 export function _budgetsForYear(year: string) {
-  if (!budgetsByYear[year]) budgetsByYear[year] = makeYearBudgets(year, BASE_AMOUNTS)
+  if (!budgetsByYear[year]) budgetsByYear[year] = makeYearBudgets(year)
   return budgetsByYear[year]
 }

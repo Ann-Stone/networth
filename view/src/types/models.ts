@@ -101,6 +101,7 @@ export interface Budget {
   expected10: number
   expected11: number
   expected12: number
+  annual_amount?: number | null   // envelope for annual-event categories
 }
 
 export type BudgetRead = Budget
@@ -114,6 +115,7 @@ export interface CodeData {
   parent_id?: string | null
   in_use: string        // Y/N
   code_index: number
+  is_annual_event: boolean   // budget as a single annual envelope
 }
 
 export interface CodeDataWithSub extends CodeData {
@@ -127,6 +129,7 @@ export interface CodeDataCreate {
   parent_id?: string | null
   in_use?: string
   code_index?: number
+  is_annual_event?: boolean
 }
 
 export type CodeDataUpdate = Partial<CodeDataCreate>
@@ -609,6 +612,9 @@ export interface DashboardBudget {
   lines: DashboardBudgetLine[]
   total_planned: number
   total_actual: number
+  event_lines: DashboardBudgetLine[]   // annual-event categories (envelope vs YTD)
+  event_total_planned: number
+  event_total_actual: number
 }
 
 export interface DashboardGift {

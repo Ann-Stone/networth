@@ -71,8 +71,14 @@ export function updateBudgets(data: Budget[]): Promise<Budget[]> {
   return request.put('/settings/budgets', data)
 }
 
-export function copyBudgetFromPrevious(year: number): Promise<Budget[]> {
-  return request.post(`/settings/budgets/${year}/copy-from-previous`)
+/** Compute a suggested budget for `year` from recent years; does NOT persist. */
+export function suggestBudget(year: number): Promise<BudgetRead[]> {
+  return request.post(`/settings/budgets/${year}/suggest`)
+}
+
+/** Upsert (insert-or-update) the provided budget rows for `year`. */
+export function applyBudget(year: number, data: Budget[]): Promise<BudgetRead[]> {
+  return request.post(`/settings/budgets/${year}/apply`, data)
 }
 
 // ─── Codes ───────────────────────────────────────────────────────────────────
