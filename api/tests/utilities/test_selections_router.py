@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.models.assets.other_asset import OtherAsset
 from app.models.assets.stock import StockJournal
@@ -53,9 +53,10 @@ def test_account_selection_groups_happy(client: TestClient, session: Session) ->
     assert body["status"] == 1
     assert body["data"][0]["label"] == "CASH"
     assert body["data"][0]["options"][0]["label"] == "Cash NTD"
-    # Value is the business account_id so Journal.spend_way persists in the
-    # form every other backend service looks it up by.
-    assert body["data"][0]["options"][0]["value"] == "AC1"
+    # Value is the account PK (Account.id) stringified — Journal.spend_way
+    # references the account by primary key, symmetric with credit cards.
+    account_id = session.exec(select(Account)).one().id
+    assert body["data"][0]["options"][0]["value"] == str(account_id)
 
 
 def test_stock_selection_grouped_by_asset_id(client: TestClient, session: Session) -> None:

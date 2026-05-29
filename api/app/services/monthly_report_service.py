@@ -88,6 +88,20 @@ def _latest_fx_rate(session: Session, fx_code: str, vesting_month: str) -> float
     return row.buy_rate
 
 
+def _account_by_spend_way(session: Session, spend_way: str) -> Account | None:
+    """Resolve an Account from a Journal.spend_way value.
+
+    spend_way carries the account's primary key (``Account.id``) stringified.
+    Returns ``None`` for non-numeric or unknown values so callers can fall back
+    gracefully (e.g. keep the base currency in ``compute_gain_loss``).
+    """
+    try:
+        pk = int(spend_way)
+    except (TypeError, ValueError):
+        return None
+    return session.get(Account, pk)
+
+
 def compute_gain_loss(session: Session, journals: list[Journal]) -> float:
     """Sum journal spending across the month, converting non-base currencies via FXRate."""
     if not journals:
@@ -97,9 +111,7 @@ def compute_gain_loss(session: Session, journals: list[Journal]) -> float:
     for j in journals:
         fx_code = BASE_CURRENCY
         if j.spend_way_table == "Account":
-            account = session.exec(
-                select(Account).where(Account.account_id == j.spend_way)
-            ).first()
+            account = _account_by_spend_way(session, j.spend_way)
             if account is not None and account.fx_code:
                 fx_code = account.fx_code
         rate = 1.0
@@ -155,9 +167,9 @@ def _resolve_settling_account(
     history remains traceable. Caller has already validated the journal payload.
     """
     if spend_way_type == "account":
-        account = session.exec(
-            select(Account).where(Account.account_id == spend_way)
-        ).first()
+        # spend_way is the account PK (Account.id); the StockDetail still records
+        # the business account_id/name so the holding history stays readable.
+        account = _account_by_spend_way(session, spend_way)
         if account is None:
             raise HTTPException(status_code=404, detail=f"Account not found: {spend_way}")
         return account.account_id, account.name

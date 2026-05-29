@@ -8,7 +8,7 @@
           "action_main_type": "expense",
           "note": "Lunch",
           "spend_date": "20260418",
-          "spend_way": "BANK-CHASE-01",
+          "spend_way": "1",
           "spend_way_table": "Account",
           "spend_way_type": "account",
           "spending": -123.45,
@@ -125,7 +125,7 @@
           "spend_way": {
             "description": "Payment source id",
             "examples": [
-              "BANK-CHASE-01"
+              "1"
             ],
             "title": "Spend Way",
             "type": "string"
@@ -139,7 +139,7 @@
             "type": "string"
           },
           "spend_way_type": {
-            "description": "Polymorphic discriminator for spend_way. Valid values: 'account' (spend_way_table='Account', spend_way → Account.account_id) | 'credit_card' (spend_way_table='Credit_Card', spend_way → CreditCard.credit_card_id).",
+            "description": "Polymorphic discriminator for spend_way. Valid values: 'account' (spend_way_table='Account', spend_way → Account.id PK) | 'credit_card' (spend_way_table='Credit_Card', spend_way → CreditCard.credit_card_id PK).",
             "examples": [
               "account"
             ],

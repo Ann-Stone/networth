@@ -10,7 +10,7 @@
             "action_main_type": "Invest",
             "note": "Buy AAPL",
             "spend_date": "20260418",
-            "spend_way": "BANK-CHASE-01",
+            "spend_way": "1",
             "spend_way_table": "Account",
             "spend_way_type": "account",
             "spending": -1805.0,

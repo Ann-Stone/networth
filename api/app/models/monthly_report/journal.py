@@ -5,11 +5,11 @@ Polymorphic reference fields
 Journal carries two polymorphic references that the frontend must resolve to
 form labels and validate before submit. The valid combinations are:
 
-``spend_way`` (payment source)
+``spend_way`` (payment source) — always the primary key of the source row:
   - ``spend_way_type="account"`` + ``spend_way_table="Account"``
-    → ``spend_way`` is an ``Account.account_id`` (e.g. ``BANK-CHASE-01``)
+    → ``spend_way`` is an ``Account.id`` (stringified PK, e.g. ``"1"``)
   - ``spend_way_type="credit_card"`` + ``spend_way_table="Credit_Card"``
-    → ``spend_way`` is a ``CreditCard.credit_card_id`` (e.g. ``CC-VISA-01``)
+    → ``spend_way`` is a ``CreditCard.credit_card_id`` (its PK, e.g. ``CC-VISA-01``)
 
 ``action_main`` / ``action_sub`` (classification codes)
   - ``action_main_type`` is the ``Code_Data.code_type`` of the referenced row
@@ -33,9 +33,9 @@ from sqlmodel import Field, SQLModel
 
 _SPEND_WAY_TYPE_DESC = (
     "Polymorphic discriminator for spend_way. Valid values: 'account' "
-    "(spend_way_table='Account', spend_way → Account.account_id) | "
+    "(spend_way_table='Account', spend_way → Account.id PK) | "
     "'credit_card' (spend_way_table='Credit_Card', spend_way → "
-    "CreditCard.credit_card_id)."
+    "CreditCard.credit_card_id PK)."
 )
 _SPEND_WAY_TABLE_DESC = (
     "Source SQL table for spend_way. Must be 'Account' when "
@@ -74,7 +74,7 @@ _JOURNAL_EXAMPLE = {
     "distinct_number": 1,
     "vesting_month": "202604",
     "spend_date": "20260418",
-    "spend_way": "BANK-CHASE-01",
+    "spend_way": "1",
     "spend_way_type": "account",
     "spend_way_table": "Account",
     "action_main": "EXP01",
@@ -101,7 +101,7 @@ class Journal(SQLModel, table=True):
     )
     vesting_month: str = Field(..., description="YYYYMM", schema_extra={"examples": ["202604"]})
     spend_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20260418"]})
-    spend_way: str = Field(..., description="Account or credit card id used for payment", schema_extra={"examples": ["BANK-CHASE-01"]})
+    spend_way: str = Field(..., description="Account or credit card id used for payment", schema_extra={"examples": ["1"]})
     spend_way_type: str = Field(..., description=_SPEND_WAY_TYPE_DESC, schema_extra={"examples": ["account"]})
     spend_way_table: str = Field(..., description=_SPEND_WAY_TABLE_DESC, schema_extra={"examples": ["Account"]})
     action_main: str = Field(..., description=_ACTION_MAIN_DESC, schema_extra={"examples": ["EXP01"]})
@@ -120,7 +120,7 @@ class Journal(SQLModel, table=True):
 class JournalCreate(SQLModel):
     vesting_month: str = Field(..., description="YYYYMM", schema_extra={"examples": ["202604"]})
     spend_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20260418"]})
-    spend_way: str = Field(..., description="Payment source id", schema_extra={"examples": ["BANK-CHASE-01"]})
+    spend_way: str = Field(..., description="Payment source id", schema_extra={"examples": ["1"]})
     spend_way_type: str = Field(..., description=_SPEND_WAY_TYPE_DESC, schema_extra={"examples": ["account"]})
     spend_way_table: str = Field(..., description=_SPEND_WAY_TABLE_DESC, schema_extra={"examples": ["Account"]})
     action_main: str = Field(..., description=_ACTION_MAIN_DESC, schema_extra={"examples": ["EXP01"]})
@@ -141,7 +141,7 @@ class JournalCreate(SQLModel):
 class JournalUpdate(SQLModel):
     vesting_month: str | None = Field(default=None, description="YYYYMM", schema_extra={"examples": ["202604"]})
     spend_date: str | None = Field(default=None, description="YYYYMMDD", schema_extra={"examples": ["20260418"]})
-    spend_way: str | None = Field(default=None, description="Payment source id", schema_extra={"examples": ["BANK-CHASE-01"]})
+    spend_way: str | None = Field(default=None, description="Payment source id", schema_extra={"examples": ["1"]})
     spend_way_type: str | None = Field(default=None, description=_SPEND_WAY_TYPE_DESC, schema_extra={"examples": ["account"]})
     spend_way_table: str | None = Field(default=None, description=_SPEND_WAY_TABLE_DESC, schema_extra={"examples": ["Account"]})
     action_main: str | None = Field(default=None, description=_ACTION_MAIN_DESC, schema_extra={"examples": ["EXP01"]})
@@ -178,7 +178,7 @@ class JournalRead(SQLModel):
     distinct_number: int = Field(..., description="Autoincrement PK", schema_extra={"examples": [1]})
     vesting_month: str = Field(..., description="YYYYMM", schema_extra={"examples": ["202604"]})
     spend_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20260418"]})
-    spend_way: str = Field(..., description="Payment source id", schema_extra={"examples": ["BANK-CHASE-01"]})
+    spend_way: str = Field(..., description="Payment source id", schema_extra={"examples": ["1"]})
     spend_way_type: str = Field(..., description=_SPEND_WAY_TYPE_DESC, schema_extra={"examples": ["account"]})
     spend_way_table: str = Field(..., description=_SPEND_WAY_TABLE_DESC, schema_extra={"examples": ["Account"]})
     action_main: str = Field(..., description=_ACTION_MAIN_DESC, schema_extra={"examples": ["EXP01"]})

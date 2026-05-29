@@ -88,7 +88,7 @@ server. The full matrix is:
 
 | field group | type value | table value | id value points to | source endpoint |
 | --- | --- | --- | --- | --- |
-| `spend_way_*` | `account` | `Account` | `Account.account_id` | `GET /utilities/selections/accounts` |
+| `spend_way_*` | `account` | `Account` | `Account.id` (PK) | `GET /utilities/selections/accounts` |
 | `spend_way_*` | `credit_card` | `Credit_Card` | `CreditCard.credit_card_id` | `GET /utilities/selections/credit-cards` |
 | `action_main_*` | `Fixed` / `Floating` / `Income` / `Invest` / `Transfer` (user-configurable, mirrors `Code_Data.code_type`) | `Code_Data` | `Code_Data.code_id` (where `parent_id IS NULL`) | `GET /utilities/selections/codes` |
 | `action_sub_*` | mirror of the sub-code's `Code_Data.code_type`, or `null` | `Code_Data` or `null` | `Code_Data.code_id` whose `parent_id == action_main`, or `null` | `GET /utilities/selections/codes/{action_main}` |

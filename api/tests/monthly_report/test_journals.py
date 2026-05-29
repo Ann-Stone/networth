@@ -117,14 +117,15 @@ def _account_payload(**overrides) -> dict:
 
 
 def test_compute_gain_loss_golden(session: Session) -> None:
-    create_account(session, AccountCreate(**_account_payload(account_id="BANK-01", fx_code="TWD")))
-    create_account(session, AccountCreate(**_account_payload(account_id="BANK-USD", name="USD Bank", fx_code="USD")))
+    twd = create_account(session, AccountCreate(**_account_payload(account_id="BANK-01", fx_code="TWD")))
+    usd = create_account(session, AccountCreate(**_account_payload(account_id="BANK-USD", name="USD Bank", fx_code="USD")))
     session.add(FXRate(import_date="20260430", code="USD", buy_rate=32.0))
     session.commit()
 
-    create_journal(session, JournalCreate(**_payload(spend_way="BANK-01", spending=200.0)))
-    create_journal(session, JournalCreate(**_payload(spend_way="BANK-01", spending=-50.0)))
-    create_journal(session, JournalCreate(**_payload(spend_way="BANK-USD", spending=10.0)))
+    # spend_way references the account by PK (Account.id), not account_id.
+    create_journal(session, JournalCreate(**_payload(spend_way=str(twd.id), spending=200.0)))
+    create_journal(session, JournalCreate(**_payload(spend_way=str(twd.id), spending=-50.0)))
+    create_journal(session, JournalCreate(**_payload(spend_way=str(usd.id), spending=10.0)))
 
     journals = list_journals_by_month(session, "202604")
     # 200 - 50 + 10*32 = 470
