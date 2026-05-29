@@ -152,7 +152,7 @@
             ],
             "description": "Payment source id",
             "examples": [
-              "BANK-CHASE-01"
+              "1"
             ],
             "title": "Spend Way"
           },
@@ -180,7 +180,7 @@
                 "type": "null"
               }
             ],
-            "description": "Polymorphic discriminator for spend_way. Valid values: 'account' (spend_way_table='Account', spend_way → Account.account_id) | 'credit_card' (spend_way_table='Credit_Card', spend_way → CreditCard.credit_card_id).",
+            "description": "Polymorphic discriminator for spend_way. Valid values: 'account' (spend_way_table='Account', spend_way → Account.id PK) | 'credit_card' (spend_way_table='Credit_Card', spend_way → CreditCard.credit_card_id PK).",
             "examples": [
               "account"
             ],

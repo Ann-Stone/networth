@@ -21,10 +21,12 @@ def get_account_selection_groups(session: Session) -> list[SelectionGroup]:
     Rows are queried ordered by account_index so options inside each group
     follow that order; group order is the first-seen account_type.
 
-    The option value is the business ``account_id`` (not the autoincrement
-    PK) so that Journal.spend_way persists in the same form every other
-    backend service looks it up by (``compute_gain_loss``, settlement,
-    composite endpoints, etc.).
+    The option value is the autoincrement PK ``Account.id`` (stringified) —
+    Journal.spend_way references the account by its primary key, the same way
+    a credit-card journal references ``Credit_Card.credit_card_id`` (also a PK).
+    Backend lookups (``compute_gain_loss``, settlement, composite endpoints)
+    resolve spend_way against ``Account.id`` to stay symmetric across both
+    payment-source tables.
     """
     rows = session.exec(
         select(Account)
@@ -37,7 +39,7 @@ def get_account_selection_groups(session: Session) -> list[SelectionGroup]:
     return [
         SelectionGroup(
             label=key,
-            options=[SelectionOption(value=a.account_id, label=a.name) for a in items],
+            options=[SelectionOption(value=str(a.id), label=a.name) for a in items],
         )
         for key, items in grouped.items()
     ]

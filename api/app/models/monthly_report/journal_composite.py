@@ -87,7 +87,7 @@ class JournalStockTransactionCreate(SQLModel):
                 "journal": {
                     "vesting_month": "202604",
                     "spend_date": "20260418",
-                    "spend_way": "BANK-CHASE-01",
+                    "spend_way": "1",
                     "spend_way_type": "account",
                     "spend_way_table": "Account",
                     "action_main": "INV01",
@@ -151,7 +151,7 @@ class JournalStockTransactionRead(SQLModel):
                     "distinct_number": 42,
                     "vesting_month": "202604",
                     "spend_date": "20260418",
-                    "spend_way": "BANK-CHASE-01",
+                    "spend_way": "1",
                     "spend_way_type": "account",
                     "spend_way_table": "Account",
                     "action_main": "INV01",

@@ -10,7 +10,7 @@ server. The full matrix is:
 
 | field group | type value | table value | id value points to | source endpoint |
 | --- | --- | --- | --- | --- |
-| `spend_way_*` | `account` | `Account` | `Account.account_id` | `GET /utilities/selections/accounts` |
+| `spend_way_*` | `account` | `Account` | `Account.id` (PK) | `GET /utilities/selections/accounts` |
 | `spend_way_*` | `credit_card` | `Credit_Card` | `CreditCard.credit_card_id` | `GET /utilities/selections/credit-cards` |
 | `action_main_*` | `Fixed` / `Floating` / `Income` / `Invest` / `Transfer` (user-configurable, mirrors `Code_Data.code_type`) | `Code_Data` | `Code_Data.code_id` (where `parent_id IS NULL`) | `GET /utilities/selections/codes` |
 | `action_sub_*` | mirror of the sub-code's `Code_Data.code_type`, or `null` | `Code_Data` or `null` | `Code_Data.code_id` whose `parent_id == action_main`, or `null` | `GET /utilities/selections/codes/{action_main}` |
@@ -38,7 +38,7 @@ Body:
 | vesting_month | string | yes | YYYYMM |
 | spend_date | string | yes | YYYYMMDD |
 | spend_way | string | yes | Payment source id |
-| spend_way_type | string | yes | Polymorphic discriminator for spend_way. Valid values: 'account' (spend_way_table='Account', spend_way → Account.account_id) | 'credit_card' (spend_way_table='Credit_Card', spend_way → CreditCard.credit_card_id). |
+| spend_way_type | string | yes | Polymorphic discriminator for spend_way. Valid values: 'account' (spend_way_table='Account', spend_way → Account.id PK) | 'credit_card' (spend_way_table='Credit_Card', spend_way → CreditCard.credit_card_id PK). |
 | spend_way_table | string | yes | Source SQL table for spend_way. Must be 'Account' when spend_way_type='account', or 'Credit_Card' when spend_way_type='credit_card'. |
 | action_main | string | yes | Reference to a Code_Data row's code_id. The set of valid code_ids is user-configurable via Settings → Codes. |
 | action_main_type | string | yes | Mirror of the referenced Code_Data.code_type. Common values: 'Fixed', 'Floating', 'Income', 'Invest', 'Transfer'. Frontend should fetch /utilities/selections/codes for the live set. |
@@ -68,7 +68,7 @@ data:
 | vesting_month | string | yes | YYYYMM |
 | spend_date | string | yes | YYYYMMDD |
 | spend_way | string | yes | Payment source id |
-| spend_way_type | string | yes | Polymorphic discriminator for spend_way. Valid values: 'account' (spend_way_table='Account', spend_way → Account.account_id) | 'credit_card' (spend_way_table='Credit_Card', spend_way → CreditCard.credit_card_id). |
+| spend_way_type | string | yes | Polymorphic discriminator for spend_way. Valid values: 'account' (spend_way_table='Account', spend_way → Account.id PK) | 'credit_card' (spend_way_table='Credit_Card', spend_way → CreditCard.credit_card_id PK). |
 | spend_way_table | string | yes | Source SQL table for spend_way. Must be 'Account' when spend_way_type='account', or 'Credit_Card' when spend_way_type='credit_card'. |
 | action_main | string | yes | Reference to a Code_Data row's code_id. The set of valid code_ids is user-configurable via Settings → Codes. |
 | action_main_type | string | yes | Mirror of the referenced Code_Data.code_type. Common values: 'Fixed', 'Floating', 'Income', 'Invest', 'Transfer'. Frontend should fetch /utilities/selections/codes for the live set. |
@@ -92,7 +92,7 @@ Example:
     "distinct_number": 1,
     "note": "Lunch",
     "spend_date": "20260418",
-    "spend_way": "BANK-CHASE-01",
+    "spend_way": "1",
     "spend_way_table": "Account",
     "spend_way_type": "account",
     "spending": -123.45,
@@ -154,7 +154,7 @@ Example:
       "distinct_number": 42,
       "note": "Buy AAPL",
       "spend_date": "20260418",
-      "spend_way": "BANK-CHASE-01",
+      "spend_way": "1",
       "spend_way_table": "Account",
       "spend_way_type": "account",
       "spending": -1805.0,
@@ -243,7 +243,7 @@ Body:
 | vesting_month |  | no | YYYYMM |
 | spend_date |  | no | YYYYMMDD |
 | spend_way |  | no | Payment source id |
-| spend_way_type |  | no | Polymorphic discriminator for spend_way. Valid values: 'account' (spend_way_table='Account', spend_way → Account.account_id) | 'credit_card' (spend_way_table='Credit_Card', spend_way → CreditCard.credit_card_id). |
+| spend_way_type |  | no | Polymorphic discriminator for spend_way. Valid values: 'account' (spend_way_table='Account', spend_way → Account.id PK) | 'credit_card' (spend_way_table='Credit_Card', spend_way → CreditCard.credit_card_id PK). |
 | spend_way_table |  | no | Source SQL table for spend_way. Must be 'Account' when spend_way_type='account', or 'Credit_Card' when spend_way_type='credit_card'. |
 | action_main |  | no | Reference to a Code_Data row's code_id. The set of valid code_ids is user-configurable via Settings → Codes. |
 | action_main_type |  | no | Mirror of the referenced Code_Data.code_type. Common values: 'Fixed', 'Floating', 'Income', 'Invest', 'Transfer'. Frontend should fetch /utilities/selections/codes for the live set. |
@@ -273,7 +273,7 @@ data:
 | vesting_month | string | yes | YYYYMM |
 | spend_date | string | yes | YYYYMMDD |
 | spend_way | string | yes | Payment source id |
-| spend_way_type | string | yes | Polymorphic discriminator for spend_way. Valid values: 'account' (spend_way_table='Account', spend_way → Account.account_id) | 'credit_card' (spend_way_table='Credit_Card', spend_way → CreditCard.credit_card_id). |
+| spend_way_type | string | yes | Polymorphic discriminator for spend_way. Valid values: 'account' (spend_way_table='Account', spend_way → Account.id PK) | 'credit_card' (spend_way_table='Credit_Card', spend_way → CreditCard.credit_card_id PK). |
 | spend_way_table | string | yes | Source SQL table for spend_way. Must be 'Account' when spend_way_type='account', or 'Credit_Card' when spend_way_type='credit_card'. |
 | action_main | string | yes | Reference to a Code_Data row's code_id. The set of valid code_ids is user-configurable via Settings → Codes. |
 | action_main_type | string | yes | Mirror of the referenced Code_Data.code_type. Common values: 'Fixed', 'Floating', 'Income', 'Invest', 'Transfer'. Frontend should fetch /utilities/selections/codes for the live set. |
@@ -297,7 +297,7 @@ Example:
     "distinct_number": 1,
     "note": "Lunch",
     "spend_date": "20260418",
-    "spend_way": "BANK-CHASE-01",
+    "spend_way": "1",
     "spend_way_table": "Account",
     "spend_way_type": "account",
     "spending": -123.45,
@@ -364,7 +364,7 @@ Example:
       "distinct_number": 42,
       "note": "Buy AAPL",
       "spend_date": "20260418",
-      "spend_way": "BANK-CHASE-01",
+      "spend_way": "1",
       "spend_way_table": "Account",
       "spend_way_type": "account",
       "spending": -1805.0,
@@ -438,7 +438,7 @@ Example:
         "distinct_number": 1,
         "note": "Lunch",
         "spend_date": "20260418",
-        "spend_way": "BANK-CHASE-01",
+        "spend_way": "1",
         "spend_way_table": "Account",
         "spend_way_type": "account",
         "spending": -123.45,

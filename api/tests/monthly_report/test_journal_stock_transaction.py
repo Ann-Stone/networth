@@ -77,7 +77,9 @@ def _journal(**overrides) -> dict:
     base = {
         "vesting_month": "202604",
         "spend_date": "20260418",
-        "spend_way": "BANK-CHASE-01",
+        # PK of the account seeded by _account() — first insert in a fresh
+        # session, so its autoincrement Account.id is 1.
+        "spend_way": "1",
         "spend_way_type": "account",
         "spend_way_table": "Account",
         "action_main": "INV01",
