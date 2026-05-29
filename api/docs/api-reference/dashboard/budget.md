@@ -33,9 +33,12 @@ data:
 | --- | --- | --- | --- |
 | type | BudgetType | yes | Aggregation granularity |
 | period | string | yes | YYYYMM for monthly, YYYY for yearly |
-| lines | array<BudgetLine> | yes | Per-category rows |
+| lines | array<BudgetLine> | yes | Per-category rows (ordinary monthly categories) |
 | total_planned | number | yes | Sum of planned across lines |
 | total_actual | number | yes | Sum of actual across lines |
+| event_lines | array<BudgetLine> | no | Annual-event categories: planned=annual envelope, actual=year-to-date. Excluded from lines/totals. |
+| event_total_planned | number | no | Sum of planned across event_lines |
+| event_total_actual | number | no | Sum of actual across event_lines |
 
 Example:
 

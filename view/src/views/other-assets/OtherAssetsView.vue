@@ -784,12 +784,9 @@
           <el-input v-model="insuranceForm.pay_type" placeholder="例如 annual / monthly" />
         </el-form-item>
         <el-form-item label="繳款日" prop="pay_day">
-          <el-input-number
+          <el-input
             v-model="insuranceForm.pay_day"
-            :min="1"
-            :max="31"
-            controls-position="right"
-            style="width: 100%"
+            placeholder="依繳費頻率,例如 01/19 或 15"
           />
         </el-form-item>
         <el-form-item label="預計保費" prop="expected_spend">
@@ -825,43 +822,11 @@
         :rules="insuranceDetailFormRules"
         label-width="110px"
       >
-        <el-form-item label="保險 ID">
-          <el-input :model-value="insuranceDetailForm.insurance_id" disabled />
-        </el-form-item>
-        <el-form-item label="日期" prop="excute_date">
-          <el-date-picker
-            v-model="insuranceDetailFormDate"
-            type="date"
-            format="YYYY/MM/DD"
-            :clearable="false"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="類型" prop="insurance_excute_type">
-          <el-select v-model="insuranceDetailForm.insurance_excute_type" style="width: 100%">
-            <el-option label="繳費 (pay)" value="pay" />
-            <el-option label="現金回饋 (cash)" value="cash" />
-            <el-option label="退費 (return)" value="return" />
-            <el-option label="預期 (expect)" value="expect" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="金額" prop="excute_price">
-          <el-input-number
-            v-model="insuranceDetailForm.excute_price"
-            :precision="2"
-            :step="100"
-            controls-position="right"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="備註">
-          <el-input
-            v-model="insuranceDetailMemoProxy"
-            type="textarea"
-            :rows="2"
-            placeholder="(可選)"
-          />
-        </el-form-item>
+        <InsuranceDetailFormFields
+          v-model="insuranceDetailForm"
+          mode="asset-manage"
+          show-insurance-id-input
+        />
       </el-form>
     </FormDialog>
 
@@ -1103,45 +1068,11 @@
         :rules="estateDetailFormRules"
         label-width="110px"
       >
-        <el-form-item label="房產 ID">
-          <el-input :model-value="estateDetailForm.estate_id" disabled />
-        </el-form-item>
-        <el-form-item label="日期" prop="excute_date">
-          <el-date-picker
-            v-model="estateDetailFormDate"
-            type="date"
-            format="YYYY/MM/DD"
-            :clearable="false"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="類型" prop="estate_excute_type">
-          <el-select v-model="estateDetailForm.estate_excute_type" style="width: 100%">
-            <el-option label="稅務 (tax)" value="tax" />
-            <el-option label="管理費 (fee)" value="fee" />
-            <el-option label="保險 (insurance)" value="insurance" />
-            <el-option label="維修 (fix)" value="fix" />
-            <el-option label="租金 (rent)" value="rent" />
-            <el-option label="押金 (deposit)" value="deposit" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="金額" prop="excute_price">
-          <el-input-number
-            v-model="estateDetailForm.excute_price"
-            :precision="2"
-            :step="1000"
-            controls-position="right"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="備註">
-          <el-input
-            v-model="estateDetailMemoProxy"
-            type="textarea"
-            :rows="2"
-            placeholder="(可選)"
-          />
-        </el-form-item>
+        <EstateDetailFormFields
+          v-model="estateDetailForm"
+          mode="asset-manage"
+          show-estate-id-input
+        />
       </el-form>
     </FormDialog>
   </div>
@@ -1162,6 +1093,12 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import StockDetailFormFields, {
   STOCK_DETAIL_FULL_RULES,
 } from '@/components/forms/StockDetailFormFields.vue'
+import InsuranceDetailFormFields, {
+  INSURANCE_DETAIL_FULL_RULES,
+} from '@/components/forms/InsuranceDetailFormFields.vue'
+import EstateDetailFormFields, {
+  ESTATE_DETAIL_FULL_RULES,
+} from '@/components/forms/EstateDetailFormFields.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useOtherAssetsStore } from '@/stores/otherAssets'
 import {
@@ -1632,28 +1569,7 @@ function emptyEstateDetailForm(estateId: string): EstateDetailFormState {
 
 const estateDetailForm = ref<EstateDetailFormState>(emptyEstateDetailForm(''))
 
-const estateDetailMemoProxy = computed<string>({
-  get: () => estateDetailForm.value.memo ?? '',
-  set: (v) => {
-    estateDetailForm.value.memo = v ? v : null
-  },
-})
-
-const estateDetailFormDate = computed<Date | null>({
-  get: () =>
-    estateDetailForm.value.excute_date
-      ? dayjs(estateDetailForm.value.excute_date, 'YYYYMMDD').toDate()
-      : null,
-  set: (date) => {
-    estateDetailForm.value.excute_date = date ? dayjs(date).format('YYYYMMDD') : ''
-  },
-})
-
-const estateDetailFormRules: FormRules = {
-  excute_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
-  estate_excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
-  excute_price: [{ required: true, message: '請輸入金額', trigger: 'blur' }],
-}
+const estateDetailFormRules: FormRules = ESTATE_DETAIL_FULL_RULES
 
 function openCreateEstateDetail(estate: EstateAsset) {
   estateDetailFormMode.value = 'create'
@@ -1685,7 +1601,7 @@ async function submitEstateDetail() {
       estate_excute_type: estateDetailForm.value.estate_excute_type,
       excute_price: Number(estateDetailForm.value.excute_price ?? 0),
       excute_date: estateDetailForm.value.excute_date,
-      memo: estateDetailForm.value.memo ?? null,
+      memo: estateDetailForm.value.memo || null,
     }
     if (estateDetailFormMode.value === 'create') {
       await createEstateDetail(estateDetailForm.value.estate_id, payload)
@@ -1747,7 +1663,7 @@ function emptyInsuranceForm(): InsuranceAssetCreate {
     start_date: dayjs().format('YYYYMMDD'),
     end_date: dayjs().add(1, 'year').format('YYYYMMDD'),
     pay_type: 'annual',
-    pay_day: 1,
+    pay_day: '',
     expected_spend: 0,
     has_closed: 'N',
   }
@@ -1887,28 +1803,7 @@ function emptyInsuranceDetailForm(insuranceId: string): InsuranceDetailFormState
 
 const insuranceDetailForm = ref<InsuranceDetailFormState>(emptyInsuranceDetailForm(''))
 
-const insuranceDetailMemoProxy = computed<string>({
-  get: () => insuranceDetailForm.value.memo ?? '',
-  set: (v) => {
-    insuranceDetailForm.value.memo = v ? v : null
-  },
-})
-
-const insuranceDetailFormDate = computed<Date | null>({
-  get: () =>
-    insuranceDetailForm.value.excute_date
-      ? dayjs(insuranceDetailForm.value.excute_date, 'YYYYMMDD').toDate()
-      : null,
-  set: (date) => {
-    insuranceDetailForm.value.excute_date = date ? dayjs(date).format('YYYYMMDD') : ''
-  },
-})
-
-const insuranceDetailFormRules: FormRules = {
-  excute_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
-  insurance_excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
-  excute_price: [{ required: true, message: '請輸入金額', trigger: 'blur' }],
-}
+const insuranceDetailFormRules: FormRules = INSURANCE_DETAIL_FULL_RULES
 
 function openCreateInsuranceDetail(insurance: InsuranceAsset) {
   insuranceDetailFormMode.value = 'create'
@@ -1940,7 +1835,7 @@ async function submitInsuranceDetail() {
       insurance_excute_type: insuranceDetailForm.value.insurance_excute_type,
       excute_price: Number(insuranceDetailForm.value.excute_price ?? 0),
       excute_date: insuranceDetailForm.value.excute_date,
-      memo: insuranceDetailForm.value.memo ?? null,
+      memo: insuranceDetailForm.value.memo || null,
     }
     if (insuranceDetailFormMode.value === 'create') {
       await createInsuranceDetail(insuranceDetailForm.value.insurance_id, payload)

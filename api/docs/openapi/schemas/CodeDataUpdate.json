@@ -51,6 +51,21 @@
             ],
             "title": "In Use"
           },
+          "is_annual_event": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Budget as a single annual envelope",
+            "examples": [
+              true
+            ],
+            "title": "Is Annual Event"
+          },
           "name": {
             "anyOf": [
               {

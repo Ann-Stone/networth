@@ -17,8 +17,37 @@
           "type": "monthly"
         },
         "properties": {
+          "event_lines": {
+            "description": "Annual-event categories: planned=annual envelope, actual=year-to-date. Excluded from lines/totals.",
+            "examples": [
+              []
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BudgetLine"
+            },
+            "title": "Event Lines",
+            "type": "array"
+          },
+          "event_total_actual": {
+            "default": 0.0,
+            "description": "Sum of actual across event_lines",
+            "examples": [
+              0.0
+            ],
+            "title": "Event Total Actual",
+            "type": "number"
+          },
+          "event_total_planned": {
+            "default": 0.0,
+            "description": "Sum of planned across event_lines",
+            "examples": [
+              0.0
+            ],
+            "title": "Event Total Planned",
+            "type": "number"
+          },
           "lines": {
-            "description": "Per-category rows",
+            "description": "Per-category rows (ordinary monthly categories)",
             "examples": [
               []
             ],

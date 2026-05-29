@@ -74,9 +74,9 @@ let estateJournalSeq = estateJournals.length
 // ─── Insurances ──────────────────────────────────────────────────────────────
 
 let insurances: InsuranceAsset[] = [
-  { insurance_id: 'INS_LIFE',    insurance_name: '終身壽險',  asset_id: 'INS', in_account: 'BANK_CTBC', out_account: 'BANK_CTBC', start_date: '20180101', end_date: '20480101', pay_type: 'monthly', pay_day: 5,  expected_spend: 5000,  has_closed: 'N' },
-  { insurance_id: 'INS_HEALTH',  insurance_name: '醫療險',    asset_id: 'INS', in_account: 'BANK_CTBC', out_account: 'BANK_CTBC', start_date: '20210101', end_date: '20510101', pay_type: 'yearly',  pay_day: 1,  expected_spend: 24000, has_closed: 'N' },
-  { insurance_id: 'INS_OLD',     insurance_name: '舊保單（已結清）', asset_id: 'INS', in_account: 'BANK_CTBC', out_account: 'BANK_CTBC', start_date: '20100101', end_date: '20240101', pay_type: 'monthly', pay_day: 10, expected_spend: 0,     has_closed: 'Y' },
+  { insurance_id: 'INS_LIFE',    insurance_name: '終身壽險',  asset_id: 'INS', in_account: 'BANK_CTBC', out_account: 'BANK_CTBC', start_date: '20180101', end_date: '20480101', pay_type: 'monthly', pay_day: '5',  expected_spend: 5000,  has_closed: 'N' },
+  { insurance_id: 'INS_HEALTH',  insurance_name: '醫療險',    asset_id: 'INS', in_account: 'BANK_CTBC', out_account: 'BANK_CTBC', start_date: '20210101', end_date: '20510101', pay_type: 'yearly',  pay_day: '1',  expected_spend: 24000, has_closed: 'N' },
+  { insurance_id: 'INS_OLD',     insurance_name: '舊保單（已結清）', asset_id: 'INS', in_account: 'BANK_CTBC', out_account: 'BANK_CTBC', start_date: '20100101', end_date: '20240101', pay_type: 'monthly', pay_day: '10', expected_spend: 0,     has_closed: 'Y' },
 ]
 
 let insuranceJournals: InsuranceJournal[] = [

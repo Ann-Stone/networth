@@ -243,6 +243,58 @@ export interface JournalStockTransactionRead {
   stock_detail: StockJournal
 }
 
+// ─── Monthly Report — Journal + Insurance_Journal composite endpoint ─────────
+// Mirrors the stock composite. Insurance_Journal has no account columns, so
+// there are no settling fields; excute_price is filled by the backend from
+// journal.spending (sign preserved).
+
+export interface InsuranceTransactionDetailCreate {
+  insurance_id: string
+  insurance_excute_type: 'pay' | 'cash' | 'return' | 'expect'
+  excute_date?: string | null
+  memo?: string | null
+}
+
+export interface JournalInsuranceTransactionCreate {
+  journal: JournalCreate
+  insurance_detail: InsuranceTransactionDetailCreate
+}
+
+export interface JournalInsuranceTransactionUpdate {
+  journal: JournalUpdate
+  insurance_detail: InsuranceTransactionDetailCreate
+}
+
+export interface JournalInsuranceTransactionRead {
+  journal: Journal
+  insurance_detail: InsuranceJournal
+}
+
+// ─── Monthly Report — Journal + Estate_Journal composite endpoint ────────────
+// Same shape as the insurance composite.
+
+export interface EstateTransactionDetailCreate {
+  estate_id: string
+  estate_excute_type: 'tax' | 'fee' | 'insurance' | 'fix' | 'rent' | 'deposit'
+  excute_date?: string | null
+  memo?: string | null
+}
+
+export interface JournalEstateTransactionCreate {
+  journal: JournalCreate
+  estate_detail: EstateTransactionDetailCreate
+}
+
+export interface JournalEstateTransactionUpdate {
+  journal: JournalUpdate
+  estate_detail: EstateTransactionDetailCreate
+}
+
+export interface JournalEstateTransactionRead {
+  journal: Journal
+  estate_detail: EstateJournal
+}
+
 export type SelectionStock = SelectionGroup
 export type SelectionOtherAssetType = SelectionGroup
 
@@ -419,7 +471,7 @@ export interface InsuranceAsset {
   start_date: string            // YYYYMMDD
   end_date: string              // YYYYMMDD
   pay_type: string
-  pay_day: number
+  pay_day: string               // premium date(s); 'DD' / 'MM/DD' / 'MM/DD,...' by pay_type
   expected_spend: number
   has_closed: string            // Y/N
 }
@@ -433,7 +485,7 @@ export interface InsuranceAssetCreate {
   start_date: string
   end_date: string
   pay_type: string
-  pay_day: number
+  pay_day: string               // premium date(s); 'DD' / 'MM/DD' / 'MM/DD,...' by pay_type
   expected_spend: number
   has_closed: string
 }
@@ -650,6 +702,7 @@ export interface TargetSettingUpdate {
 export type SelectionAccount = SelectionGroup
 export type SelectionCode = SelectionGroup
 export type SelectionCreditCard = SelectionGroup
+export type SelectionEstate = SelectionGroup
 export type SelectionInsurance = SelectionGroup
 export type SelectionLoan = SelectionGroup
 

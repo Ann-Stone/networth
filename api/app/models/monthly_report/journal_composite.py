@@ -12,6 +12,8 @@ from __future__ import annotations
 from pydantic import ConfigDict
 from sqlmodel import Field, SQLModel
 
+from app.models.assets.estate import EstateExcuteType, EstateJournalRead
+from app.models.assets.insurance import InsuranceExcuteType, InsuranceJournalRead
 from app.models.assets.stock import StockDetailRead, StockExcuteType
 from app.models.monthly_report.journal import JournalCreate, JournalRead, JournalUpdate
 
@@ -174,6 +176,327 @@ class JournalStockTransactionRead(SQLModel):
                     "account_id": "BANK-CHASE-01",
                     "account_name": "Chase Checking",
                     "memo": "First lot",
+                },
+            }
+        }
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Insurance composite payloads
+#
+# Mirrors the Stock variants above. Two divergences, both driven by the
+# Insurance_Journal schema:
+#   * Insurance_Journal has no account columns, so there is nothing to resolve
+#     from ``journal.spend_way`` — settling-source fields are simply absent.
+#   * ``excute_price`` (the amount) is the signed pass-through field: it is
+#     copied verbatim from ``journal.spending`` (premium/outflow stays negative,
+#     refund/inflow stays positive), so the payload omits it.
+# --------------------------------------------------------------------------- #
+
+
+_INSURANCE_TRANSACTION_DETAIL_EXAMPLE = {
+    "insurance_id": "INS-001",
+    "insurance_excute_type": "pay",
+    "excute_date": "20260115",
+    "memo": "Annual premium",
+}
+
+
+class InsuranceTransactionDetailCreate(SQLModel):
+    """Insurance_Journal subset accepted by the composite endpoint.
+
+    ``excute_price`` is intentionally absent: the service copies
+    ``journal.spending`` into it verbatim (sign preserved — a premium/outflow
+    journal is negative, a refund/inflow is positive). There are no
+    account fields to resolve: Insurance_Journal stores only the policy link,
+    type, amount, date and memo.
+    """
+
+    insurance_id: str = Field(
+        ...,
+        description="Existing Insurance.insurance_id this transaction belongs to.",
+        schema_extra={"examples": ["INS-001"]},
+    )
+    insurance_excute_type: InsuranceExcuteType = Field(
+        ...,
+        description="pay / cash / return / expect",
+        schema_extra={"examples": ["pay"]},
+    )
+    excute_date: str | None = Field(
+        default=None,
+        description="YYYYMMDD; defaults to journal.spend_date when omitted.",
+        schema_extra={"examples": ["20260115"]},
+    )
+    memo: str | None = Field(
+        default=None,
+        description="Free-form memo; defaults to journal.note when omitted.",
+        schema_extra={"examples": ["Annual premium"]},
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": _INSURANCE_TRANSACTION_DETAIL_EXAMPLE}
+    )
+
+
+class JournalInsuranceTransactionCreate(SQLModel):
+    """Composite payload: Journal + Insurance_Journal written atomically."""
+
+    journal: JournalCreate = Field(..., description="Journal row to insert.")
+    insurance_detail: InsuranceTransactionDetailCreate = Field(
+        ..., description="Insurance detail row derived from + linked to the journal."
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "journal": {
+                    "vesting_month": "202601",
+                    "spend_date": "20260115",
+                    "spend_way": "1",
+                    "spend_way_type": "account",
+                    "spend_way_table": "Account",
+                    "action_main": "TRA",
+                    "action_main_type": "Transfer",
+                    "action_main_table": "Code_Data",
+                    "action_sub": "Insurance",
+                    "action_sub_type": "Asset",
+                    "action_sub_table": "Insurance_Journal",
+                    "spending": -1200.0,
+                    "invoice_number": None,
+                    "note": "Annual premium",
+                },
+                "insurance_detail": _INSURANCE_TRANSACTION_DETAIL_EXAMPLE,
+            }
+        }
+    )
+
+
+class JournalInsuranceTransactionUpdate(SQLModel):
+    """Composite payload for editing a Journal while creating its first Insurance_Journal.
+
+    Used when a user edits a previously-untagged journal and now classifies it
+    as an insurance transaction. The Journal is updated in place; the
+    Insurance_Journal is always created fresh — partial edits of existing
+    details belong on the independent Insurance_Journal endpoints.
+    """
+
+    journal: JournalUpdate = Field(..., description="Journal fields to update.")
+    insurance_detail: InsuranceTransactionDetailCreate = Field(
+        ..., description="Insurance detail row to insert alongside the update."
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "journal": {
+                    "action_main": "TRA",
+                    "action_main_type": "Transfer",
+                    "action_main_table": "Code_Data",
+                    "action_sub": "Insurance",
+                    "action_sub_type": "Asset",
+                    "action_sub_table": "Insurance_Journal",
+                    "note": "Re-classified as premium payment",
+                },
+                "insurance_detail": _INSURANCE_TRANSACTION_DETAIL_EXAMPLE,
+            }
+        }
+    )
+
+
+class JournalInsuranceTransactionRead(SQLModel):
+    """Response body for the insurance composite endpoint."""
+
+    journal: JournalRead = Field(..., description="Persisted journal row.")
+    insurance_detail: InsuranceJournalRead = Field(
+        ..., description="Persisted insurance detail row."
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "journal": {
+                    "distinct_number": 42,
+                    "vesting_month": "202601",
+                    "spend_date": "20260115",
+                    "spend_way": "1",
+                    "spend_way_type": "account",
+                    "spend_way_table": "Account",
+                    "action_main": "TRA",
+                    "action_main_type": "Transfer",
+                    "action_main_table": "Code_Data",
+                    "action_sub": "Insurance",
+                    "action_sub_type": "Asset",
+                    "action_sub_table": "Insurance_Journal",
+                    "spending": -1200.0,
+                    "invoice_number": None,
+                    "note": "Annual premium",
+                },
+                "insurance_detail": {
+                    "distinct_number": 17,
+                    "insurance_id": "INS-001",
+                    "insurance_excute_type": "pay",
+                    "excute_price": -1200.0,
+                    "excute_date": "20260115",
+                    "memo": "Annual premium",
+                },
+            }
+        }
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Estate composite payloads
+#
+# Same shape and divergences as the Insurance variants: no account columns on
+# Estate_Journal, and ``excute_price`` is the signed pass-through field.
+# --------------------------------------------------------------------------- #
+
+
+_ESTATE_TRANSACTION_DETAIL_EXAMPLE = {
+    "estate_id": "EST-001",
+    "estate_excute_type": "tax",
+    "excute_date": "20260115",
+    "memo": "Property tax",
+}
+
+
+class EstateTransactionDetailCreate(SQLModel):
+    """Estate_Journal subset accepted by the composite endpoint.
+
+    ``excute_price`` is intentionally absent: the service copies
+    ``journal.spending`` into it verbatim (sign preserved — a tax/fee/outflow
+    journal is negative, a rent/inflow is positive). There are no account
+    fields to resolve: Estate_Journal stores only the estate link, type,
+    amount, date and memo.
+    """
+
+    estate_id: str = Field(
+        ...,
+        description="Existing Estate.estate_id this transaction belongs to.",
+        schema_extra={"examples": ["EST-001"]},
+    )
+    estate_excute_type: EstateExcuteType = Field(
+        ...,
+        description="tax / fee / insurance / fix / rent / deposit",
+        schema_extra={"examples": ["tax"]},
+    )
+    excute_date: str | None = Field(
+        default=None,
+        description="YYYYMMDD; defaults to journal.spend_date when omitted.",
+        schema_extra={"examples": ["20260115"]},
+    )
+    memo: str | None = Field(
+        default=None,
+        description="Free-form memo; defaults to journal.note when omitted.",
+        schema_extra={"examples": ["Property tax"]},
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": _ESTATE_TRANSACTION_DETAIL_EXAMPLE}
+    )
+
+
+class JournalEstateTransactionCreate(SQLModel):
+    """Composite payload: Journal + Estate_Journal written atomically."""
+
+    journal: JournalCreate = Field(..., description="Journal row to insert.")
+    estate_detail: EstateTransactionDetailCreate = Field(
+        ..., description="Estate detail row derived from + linked to the journal."
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "journal": {
+                    "vesting_month": "202601",
+                    "spend_date": "20260115",
+                    "spend_way": "1",
+                    "spend_way_type": "account",
+                    "spend_way_table": "Account",
+                    "action_main": "TRA",
+                    "action_main_type": "Transfer",
+                    "action_main_table": "Code_Data",
+                    "action_sub": "Estate",
+                    "action_sub_type": "Asset",
+                    "action_sub_table": "Estate_Journal",
+                    "spending": -8000.0,
+                    "invoice_number": None,
+                    "note": "Property tax",
+                },
+                "estate_detail": _ESTATE_TRANSACTION_DETAIL_EXAMPLE,
+            }
+        }
+    )
+
+
+class JournalEstateTransactionUpdate(SQLModel):
+    """Composite payload for editing a Journal while creating its first Estate_Journal.
+
+    Used when a user edits a previously-untagged journal and now classifies it
+    as an estate transaction. The Journal is updated in place; the
+    Estate_Journal is always created fresh — partial edits of existing details
+    belong on the independent Estate_Journal endpoints.
+    """
+
+    journal: JournalUpdate = Field(..., description="Journal fields to update.")
+    estate_detail: EstateTransactionDetailCreate = Field(
+        ..., description="Estate detail row to insert alongside the update."
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "journal": {
+                    "action_main": "TRA",
+                    "action_main_type": "Transfer",
+                    "action_main_table": "Code_Data",
+                    "action_sub": "Estate",
+                    "action_sub_type": "Asset",
+                    "action_sub_table": "Estate_Journal",
+                    "note": "Re-classified as property tax",
+                },
+                "estate_detail": _ESTATE_TRANSACTION_DETAIL_EXAMPLE,
+            }
+        }
+    )
+
+
+class JournalEstateTransactionRead(SQLModel):
+    """Response body for the estate composite endpoint."""
+
+    journal: JournalRead = Field(..., description="Persisted journal row.")
+    estate_detail: EstateJournalRead = Field(
+        ..., description="Persisted estate detail row."
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "journal": {
+                    "distinct_number": 42,
+                    "vesting_month": "202601",
+                    "spend_date": "20260115",
+                    "spend_way": "1",
+                    "spend_way_type": "account",
+                    "spend_way_table": "Account",
+                    "action_main": "TRA",
+                    "action_main_type": "Transfer",
+                    "action_main_table": "Code_Data",
+                    "action_sub": "Estate",
+                    "action_sub_type": "Asset",
+                    "action_sub_table": "Estate_Journal",
+                    "spending": -8000.0,
+                    "invoice_number": None,
+                    "note": "Property tax",
+                },
+                "estate_detail": {
+                    "distinct_number": 17,
+                    "estate_id": "EST-001",
+                    "estate_excute_type": "tax",
+                    "excute_price": -8000.0,
+                    "excute_date": "20260115",
+                    "memo": "Property tax",
                 },
             }
         }

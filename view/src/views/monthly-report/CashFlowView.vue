@@ -339,7 +339,7 @@
           />
         </el-form-item>
 
-        <template v-if="shouldShowAssetSync && formData.action_sub_table === 'Stock_Detail'">
+        <template v-if="shouldShowAssetSync && syncAssetType">
           <el-divider />
           <el-alert
             type="info"
@@ -349,16 +349,16 @@
             description="送出後會把這筆現金流同時寫入對應的資產明細。若需移除錯誤資料，請至『其他資產』頁面手動處理。"
             class="mb-4"
           />
-          <el-form-item label="持股">
+          <el-form-item :label="syncHoldingLabel">
             <el-select
-              v-model="syncStockId"
-              placeholder="選擇持股"
+              v-model="syncHoldingId"
+              :placeholder="`選擇${syncHoldingLabel}`"
               filterable
               style="width: 100%"
-              :disabled="stockSelectionGroups.length === 0"
+              :disabled="currentSyncSelectionGroups.length === 0"
             >
               <el-option-group
-                v-for="group in stockSelectionGroups"
+                v-for="group in currentSyncSelectionGroups"
                 :key="group.label"
                 :label="group.label"
               >
@@ -371,14 +371,25 @@
               </el-option-group>
             </el-select>
             <p
-              v-if="stockSelectionGroups.length === 0"
+              v-if="currentSyncSelectionGroups.length === 0"
               class="text-xs text-on-surface-variant mt-1"
             >
-              尚無持股，請先到「資產負債管理 → 股票」建立
+              {{ syncHoldingEmptyHint }}
             </p>
           </el-form-item>
           <StockDetailFormFields
+            v-if="syncAssetType === 'stock'"
             v-model="syncStockDetail"
+            mode="cashflow-sync"
+          />
+          <InsuranceDetailFormFields
+            v-else-if="syncAssetType === 'insurance'"
+            v-model="syncInsuranceDetail"
+            mode="cashflow-sync"
+          />
+          <EstateDetailFormFields
+            v-else-if="syncAssetType === 'estate'"
+            v-model="syncEstateDetail"
             mode="cashflow-sync"
           />
         </template>
@@ -403,12 +414,22 @@ import DonutChart from '@/components/charts/DonutChart.vue'
 import StockDetailFormFields, {
   type StockDetailFormState,
 } from '@/components/forms/StockDetailFormFields.vue'
+import InsuranceDetailFormFields, {
+  type InsuranceDetailFormState,
+} from '@/components/forms/InsuranceDetailFormFields.vue'
+import EstateDetailFormFields, {
+  type EstateDetailFormState,
+} from '@/components/forms/EstateDetailFormFields.vue'
 import { useCashFlowStore } from '@/stores/cashFlow'
 import {
   createJournal,
   createJournalWithStockTransaction,
+  createJournalWithInsuranceTransaction,
+  createJournalWithEstateTransaction,
   updateJournal,
   updateJournalWithStockTransaction,
+  updateJournalWithInsuranceTransaction,
+  updateJournalWithEstateTransaction,
   deleteJournal,
   settleMonth,
   uploadStockPrices,
@@ -417,6 +438,7 @@ import {
   getAccountSelections,
   getCodeSelections,
   getCreditCardSelections,
+  getEstateSelections,
   getInsuranceSelections,
   getLoanSelections,
   getOtherAssetTypeSelections,
@@ -513,10 +535,9 @@ const OTHER_ASSET_DISPATCH: Record<
   insurance: { subKey: 'Insurance', subTable: 'Insurance_Journal', label: '保險' },
   estate:    { subKey: 'Estate',    subTable: 'Estate_Journal',   label: '房地產' },
 }
-// Composite endpoints only exist for stock today; the others are tracked in
-// refactoring-tickets/cashflow/granular/CFL-A01.md. Filter narrows the
-// sub dropdown to what we can actually round-trip atomically.
-const SUPPORTED_SYNC_ASSET_TYPES: readonly string[] = ['stock']
+// Composite endpoints exist for all three asset types (CFL-A01). Filter
+// narrows the sub dropdown to what we can actually round-trip atomically.
+const SUPPORTED_SYNC_ASSET_TYPES: readonly string[] = ['stock', 'insurance', 'estate']
 const OTHER_ASSET_SUB_TABLES = new Set(
   Object.values(OTHER_ASSET_DISPATCH).map((m) => m.subTable),
 )
@@ -728,14 +749,63 @@ const formRules: FormRules = {
   spending: [{ required: true, message: '請輸入金額', trigger: 'blur' }],
 }
 
-// ─── Sync-to-asset (Stock) ────────────────────────────────────────────────
+// ─── Sync-to-asset (Stock / Insurance / Estate) ───────────────────────────
 // The user triggers this implicitly by picking an "其他資產" sub-category
 // under Transfer (legacy 轉帳→股票 semantics). When triggered, the form
-// expands to capture the holding + amount, then submits via the composite
-// endpoint so Journal + Stock_Detail land atomically.
+// expands to capture the holding + type, then submits via the matching
+// composite endpoint so Journal + <Asset>_Detail land atomically.
+type SyncAssetType = 'stock' | 'insurance' | 'estate'
+
 const originalActionSub = ref<string | null>(null) // captured on dialog open
-const syncStockId = ref('')
+const syncHoldingId = ref('') // selected stock_id / insurance_id / estate_id
+
+// Which composite flow the current sub-category maps to (null = plain journal).
+const syncAssetType = computed<SyncAssetType | null>(() => {
+  switch (formData.value.action_sub_table) {
+    case 'Stock_Detail':
+      return 'stock'
+    case 'Insurance_Journal':
+      return 'insurance'
+    case 'Estate_Journal':
+      return 'estate'
+    default:
+      return null
+  }
+})
+
 const stockSelectionGroups = ref<SelectionGroup[]>([])
+const estateSelectionGroups = ref<SelectionGroup[]>([])
+// Insurance reuses `insuranceGroups` (already loaded for the 保險 main category).
+
+const currentSyncSelectionGroups = computed<SelectionGroup[]>(() => {
+  switch (syncAssetType.value) {
+    case 'stock':
+      return stockSelectionGroups.value
+    case 'insurance':
+      return insuranceGroups.value
+    case 'estate':
+      return estateSelectionGroups.value
+    default:
+      return []
+  }
+})
+
+const SYNC_HOLDING_LABEL: Record<SyncAssetType, string> = {
+  stock: '持股',
+  insurance: '保單',
+  estate: '房產',
+}
+const SYNC_HOLDING_EMPTY_HINT: Record<SyncAssetType, string> = {
+  stock: '尚無持股，請先到「資產負債管理 → 股票」建立',
+  insurance: '尚無保單，請先到「資產負債管理 → 保險」建立',
+  estate: '尚無房產，請先到「資產負債管理 → 房產」建立',
+}
+const syncHoldingLabel = computed(() =>
+  syncAssetType.value ? SYNC_HOLDING_LABEL[syncAssetType.value] : '',
+)
+const syncHoldingEmptyHint = computed(() =>
+  syncAssetType.value ? SYNC_HOLDING_EMPTY_HINT[syncAssetType.value] : '',
+)
 
 function emptyStockSyncDetail(): StockDetailFormState {
   return {
@@ -751,6 +821,60 @@ function emptyStockSyncDetail(): StockDetailFormState {
 }
 const syncStockDetail = ref<StockDetailFormState>(emptyStockSyncDetail())
 
+function emptyInsuranceSyncDetail(): InsuranceDetailFormState {
+  return {
+    insurance_id: '',
+    insurance_excute_type: 'pay',
+    excute_price: 0,
+    excute_date: '',
+    memo: null,
+  }
+}
+const syncInsuranceDetail = ref<InsuranceDetailFormState>(emptyInsuranceSyncDetail())
+
+function emptyEstateSyncDetail(): EstateDetailFormState {
+  return {
+    estate_id: '',
+    estate_excute_type: 'tax',
+    excute_price: 0,
+    excute_date: '',
+    memo: null,
+  }
+}
+const syncEstateDetail = ref<EstateDetailFormState>(emptyEstateSyncDetail())
+
+// Noun used in the success toast ("已同步到<noun>明細").
+const SYNC_ASSET_NOUN: Record<SyncAssetType, string> = {
+  stock: '股票',
+  insurance: '保險',
+  estate: '房地產',
+}
+
+// Composite detail payloads. Each type only carries the user-chosen fields;
+// the backend fills excute_price (= journal.spending, sign preserved), date
+// and memo from the journal.
+function stockDetailBody() {
+  return {
+    stock_id: syncHoldingId.value,
+    excute_type: syncStockDetail.value.excute_type as 'buy' | 'sell' | 'stock' | 'cash',
+    excute_amount: Number(syncStockDetail.value.excute_amount ?? 0),
+  }
+}
+function insuranceDetailBody() {
+  return {
+    insurance_id: syncHoldingId.value,
+    insurance_excute_type: syncInsuranceDetail.value.insurance_excute_type as
+      | 'pay' | 'cash' | 'return' | 'expect',
+  }
+}
+function estateDetailBody() {
+  return {
+    estate_id: syncHoldingId.value,
+    estate_excute_type: syncEstateDetail.value.estate_excute_type as
+      | 'tax' | 'fee' | 'insurance' | 'fix' | 'rent' | 'deposit',
+  }
+}
+
 async function loadStockSelections() {
   if (stockSelectionGroups.value.length > 0) return
   try {
@@ -758,6 +882,22 @@ async function loadStockSelections() {
   } catch {
     stockSelectionGroups.value = []
   }
+}
+
+async function loadEstateSelections() {
+  if (estateSelectionGroups.value.length > 0) return
+  try {
+    estateSelectionGroups.value = await getEstateSelections()
+  } catch {
+    estateSelectionGroups.value = []
+  }
+}
+
+// Lazy-load the selection list for whichever asset type the sync panel needs.
+function loadSyncSelections(type: SyncAssetType) {
+  if (type === 'stock') void loadStockSelections()
+  else if (type === 'insurance') void loadInsuranceSelections()
+  else if (type === 'estate') void loadEstateSelections()
 }
 
 async function loadOtherAssetTypes() {
@@ -774,8 +914,10 @@ async function loadOtherAssetTypes() {
 }
 
 function resetSyncState() {
-  syncStockId.value = ''
+  syncHoldingId.value = ''
   syncStockDetail.value = emptyStockSyncDetail()
+  syncInsuranceDetail.value = emptyInsuranceSyncDetail()
+  syncEstateDetail.value = emptyEstateSyncDetail()
 }
 
 // Sync panel opens when the user has picked an "其他資產" sub-category and
@@ -788,11 +930,12 @@ const shouldShowAssetSync = computed<boolean>(() => {
   return !originalActionSub.value
 })
 
-// Lazy-load the stock dropdown the first time the sync panel becomes visible.
-watch(shouldShowAssetSync, (visible) => {
-  if (visible && formData.value.action_sub_table === 'Stock_Detail') {
-    void loadStockSelections()
-  }
+// Lazy-load the holding dropdown whenever the sync panel is visible and the
+// asset type changes (e.g. switching the sub-category from 股票 to 保險). Reset
+// the picked holding so a stale id from another type can't leak through.
+watch([shouldShowAssetSync, syncAssetType], ([visible, type], [, prevType]) => {
+  if (type !== prevType) syncHoldingId.value = ''
+  if (visible && type) loadSyncSelections(type)
 })
 
 function findCodeType(groups: SelectionGroup[], value: string): string {
@@ -926,44 +1069,43 @@ async function submitJournal() {
       invoice_number: formData.value.invoice_number || null,
       note: formData.value.note || null,
     }
-    const syncStock =
-      shouldShowAssetSync.value &&
-      formData.value.action_sub_table === 'Stock_Detail'
-    if (syncStock && !syncStockId.value) {
-      ElMessage.error('請選擇持股')
+    const syncType = shouldShowAssetSync.value ? syncAssetType.value : null
+    if (syncType && !syncHoldingId.value) {
+      ElMessage.error(`請選擇${syncHoldingLabel.value}`)
       return
     }
-    const stockDetailPayload = syncStock
-      ? {
-          stock_id: syncStockId.value,
-          excute_type: syncStockDetail.value.excute_type as
-            | 'buy' | 'sell' | 'stock' | 'cash',
-          excute_amount: Number(syncStockDetail.value.excute_amount ?? 0),
-        }
-      : null
 
     if (formMode.value === 'create') {
-      if (stockDetailPayload) {
-        await createJournalWithStockTransaction({
-          journal: payload,
-          stock_detail: stockDetailPayload,
-        })
-        ElMessage.success('新增成功（已同步到股票明細）')
-      } else {
-        await createJournal(payload)
-        ElMessage.success('新增成功')
+      switch (syncType) {
+        case 'stock':
+          await createJournalWithStockTransaction({ journal: payload, stock_detail: stockDetailBody() })
+          break
+        case 'insurance':
+          await createJournalWithInsuranceTransaction({ journal: payload, insurance_detail: insuranceDetailBody() })
+          break
+        case 'estate':
+          await createJournalWithEstateTransaction({ journal: payload, estate_detail: estateDetailBody() })
+          break
+        default:
+          await createJournal(payload)
       }
+      ElMessage.success(syncType ? `新增成功（已同步到${SYNC_ASSET_NOUN[syncType]}明細）` : '新增成功')
     } else if (formData.value.distinct_number !== undefined) {
-      if (stockDetailPayload) {
-        await updateJournalWithStockTransaction(formData.value.distinct_number, {
-          journal: payload,
-          stock_detail: stockDetailPayload,
-        })
-        ElMessage.success('更新成功（已同步到股票明細）')
-      } else {
-        await updateJournal(formData.value.distinct_number, payload)
-        ElMessage.success('更新成功')
+      const id = formData.value.distinct_number
+      switch (syncType) {
+        case 'stock':
+          await updateJournalWithStockTransaction(id, { journal: payload, stock_detail: stockDetailBody() })
+          break
+        case 'insurance':
+          await updateJournalWithInsuranceTransaction(id, { journal: payload, insurance_detail: insuranceDetailBody() })
+          break
+        case 'estate':
+          await updateJournalWithEstateTransaction(id, { journal: payload, estate_detail: estateDetailBody() })
+          break
+        default:
+          await updateJournal(id, payload)
       }
+      ElMessage.success(syncType ? `更新成功（已同步到${SYNC_ASSET_NOUN[syncType]}明細）` : '更新成功')
     }
     journalDialogVisible.value = false
     await store.fetchJournals()

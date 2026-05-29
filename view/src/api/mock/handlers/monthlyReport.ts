@@ -206,6 +206,140 @@ export const monthlyReportHandlers = [
     }
     return ok({ journal: next, stock_detail })
   }),
+  // Composite endpoint: Journal + Insurance_Journal in one atomic write.
+  // Mirrors backend: excute_price = journal.spending (signed pass-through);
+  // Insurance_Journal carries no settling source.
+  http.post('*/monthly-report/journals/insurance-transaction', async ({ request }) => {
+    const body = (await request.json()) as {
+      journal: JournalCreate
+      insurance_detail: {
+        insurance_id: string
+        insurance_excute_type: 'pay' | 'cash' | 'return' | 'expect'
+        excute_date?: string | null
+        memo?: string | null
+      }
+    }
+    journalSeq += 1
+    const j: Journal = {
+      distinct_number: journalSeq,
+      vesting_month: body.journal.vesting_month,
+      spend_date: body.journal.spend_date,
+      spend_way: body.journal.spend_way,
+      spend_way_type: body.journal.spend_way_type,
+      spend_way_table: body.journal.spend_way_table,
+      action_main: body.journal.action_main,
+      action_main_type: body.journal.action_main_type,
+      action_main_table: body.journal.action_main_table,
+      action_sub: body.journal.action_sub ?? null,
+      action_sub_type: body.journal.action_sub_type ?? null,
+      action_sub_table: body.journal.action_sub_table ?? null,
+      spending: body.journal.spending,
+      invoice_number: body.journal.invoice_number ?? null,
+      note: body.journal.note ?? null,
+    }
+    journals.push(j)
+    const insurance_detail = {
+      distinct_number: journalSeq + 1000,
+      insurance_id: body.insurance_detail.insurance_id,
+      insurance_excute_type: body.insurance_detail.insurance_excute_type,
+      excute_price: j.spending,
+      excute_date: body.insurance_detail.excute_date || j.spend_date,
+      memo: body.insurance_detail.memo ?? j.note,
+    }
+    return ok({ journal: j, insurance_detail })
+  }),
+  http.put('*/monthly-report/journals/:id/insurance-transaction', async ({ params, request }) => {
+    const id = Number(params.id)
+    const body = (await request.json()) as {
+      journal: JournalUpdate
+      insurance_detail: {
+        insurance_id: string
+        insurance_excute_type: 'pay' | 'cash' | 'return' | 'expect'
+        excute_date?: string | null
+        memo?: string | null
+      }
+    }
+    const idx = journals.findIndex((j) => j.distinct_number === id)
+    const cur = journals[idx]
+    if (!cur) return fail('journal not found', 404)
+    const next: Journal = { ...cur, ...body.journal }
+    journals[idx] = next
+    const insurance_detail = {
+      distinct_number: id + 2000,
+      insurance_id: body.insurance_detail.insurance_id,
+      insurance_excute_type: body.insurance_detail.insurance_excute_type,
+      excute_price: next.spending,
+      excute_date: body.insurance_detail.excute_date || next.spend_date,
+      memo: body.insurance_detail.memo ?? next.note,
+    }
+    return ok({ journal: next, insurance_detail })
+  }),
+  // Composite endpoint: Journal + Estate_Journal in one atomic write.
+  http.post('*/monthly-report/journals/estate-transaction', async ({ request }) => {
+    const body = (await request.json()) as {
+      journal: JournalCreate
+      estate_detail: {
+        estate_id: string
+        estate_excute_type: 'tax' | 'fee' | 'insurance' | 'fix' | 'rent' | 'deposit'
+        excute_date?: string | null
+        memo?: string | null
+      }
+    }
+    journalSeq += 1
+    const j: Journal = {
+      distinct_number: journalSeq,
+      vesting_month: body.journal.vesting_month,
+      spend_date: body.journal.spend_date,
+      spend_way: body.journal.spend_way,
+      spend_way_type: body.journal.spend_way_type,
+      spend_way_table: body.journal.spend_way_table,
+      action_main: body.journal.action_main,
+      action_main_type: body.journal.action_main_type,
+      action_main_table: body.journal.action_main_table,
+      action_sub: body.journal.action_sub ?? null,
+      action_sub_type: body.journal.action_sub_type ?? null,
+      action_sub_table: body.journal.action_sub_table ?? null,
+      spending: body.journal.spending,
+      invoice_number: body.journal.invoice_number ?? null,
+      note: body.journal.note ?? null,
+    }
+    journals.push(j)
+    const estate_detail = {
+      distinct_number: journalSeq + 1000,
+      estate_id: body.estate_detail.estate_id,
+      estate_excute_type: body.estate_detail.estate_excute_type,
+      excute_price: j.spending,
+      excute_date: body.estate_detail.excute_date || j.spend_date,
+      memo: body.estate_detail.memo ?? j.note,
+    }
+    return ok({ journal: j, estate_detail })
+  }),
+  http.put('*/monthly-report/journals/:id/estate-transaction', async ({ params, request }) => {
+    const id = Number(params.id)
+    const body = (await request.json()) as {
+      journal: JournalUpdate
+      estate_detail: {
+        estate_id: string
+        estate_excute_type: 'tax' | 'fee' | 'insurance' | 'fix' | 'rent' | 'deposit'
+        excute_date?: string | null
+        memo?: string | null
+      }
+    }
+    const idx = journals.findIndex((j) => j.distinct_number === id)
+    const cur = journals[idx]
+    if (!cur) return fail('journal not found', 404)
+    const next: Journal = { ...cur, ...body.journal }
+    journals[idx] = next
+    const estate_detail = {
+      distinct_number: id + 2000,
+      estate_id: body.estate_detail.estate_id,
+      estate_excute_type: body.estate_detail.estate_excute_type,
+      excute_price: next.spending,
+      excute_date: body.estate_detail.excute_date || next.spend_date,
+      memo: body.estate_detail.memo ?? next.note,
+    }
+    return ok({ journal: next, estate_detail })
+  }),
   http.put('*/monthly-report/journals/:id', async ({ params, request }) => {
     const id = Number(params.id)
     const body = (await request.json()) as JournalUpdate

@@ -62,6 +62,12 @@ export const utilitiesHandlers = [
       { label: '已結清 C', value: 'INS_003' },
     ] }] satisfies SelectionGroup[]),
   ),
+  http.get('*/utilities/selections/estates', () =>
+    ok([{ label: 'Estate', options: [
+      { label: '自住公寓', value: 'EST_001' },
+      { label: '出租套房', value: 'EST_002' },
+    ] }] satisfies SelectionGroup[]),
+  ),
   http.get('*/utilities/selections/loans', () =>
     ok([{ label: 'loan', options: [
       { label: '房貸主貸', value: 'LN_HOUSE' },

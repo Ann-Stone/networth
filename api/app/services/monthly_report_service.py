@@ -17,6 +17,8 @@ from app.models.monthly_report.analytics import (
     LiabilityItem,
     LiabilityResponse,
 )
+from app.models.assets.estate import Estate, EstateJournal
+from app.models.assets.insurance import Insurance, InsuranceJournal
 from app.models.assets.stock import StockDetail, StockJournal
 from app.models.monthly_report.journal import (
     Journal,
@@ -24,6 +26,10 @@ from app.models.monthly_report.journal import (
     JournalUpdate,
 )
 from app.models.monthly_report.journal_composite import (
+    JournalEstateTransactionCreate,
+    JournalEstateTransactionUpdate,
+    JournalInsuranceTransactionCreate,
+    JournalInsuranceTransactionUpdate,
     JournalStockTransactionCreate,
     JournalStockTransactionUpdate,
 )
@@ -282,6 +288,188 @@ def update_journal_with_stock_transaction(
     session.flush()
 
     detail = _build_stock_detail(journal_row, d, account_id, account_name)
+    session.add(detail)
+    session.commit()
+    session.refresh(journal_row)
+    session.refresh(detail)
+    return journal_row, detail
+
+
+# ---------- Insurance composite ----------
+#
+# Divergence from the Stock variants above: Insurance_Journal has no account
+# columns, so there is no settling source to resolve from journal.spend_way
+# (``_resolve_settling_account`` is deliberately *not* called — funding the
+# premium from any spend_way_type is allowed and nothing is stored about it).
+# ``excute_price`` is the signed pass-through field, copied verbatim from
+# journal.spending.
+
+
+def _build_insurance_detail(journal_row: Journal, detail_payload) -> InsuranceJournal:
+    return InsuranceJournal(
+        insurance_id=detail_payload.insurance_id,
+        insurance_excute_type=detail_payload.insurance_excute_type,
+        # Signed pass-through: a premium/outflow stays negative, a refund/inflow
+        # stays positive — the detail mirrors the journal's cash-flow sign.
+        excute_price=journal_row.spending,
+        excute_date=detail_payload.excute_date or journal_row.spend_date,
+        memo=detail_payload.memo if detail_payload.memo is not None else journal_row.note,
+    )
+
+
+def create_journal_with_insurance_transaction(
+    session: Session, payload: JournalInsuranceTransactionCreate
+) -> tuple[Journal, InsuranceJournal]:
+    """Insert a Journal row and an Insurance_Journal row in a single transaction.
+
+    ``excute_price`` is copied verbatim from ``journal.spending`` (sign
+    preserved). Unlike the Stock composite there is no settling-account lookup:
+    Insurance_Journal records no payment source. Either both rows persist or
+    neither does — validation errors raise before ``session.commit()``.
+    """
+    j = payload.journal
+    d = payload.insurance_detail
+
+    policy = session.get(Insurance, d.insurance_id)
+    if policy is None:
+        raise HTTPException(status_code=404, detail=f"Insurance not found: {d.insurance_id}")
+
+    journal_data = j.model_dump()
+    journal_data["spend_date"] = normalize_spend_date(journal_data["spend_date"])
+    journal_row = Journal(**journal_data)
+    session.add(journal_row)
+    session.flush()  # assigns distinct_number without committing
+
+    detail = _build_insurance_detail(journal_row, d)
+    session.add(detail)
+    session.commit()
+    session.refresh(journal_row)
+    session.refresh(detail)
+    return journal_row, detail
+
+
+def update_journal_with_insurance_transaction(
+    session: Session,
+    journal_id: int,
+    payload: JournalInsuranceTransactionUpdate,
+) -> tuple[Journal, InsuranceJournal]:
+    """Update an existing Journal and insert a new Insurance_Journal atomically.
+
+    Used when a user edits a journal whose original ``action_sub`` was empty and
+    now points to an insurance policy. The detail row is always created fresh —
+    partial updates of existing details go through the independent
+    Insurance_Journal endpoints. Either both writes commit or neither.
+    """
+    j = payload.journal
+    d = payload.insurance_detail
+
+    journal_row = session.get(Journal, journal_id)
+    if journal_row is None:
+        raise HTTPException(status_code=404, detail=f"Journal not found: {journal_id}")
+
+    updates = j.model_dump(exclude_unset=True)
+    if "spend_date" in updates and updates["spend_date"] is not None:
+        updates["spend_date"] = normalize_spend_date(updates["spend_date"])
+    for field, value in updates.items():
+        setattr(journal_row, field, value)
+
+    policy = session.get(Insurance, d.insurance_id)
+    if policy is None:
+        raise HTTPException(status_code=404, detail=f"Insurance not found: {d.insurance_id}")
+
+    session.add(journal_row)
+    session.flush()
+
+    detail = _build_insurance_detail(journal_row, d)
+    session.add(detail)
+    session.commit()
+    session.refresh(journal_row)
+    session.refresh(detail)
+    return journal_row, detail
+
+
+# ---------- Estate composite ----------
+#
+# Same shape and divergences as the Insurance composite above: no settling
+# source on Estate_Journal, signed pass-through into ``excute_price``.
+
+
+def _build_estate_detail(journal_row: Journal, detail_payload) -> EstateJournal:
+    return EstateJournal(
+        estate_id=detail_payload.estate_id,
+        estate_excute_type=detail_payload.estate_excute_type,
+        # Signed pass-through: a tax/fee/outflow stays negative, a rent/inflow
+        # stays positive — the detail mirrors the journal's cash-flow sign.
+        excute_price=journal_row.spending,
+        excute_date=detail_payload.excute_date or journal_row.spend_date,
+        memo=detail_payload.memo if detail_payload.memo is not None else journal_row.note,
+    )
+
+
+def create_journal_with_estate_transaction(
+    session: Session, payload: JournalEstateTransactionCreate
+) -> tuple[Journal, EstateJournal]:
+    """Insert a Journal row and an Estate_Journal row in a single transaction.
+
+    ``excute_price`` is copied verbatim from ``journal.spending`` (sign
+    preserved). Unlike the Stock composite there is no settling-account lookup:
+    Estate_Journal records no payment source. Either both rows persist or
+    neither does — validation errors raise before ``session.commit()``.
+    """
+    j = payload.journal
+    d = payload.estate_detail
+
+    estate = session.get(Estate, d.estate_id)
+    if estate is None:
+        raise HTTPException(status_code=404, detail=f"Estate not found: {d.estate_id}")
+
+    journal_data = j.model_dump()
+    journal_data["spend_date"] = normalize_spend_date(journal_data["spend_date"])
+    journal_row = Journal(**journal_data)
+    session.add(journal_row)
+    session.flush()  # assigns distinct_number without committing
+
+    detail = _build_estate_detail(journal_row, d)
+    session.add(detail)
+    session.commit()
+    session.refresh(journal_row)
+    session.refresh(detail)
+    return journal_row, detail
+
+
+def update_journal_with_estate_transaction(
+    session: Session,
+    journal_id: int,
+    payload: JournalEstateTransactionUpdate,
+) -> tuple[Journal, EstateJournal]:
+    """Update an existing Journal and insert a new Estate_Journal atomically.
+
+    Used when a user edits a journal whose original ``action_sub`` was empty and
+    now points to an estate. The detail row is always created fresh — partial
+    updates of existing details go through the independent Estate_Journal
+    endpoints. Either both writes commit or neither.
+    """
+    j = payload.journal
+    d = payload.estate_detail
+
+    journal_row = session.get(Journal, journal_id)
+    if journal_row is None:
+        raise HTTPException(status_code=404, detail=f"Journal not found: {journal_id}")
+
+    updates = j.model_dump(exclude_unset=True)
+    if "spend_date" in updates and updates["spend_date"] is not None:
+        updates["spend_date"] = normalize_spend_date(updates["spend_date"])
+    for field, value in updates.items():
+        setattr(journal_row, field, value)
+
+    estate = session.get(Estate, d.estate_id)
+    if estate is None:
+        raise HTTPException(status_code=404, detail=f"Estate not found: {d.estate_id}")
+
+    session.add(journal_row)
+    session.flush()
+
+    detail = _build_estate_detail(journal_row, d)
     session.add(detail)
     session.commit()
     session.refresh(journal_row)

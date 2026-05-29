@@ -30,6 +30,7 @@ data (array item):
 | parent_id |  | no | Parent code_id |
 | in_use | string | yes | Active flag |
 | code_index | integer | yes | Dropdown order |
+| is_annual_event | boolean | no | Budget as a single annual envelope |
 | sub_codes | array<CodeDataRead> | no | Nested sub-codes |
 
 Example:
@@ -43,6 +44,7 @@ Example:
       "code_index": 1,
       "code_type": "Floating",
       "in_use": "Y",
+      "is_annual_event": false,
       "name": "Food",
       "sub_codes": []
     }
@@ -90,6 +92,7 @@ data (array item):
 | parent_id |  | no | Parent code_id |
 | in_use | string | yes | Active flag |
 | code_index | integer | yes | Dropdown order |
+| is_annual_event | boolean | no | Budget as a single annual envelope |
 
 Example:
 
@@ -102,6 +105,7 @@ Example:
       "code_index": 1,
       "code_type": "Floating",
       "in_use": "Y",
+      "is_annual_event": false,
       "name": "Food"
     }
   ],

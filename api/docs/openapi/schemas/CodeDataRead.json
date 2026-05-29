@@ -7,6 +7,7 @@
           "code_index": 1,
           "code_type": "Floating",
           "in_use": "Y",
+          "is_annual_event": false,
           "name": "Food"
         },
         "properties": {
@@ -41,6 +42,15 @@
             ],
             "title": "In Use",
             "type": "string"
+          },
+          "is_annual_event": {
+            "default": false,
+            "description": "Budget as a single annual envelope",
+            "examples": [
+              false
+            ],
+            "title": "Is Annual Event",
+            "type": "boolean"
           },
           "name": {
             "description": "Display name",

@@ -4,6 +4,7 @@ import type {
   SelectionAccount,
   SelectionCode,
   SelectionCreditCard,
+  SelectionEstate,
   SelectionInsurance,
   SelectionLoan,
   SelectionOtherAssetType,
@@ -25,6 +26,10 @@ export function getCodeSelections(codeGroup?: string): Promise<SelectionCode[]> 
 
 export function getCreditCardSelections(): Promise<SelectionCreditCard[]> {
   return request.get('/utilities/selections/credit-cards')
+}
+
+export function getEstateSelections(): Promise<SelectionEstate[]> {
+  return request.get('/utilities/selections/estates')
 }
 
 export function getInsuranceSelections(): Promise<SelectionInsurance[]> {

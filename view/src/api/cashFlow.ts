@@ -8,6 +8,12 @@ import type {
   JournalExpenditureRatio,
   JournalInvestRatio,
   JournalLiability,
+  JournalEstateTransactionCreate,
+  JournalEstateTransactionRead,
+  JournalEstateTransactionUpdate,
+  JournalInsuranceTransactionCreate,
+  JournalInsuranceTransactionRead,
+  JournalInsuranceTransactionUpdate,
   JournalStockTransactionCreate,
   JournalStockTransactionRead,
   JournalStockTransactionUpdate,
@@ -45,6 +51,32 @@ export function updateJournalWithStockTransaction(
   data: JournalStockTransactionUpdate,
 ): Promise<JournalStockTransactionRead> {
   return request.put(`/monthly-report/journals/${id}/stock-transaction`, data)
+}
+
+export function createJournalWithInsuranceTransaction(
+  data: JournalInsuranceTransactionCreate,
+): Promise<JournalInsuranceTransactionRead> {
+  return request.post('/monthly-report/journals/insurance-transaction', data)
+}
+
+export function updateJournalWithInsuranceTransaction(
+  id: number,
+  data: JournalInsuranceTransactionUpdate,
+): Promise<JournalInsuranceTransactionRead> {
+  return request.put(`/monthly-report/journals/${id}/insurance-transaction`, data)
+}
+
+export function createJournalWithEstateTransaction(
+  data: JournalEstateTransactionCreate,
+): Promise<JournalEstateTransactionRead> {
+  return request.post('/monthly-report/journals/estate-transaction', data)
+}
+
+export function updateJournalWithEstateTransaction(
+  id: number,
+  data: JournalEstateTransactionUpdate,
+): Promise<JournalEstateTransactionRead> {
+  return request.put(`/monthly-report/journals/${id}/estate-transaction`, data)
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────

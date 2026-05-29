@@ -151,6 +151,8 @@ def _refine_subrouter(domain_slug: str, sub: str, path: str) -> str:
         if path.endswith("/selection"):
             return f"{sub}-selection"
     if domain_slug == "monthly-report" and sub == "journals":
+        if path.endswith("-transaction"):
+            return "journals-transactions"
         if any(path.endswith(suf) for suf in _JOURNAL_ANALYTICS_SUFFIXES):
             return "journals-analytics"
     if domain_slug == "settings" and sub == "codes":

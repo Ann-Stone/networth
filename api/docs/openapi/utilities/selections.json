@@ -213,6 +213,44 @@
         ]
       }
     },
+    "/utilities/selections/estates": {
+      "get": {
+        "description": "Return active estates (estate_status != 'sold') in one group labelled 'Estate'.",
+        "operationId": "list_estate_selections_utilities_selections_estates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_list_SelectionGroup__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "RuntimeError: unexpected failure",
+                  "msg": "fail",
+                  "status": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unhandled server error — wrapped by global exception handler"
+          }
+        },
+        "summary": "List estates as a single group",
+        "tags": [
+          "utilities",
+          "utilities:selections"
+        ]
+      }
+    },
     "/utilities/selections/insurances": {
       "get": {
         "description": "Return open insurance policies (has_closed != 'Y') in one group labelled 'Insurance'.",

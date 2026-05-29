@@ -30,6 +30,7 @@ data (array item):
 | parent_id |  | no | Parent code_id |
 | in_use | string | yes | Active flag |
 | code_index | integer | yes | Dropdown order |
+| is_annual_event | boolean | no | Budget as a single annual envelope |
 
 Example:
 
@@ -42,6 +43,7 @@ Example:
       "code_index": 1,
       "code_type": "Floating",
       "in_use": "Y",
+      "is_annual_event": false,
       "name": "Food"
     }
   ],
@@ -74,6 +76,7 @@ Body:
 | parent_id |  | no | Parent code_id; null for main codes |
 | in_use | string | no | Active flag |
 | code_index |  | no | Dropdown order; auto-filled with max+1 when omitted |
+| is_annual_event | boolean | no | Budget as a single annual envelope |
 
 #### Response (200)
 
@@ -95,6 +98,7 @@ data:
 | parent_id |  | no | Parent code_id |
 | in_use | string | yes | Active flag |
 | code_index | integer | yes | Dropdown order |
+| is_annual_event | boolean | no | Budget as a single annual envelope |
 
 Example:
 
@@ -106,6 +110,7 @@ Example:
     "code_index": 1,
     "code_type": "Floating",
     "in_use": "Y",
+    "is_annual_event": false,
     "name": "Food"
   },
   "msg": "success"
@@ -181,6 +186,7 @@ Body:
 | parent_id |  | no | Parent code_id |
 | in_use |  | no | Active flag |
 | code_index |  | no | Dropdown order |
+| is_annual_event |  | no | Budget as a single annual envelope |
 
 #### Response (200)
 
@@ -202,6 +208,7 @@ data:
 | parent_id |  | no | Parent code_id |
 | in_use | string | yes | Active flag |
 | code_index | integer | yes | Dropdown order |
+| is_annual_event | boolean | no | Budget as a single annual envelope |
 
 Example:
 
@@ -213,6 +220,7 @@ Example:
     "code_index": 1,
     "code_type": "Floating",
     "in_use": "Y",
+    "is_annual_event": false,
     "name": "Food"
   },
   "msg": "success"

@@ -19,7 +19,7 @@ Frontend tickets that touch a single resource (`/settings/accounts`, `/assets/st
 | --- | --- | --- | --- |
 | `accounts` | [api-reference/settings/accounts.md](api-reference/settings/accounts.md) | [openapi/settings/accounts.json](openapi/settings/accounts.json) | 5 |
 | `alarms` | [api-reference/settings/alarms.md](api-reference/settings/alarms.md) | [openapi/settings/alarms.json](openapi/settings/alarms.json) | 5 |
-| `budgets` | [api-reference/settings/budgets.md](api-reference/settings/budgets.md) | [openapi/settings/budgets.json](openapi/settings/budgets.json) | 4 |
+| `budgets` | [api-reference/settings/budgets.md](api-reference/settings/budgets.md) | [openapi/settings/budgets.json](openapi/settings/budgets.json) | 5 |
 | `codes` | [api-reference/settings/codes.md](api-reference/settings/codes.md) | [openapi/settings/codes.json](openapi/settings/codes.json) | 4 |
 | `codes-tree` | [api-reference/settings/codes-tree.md](api-reference/settings/codes-tree.md) | [openapi/settings/codes-tree.json](openapi/settings/codes-tree.json) | 2 |
 | `credit-cards` | [api-reference/settings/credit-cards.md](api-reference/settings/credit-cards.md) | [openapi/settings/credit-cards.json](openapi/settings/credit-cards.json) | 4 |
@@ -30,8 +30,9 @@ Frontend tickets that touch a single resource (`/settings/accounts`, `/assets/st
 | Sub-router | Markdown | OpenAPI slice | Endpoints |
 | --- | --- | --- | --- |
 | `balance` | [api-reference/monthly-report/balance.md](api-reference/monthly-report/balance.md) | [openapi/monthly-report/balance.json](openapi/monthly-report/balance.json) | 1 |
-| `journals` | [api-reference/monthly-report/journals.md](api-reference/monthly-report/journals.md) | [openapi/monthly-report/journals.json](openapi/monthly-report/journals.json) | 6 |
+| `journals` | [api-reference/monthly-report/journals.md](api-reference/monthly-report/journals.md) | [openapi/monthly-report/journals.json](openapi/monthly-report/journals.json) | 4 |
 | `journals-analytics` | [api-reference/monthly-report/journals-analytics.md](api-reference/monthly-report/journals-analytics.md) | [openapi/monthly-report/journals-analytics.json](openapi/monthly-report/journals-analytics.json) | 4 |
+| `journals-transactions` | [api-reference/monthly-report/journals-transactions.md](api-reference/monthly-report/journals-transactions.md) | [openapi/monthly-report/journals-transactions.json](openapi/monthly-report/journals-transactions.json) | 6 |
 | `stock-prices` | [api-reference/monthly-report/stock-prices.md](api-reference/monthly-report/stock-prices.md) | [openapi/monthly-report/stock-prices.json](openapi/monthly-report/stock-prices.json) | 2 |
 
 ### Assets
@@ -72,7 +73,7 @@ Frontend tickets that touch a single resource (`/settings/accounts`, `/assets/st
 | Sub-router | Markdown | OpenAPI slice | Endpoints |
 | --- | --- | --- | --- |
 | `import` | [api-reference/utilities/import.md](api-reference/utilities/import.md) | [openapi/utilities/import.json](openapi/utilities/import.json) | 3 |
-| `selections` | [api-reference/utilities/selections.md](api-reference/utilities/selections.md) | [openapi/utilities/selections.json](openapi/utilities/selections.json) | 8 |
+| `selections` | [api-reference/utilities/selections.md](api-reference/utilities/selections.md) | [openapi/utilities/selections.json](openapi/utilities/selections.json) | 9 |
 
 ### Health
 

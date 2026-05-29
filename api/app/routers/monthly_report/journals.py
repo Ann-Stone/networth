@@ -11,6 +11,8 @@ from app.models.monthly_report.analytics import (
     InvestRatioResponse,
     LiabilityResponse,
 )
+from app.models.assets.estate import EstateJournalRead
+from app.models.assets.insurance import InsuranceJournalRead
 from app.models.assets.stock import StockDetailRead
 from app.models.monthly_report.journal import (
     Journal,
@@ -20,6 +22,12 @@ from app.models.monthly_report.journal import (
     JournalUpdate,
 )
 from app.models.monthly_report.journal_composite import (
+    JournalEstateTransactionCreate,
+    JournalEstateTransactionRead,
+    JournalEstateTransactionUpdate,
+    JournalInsuranceTransactionCreate,
+    JournalInsuranceTransactionRead,
+    JournalInsuranceTransactionUpdate,
     JournalStockTransactionCreate,
     JournalStockTransactionRead,
     JournalStockTransactionUpdate,
@@ -38,10 +46,14 @@ from app.services.monthly_report_service import (
     compute_invest_ratio,
     compute_liability,
     create_journal,
+    create_journal_with_estate_transaction,
+    create_journal_with_insurance_transaction,
     create_journal_with_stock_transaction,
     delete_journal,
     list_journals_by_month,
     update_journal,
+    update_journal_with_estate_transaction,
+    update_journal_with_insurance_transaction,
     update_journal_with_stock_transaction,
 )
 
@@ -122,6 +134,76 @@ def post_journal_stock_transaction(
     )
 
 
+@router.post(
+    "/insurance-transaction",
+    summary="Create a journal entry + insurance transaction atomically",
+    description=(
+        "Persist a Journal row and an Insurance_Journal row in a single database "
+        "transaction. excute_price is copied verbatim from journal.spending "
+        "(sign preserved). Insurance_Journal stores no payment source, so unlike "
+        "the stock variant there is no settling-account lookup."
+    ),
+    response_model=ApiResponse[JournalInsuranceTransactionRead],
+    status_code=201,
+    responses={
+        404: error_response(
+            "Insurance policy not found",
+            error_payload="Insurance not found: INS-001",
+        ),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
+)
+def post_journal_insurance_transaction(
+    payload: JournalInsuranceTransactionCreate,
+    session: Session = Depends(get_session),
+) -> ApiResponse[JournalInsuranceTransactionRead]:
+    journal_row, detail_row = create_journal_with_insurance_transaction(session, payload)
+    return ApiResponse(
+        data=JournalInsuranceTransactionRead(
+            journal=JournalRead.model_validate(journal_row, from_attributes=True),
+            insurance_detail=InsuranceJournalRead.model_validate(
+                detail_row, from_attributes=True
+            ),
+        )
+    )
+
+
+@router.post(
+    "/estate-transaction",
+    summary="Create a journal entry + estate transaction atomically",
+    description=(
+        "Persist a Journal row and an Estate_Journal row in a single database "
+        "transaction. excute_price is copied verbatim from journal.spending "
+        "(sign preserved). Estate_Journal stores no payment source, so unlike "
+        "the stock variant there is no settling-account lookup."
+    ),
+    response_model=ApiResponse[JournalEstateTransactionRead],
+    status_code=201,
+    responses={
+        404: error_response(
+            "Estate not found",
+            error_payload="Estate not found: EST-001",
+        ),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
+)
+def post_journal_estate_transaction(
+    payload: JournalEstateTransactionCreate,
+    session: Session = Depends(get_session),
+) -> ApiResponse[JournalEstateTransactionRead]:
+    journal_row, detail_row = create_journal_with_estate_transaction(session, payload)
+    return ApiResponse(
+        data=JournalEstateTransactionRead(
+            journal=JournalRead.model_validate(journal_row, from_attributes=True),
+            estate_detail=EstateJournalRead.model_validate(
+                detail_row, from_attributes=True
+            ),
+        )
+    )
+
+
 @router.put(
     "/{journal_id}/stock-transaction",
     summary="Update a journal entry + create stock transaction atomically",
@@ -153,6 +235,80 @@ def put_journal_stock_transaction(
         data=JournalStockTransactionRead(
             journal=JournalRead.model_validate(journal_row, from_attributes=True),
             stock_detail=StockDetailRead.model_validate(detail_row, from_attributes=True),
+        )
+    )
+
+
+@router.put(
+    "/{journal_id}/insurance-transaction",
+    summary="Update a journal entry + create insurance transaction atomically",
+    description=(
+        "Apply a partial Journal update and insert a brand-new Insurance_Journal "
+        "row in a single database transaction. Intended for re-classifying a "
+        "previously-untagged journal (action_sub null) as an insurance "
+        "transaction. Both writes succeed or both roll back."
+    ),
+    response_model=ApiResponse[JournalInsuranceTransactionRead],
+    responses={
+        404: error_response(
+            "Journal or insurance policy not found",
+            error_payload="Journal not found: 42",
+        ),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
+)
+def put_journal_insurance_transaction(
+    journal_id: int,
+    payload: JournalInsuranceTransactionUpdate,
+    session: Session = Depends(get_session),
+) -> ApiResponse[JournalInsuranceTransactionRead]:
+    journal_row, detail_row = update_journal_with_insurance_transaction(
+        session, journal_id, payload
+    )
+    return ApiResponse(
+        data=JournalInsuranceTransactionRead(
+            journal=JournalRead.model_validate(journal_row, from_attributes=True),
+            insurance_detail=InsuranceJournalRead.model_validate(
+                detail_row, from_attributes=True
+            ),
+        )
+    )
+
+
+@router.put(
+    "/{journal_id}/estate-transaction",
+    summary="Update a journal entry + create estate transaction atomically",
+    description=(
+        "Apply a partial Journal update and insert a brand-new Estate_Journal row "
+        "in a single database transaction. Intended for re-classifying a "
+        "previously-untagged journal (action_sub null) as an estate transaction. "
+        "Both writes succeed or both roll back."
+    ),
+    response_model=ApiResponse[JournalEstateTransactionRead],
+    responses={
+        404: error_response(
+            "Journal or estate not found",
+            error_payload="Journal not found: 42",
+        ),
+        422: VALIDATION_ERROR,
+        500: INTERNAL_ERROR,
+    },
+)
+def put_journal_estate_transaction(
+    journal_id: int,
+    payload: JournalEstateTransactionUpdate,
+    session: Session = Depends(get_session),
+) -> ApiResponse[JournalEstateTransactionRead]:
+    journal_row, detail_row = update_journal_with_estate_transaction(
+        session, journal_id, payload
+    )
+    return ApiResponse(
+        data=JournalEstateTransactionRead(
+            journal=JournalRead.model_validate(journal_row, from_attributes=True),
+            estate_detail=EstateJournalRead.model_validate(
+                detail_row, from_attributes=True
+            ),
         )
     )
 

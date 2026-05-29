@@ -18,6 +18,7 @@ from app.services.utility_service import (
     get_account_selection_groups,
     get_code_selection_groups,
     get_credit_card_selection_groups,
+    get_estate_selection_groups,
     get_insurance_selection_groups,
     get_loan_selection_groups,
     get_other_asset_type_selection_groups,
@@ -113,6 +114,19 @@ def list_insurance_selections(
     session: Session = Depends(get_session),
 ) -> ApiResponse[list[SelectionGroup]]:
     return ApiResponse(data=get_insurance_selection_groups(session))
+
+
+@router.get(
+    "/estates",
+    summary="List estates as a single group",
+    description="Return active estates (estate_status != 'sold') in one group labelled 'Estate'.",
+    response_model=ApiResponse[list[SelectionGroup]],
+    responses=_COMMON_RESPONSES,
+)
+def list_estate_selections(
+    session: Session = Depends(get_session),
+) -> ApiResponse[list[SelectionGroup]]:
+    return ApiResponse(data=get_estate_selection_groups(session))
 
 
 @router.get(

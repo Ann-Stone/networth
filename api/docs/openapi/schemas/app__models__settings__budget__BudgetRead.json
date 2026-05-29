@@ -21,6 +21,21 @@
           "expected12": 200000.0
         },
         "properties": {
+          "annual_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Annual envelope for annual-event categories",
+            "examples": [
+              null
+            ],
+            "title": "Annual Amount"
+          },
           "budget_year": {
             "description": "YYYY",
             "examples": [

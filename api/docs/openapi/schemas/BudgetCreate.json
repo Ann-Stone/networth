@@ -1,11 +1,24 @@
 {
   "components": {
     "schemas": {
-      "BudgetUpdate": {
+      "BudgetCreate": {
         "example": {
           "budget_year": "2026",
-          "category_code": "E01",
-          "expected12": 250000.0
+          "category_code": "INC01",
+          "category_name": "Salary",
+          "code_type": "income",
+          "expected01": 100000.0,
+          "expected02": 100000.0,
+          "expected03": 100000.0,
+          "expected04": 100000.0,
+          "expected05": 100000.0,
+          "expected06": 100000.0,
+          "expected07": 100000.0,
+          "expected08": 100000.0,
+          "expected09": 100000.0,
+          "expected10": 100000.0,
+          "expected11": 100000.0,
+          "expected12": 200000.0
         },
         "properties": {
           "annual_amount": {
@@ -24,7 +37,7 @@
             "title": "Annual Amount"
           },
           "budget_year": {
-            "description": "Identifies the row along with category_code",
+            "description": "YYYY",
             "examples": [
               "2026"
             ],
@@ -32,229 +45,145 @@
             "type": "string"
           },
           "category_code": {
-            "description": "Identifies the row along with budget_year",
+            "description": "FK to CodeData.code_id",
             "examples": [
-              "E01"
+              "INC01"
             ],
             "title": "Category Code",
             "type": "string"
           },
           "category_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Category display name",
             "examples": [
               "Salary"
             ],
-            "title": "Category Name"
+            "title": "Category Name",
+            "type": "string"
           },
           "code_type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Code type",
             "examples": [
               "income"
             ],
-            "title": "Code Type"
+            "title": "Code Type",
+            "type": "string"
           },
           "expected01": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Month 01 expected",
             "examples": [
               100000.0
             ],
-            "title": "Expected01"
+            "title": "Expected01",
+            "type": "number"
           },
           "expected02": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Month 02 expected",
             "examples": [
               100000.0
             ],
-            "title": "Expected02"
+            "title": "Expected02",
+            "type": "number"
           },
           "expected03": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Month 03 expected",
             "examples": [
               100000.0
             ],
-            "title": "Expected03"
+            "title": "Expected03",
+            "type": "number"
           },
           "expected04": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Month 04 expected",
             "examples": [
               100000.0
             ],
-            "title": "Expected04"
+            "title": "Expected04",
+            "type": "number"
           },
           "expected05": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Month 05 expected",
             "examples": [
               100000.0
             ],
-            "title": "Expected05"
+            "title": "Expected05",
+            "type": "number"
           },
           "expected06": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Month 06 expected",
             "examples": [
               100000.0
             ],
-            "title": "Expected06"
+            "title": "Expected06",
+            "type": "number"
           },
           "expected07": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Month 07 expected",
             "examples": [
               100000.0
             ],
-            "title": "Expected07"
+            "title": "Expected07",
+            "type": "number"
           },
           "expected08": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Month 08 expected",
             "examples": [
               100000.0
             ],
-            "title": "Expected08"
+            "title": "Expected08",
+            "type": "number"
           },
           "expected09": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Month 09 expected",
             "examples": [
               100000.0
             ],
-            "title": "Expected09"
+            "title": "Expected09",
+            "type": "number"
           },
           "expected10": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Month 10 expected",
             "examples": [
               100000.0
             ],
-            "title": "Expected10"
+            "title": "Expected10",
+            "type": "number"
           },
           "expected11": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Month 11 expected",
             "examples": [
               100000.0
             ],
-            "title": "Expected11"
+            "title": "Expected11",
+            "type": "number"
           },
           "expected12": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Month 12 expected",
             "examples": [
               200000.0
             ],
-            "title": "Expected12"
+            "title": "Expected12",
+            "type": "number"
           }
         },
         "required": [
           "budget_year",
-          "category_code"
+          "category_code",
+          "category_name",
+          "code_type",
+          "expected01",
+          "expected02",
+          "expected03",
+          "expected04",
+          "expected05",
+          "expected06",
+          "expected07",
+          "expected08",
+          "expected09",
+          "expected10",
+          "expected11",
+          "expected12"
         ],
-        "title": "BudgetUpdate",
+        "title": "BudgetCreate",
         "type": "object"
       }
     }

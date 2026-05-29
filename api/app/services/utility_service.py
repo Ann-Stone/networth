@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
+from app.models.assets.estate import Estate
 from app.models.assets.insurance import Insurance
 from app.models.assets.loan import Loan
 from app.models.assets.other_asset import OtherAsset
@@ -156,6 +157,30 @@ def get_insurance_selection_groups(session: Session) -> list[SelectionGroup]:
             options=[
                 SelectionOption(value=i.insurance_id, label=i.insurance_name)
                 for i in rows
+            ],
+        )
+    ]
+
+
+def get_estate_selection_groups(session: Session) -> list[SelectionGroup]:
+    """Active estates as a single group labelled 'Estate'.
+
+    Excludes sold estates (estate_status == 'sold'); the option label is the
+    estate's display name so the user can pick by property in a filterable
+    dropdown.
+    """
+    rows = session.exec(
+        select(Estate)
+        .where(Estate.estate_status != "sold")
+        .order_by(Estate.estate_id.asc())
+    ).all()
+    if not rows:
+        return []
+    return [
+        SelectionGroup(
+            label="Estate",
+            options=[
+                SelectionOption(value=e.estate_id, label=e.estate_name) for e in rows
             ],
         )
     ]
