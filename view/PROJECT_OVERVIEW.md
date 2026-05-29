@@ -43,7 +43,7 @@ All data models live in `src/types/models.ts`. **No inline interface definitions
 ## DO / DO NOT
 
 ### DO
-- Use `formatCurrency()` from `src/utils/currency.ts` for all money values.
+- Use the `<MoneyDisplay>` component for all money values (formats via `Intl.NumberFormat`).
 - Use `<el-message>` / `<el-notification>` for user feedback — never `alert()`.
 - Run `pnpm type-check` before submitting a PR.
 
