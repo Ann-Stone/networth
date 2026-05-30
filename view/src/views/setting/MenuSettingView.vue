@@ -35,8 +35,7 @@
               <el-table-column prop="account_index" label="排序" width="80" />
               <el-table-column label="操作" width="160" fixed="right">
                 <template #default="{ row }">
-                  <el-button link type="primary" @click="openEditAccount(row)">編輯</el-button>
-                  <el-button link type="danger" @click="handleDeleteAccount(row)">刪除</el-button>
+                  <RowActions variant="link" @edit="openEditAccount(row)" @delete="handleDeleteAccount(row)" />
                 </template>
               </el-table-column>
             </el-table>
@@ -83,12 +82,11 @@
                       <el-table-column prop="code_index" label="排序" width="80" />
                       <el-table-column label="操作" width="160" fixed="right">
                         <template #default="{ row: sub }">
-                          <el-button link type="primary" @click="openEditSubCode(row, sub)">
-                            編輯
-                          </el-button>
-                          <el-button link type="danger" @click="handleDeleteSubCode(sub)">
-                            刪除
-                          </el-button>
+                          <RowActions
+                            variant="link"
+                            @edit="openEditSubCode(row, sub)"
+                            @delete="handleDeleteSubCode(sub)"
+                          />
                         </template>
                       </el-table-column>
                     </el-table>
@@ -112,8 +110,7 @@
               <el-table-column prop="code_index" label="排序" width="80" />
               <el-table-column label="操作" width="160" fixed="right">
                 <template #default="{ row }">
-                  <el-button link type="primary" @click="openEditCode(row)">編輯</el-button>
-                  <el-button link type="danger" @click="handleDeleteCode(row)">刪除</el-button>
+                  <RowActions variant="link" @edit="openEditCode(row)" @delete="handleDeleteCode(row)" />
                 </template>
               </el-table-column>
             </el-table>
@@ -160,8 +157,7 @@
               <el-table-column prop="credit_card_index" label="排序" width="80" />
               <el-table-column label="操作" width="160" fixed="right">
                 <template #default="{ row }">
-                  <el-button link type="primary" @click="openEditCreditCard(row)">編輯</el-button>
-                  <el-button link type="danger" @click="handleDeleteCreditCard(row)">刪除</el-button>
+                  <RowActions variant="link" @edit="openEditCreditCard(row)" @delete="handleDeleteCreditCard(row)" />
                 </template>
               </el-table-column>
             </el-table>
@@ -422,14 +418,15 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { type FormInstance, type FormRules } from 'element-plus'
 import { Plus as PlusIcon } from '@element-plus/icons-vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import DataListCard from '@/components/ui/DataListCard.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import FormDialog from '@/components/ui/FormDialog.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
-import { useConfirm } from '@/composables/useConfirm'
+import RowActions from '@/components/ui/RowActions.vue'
+import { useCrudDialog } from '@/composables/useCrudDialog'
 import { useSettingStore } from '@/stores/setting'
 import {
   createAccount,
@@ -458,7 +455,6 @@ import type {
 const CODE_TYPE_OPTIONS = ['Floating', 'Fixed', 'Invest', 'Income', 'Transfer'] as const
 
 const store = useSettingStore()
-const confirm = useConfirm()
 
 const activeTab = ref<'accounts' | 'codes' | 'credit-cards'>('accounts')
 
@@ -481,11 +477,7 @@ watch(activeTab, (tab) => {
 
 // ─── Account dialog ──────────────────────────────────────────────────────────
 
-const accountDialogVisible = ref(false)
-const accountFormMode = ref<'create' | 'edit'>('create')
-const accountSubmitting = ref(false)
 const accountFormRef = ref<FormInstance>()
-const editingAccountId = ref<number | null>(null)
 
 function emptyAccountForm(): AccountCreate {
   return {
@@ -502,7 +494,48 @@ function emptyAccountForm(): AccountCreate {
   }
 }
 
-const accountForm = ref<AccountCreate>(emptyAccountForm())
+const accountFormRules: FormRules = {
+  account_id: [{ required: true, message: '請輸入帳戶 ID', trigger: 'blur' }],
+  name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
+  account_type: [{ required: true, message: '請輸入類型', trigger: 'blur' }],
+  fx_code: [{ required: true, message: '請輸入幣別', trigger: 'blur' }],
+}
+
+const {
+  dialogVisible: accountDialogVisible,
+  formMode: accountFormMode,
+  submitting: accountSubmitting,
+  form: accountForm,
+  openCreate: openCreateAccount,
+  openEdit: openEditAccount,
+  submit: submitAccount,
+  remove: handleDeleteAccount,
+} = useCrudDialog<Account, AccountCreate>({
+  formRef: accountFormRef,
+  emptyForm: emptyAccountForm,
+  toForm: (row) => ({
+    account_id: row.account_id,
+    name: row.name,
+    account_type: row.account_type,
+    fx_code: row.fx_code,
+    is_calculate: row.is_calculate,
+    in_use: row.in_use,
+    discount: row.discount,
+    memo: row.memo ?? null,
+    owner: row.owner ?? null,
+    account_index: row.account_index,
+  }),
+  getId: (row) => row.id,
+  create: (form) => createAccount({ ...form }),
+  update: (id, form) => {
+    const { account_id, ...rest } = form
+    void account_id
+    return updateAccount(id as number, rest)
+  },
+  remove: (id) => deleteAccount(id as number),
+  refetch: () => store.fetchAccounts(),
+  confirmDelete: (row) => ({ title: '刪除帳戶', message: `確定要刪除「${row.name}」?` }),
+})
 
 const ownerModel = computed<string>({
   get: () => accountForm.value.owner ?? '',
@@ -525,79 +558,9 @@ const accountIndexModel = computed<number | undefined>({
   },
 })
 
-const accountFormRules: FormRules = {
-  account_id: [{ required: true, message: '請輸入帳戶 ID', trigger: 'blur' }],
-  name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
-  account_type: [{ required: true, message: '請輸入類型', trigger: 'blur' }],
-  fx_code: [{ required: true, message: '請輸入幣別', trigger: 'blur' }],
-}
-
-function openCreateAccount() {
-  accountFormMode.value = 'create'
-  editingAccountId.value = null
-  accountForm.value = emptyAccountForm()
-  accountDialogVisible.value = true
-}
-
-function openEditAccount(row: Account) {
-  accountFormMode.value = 'edit'
-  editingAccountId.value = row.id
-  accountForm.value = {
-    account_id: row.account_id,
-    name: row.name,
-    account_type: row.account_type,
-    fx_code: row.fx_code,
-    is_calculate: row.is_calculate,
-    in_use: row.in_use,
-    discount: row.discount,
-    memo: row.memo ?? null,
-    owner: row.owner ?? null,
-    account_index: row.account_index,
-  }
-  accountDialogVisible.value = true
-}
-
-async function submitAccount() {
-  if (!accountFormRef.value) return
-  const valid = await accountFormRef.value.validate().catch(() => false)
-  if (!valid) return
-  accountSubmitting.value = true
-  try {
-    if (accountFormMode.value === 'create') {
-      await createAccount({ ...accountForm.value })
-      ElMessage.success('新增成功')
-    } else if (editingAccountId.value !== null) {
-      const { account_id, ...rest } = accountForm.value
-      void account_id
-      await updateAccount(editingAccountId.value, rest)
-      ElMessage.success('更新成功')
-    }
-    accountDialogVisible.value = false
-    await store.fetchAccounts()
-  } finally {
-    accountSubmitting.value = false
-  }
-}
-
-async function handleDeleteAccount(row: Account) {
-  const ok = await confirm({
-    title: '刪除帳戶',
-    message: `確定要刪除「${row.name}」?`,
-    type: 'warning',
-  })
-  if (!ok) return
-  await deleteAccount(row.id)
-  ElMessage.success('已刪除')
-  await store.fetchAccounts()
-}
-
 // ─── Main code dialog ────────────────────────────────────────────────────────
 
-const codeDialogVisible = ref(false)
-const codeFormMode = ref<'create' | 'edit'>('create')
-const codeSubmitting = ref(false)
 const codeFormRef = ref<FormInstance>()
-const editingCodeId = ref<string | null>(null)
 
 function emptyCodeForm(): CodeDataCreate {
   return {
@@ -611,7 +574,47 @@ function emptyCodeForm(): CodeDataCreate {
   }
 }
 
-const codeForm = ref<CodeDataCreate>(emptyCodeForm())
+const codeFormRules: FormRules = {
+  code_id: [{ required: true, message: '請輸入分類 ID', trigger: 'blur' }],
+  code_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
+  name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
+}
+
+const {
+  dialogVisible: codeDialogVisible,
+  formMode: codeFormMode,
+  submitting: codeSubmitting,
+  form: codeForm,
+  openCreate: openCreateCode,
+  openEdit: openEditCode,
+  submit: submitCode,
+  remove: handleDeleteCode,
+} = useCrudDialog<CodeDataWithSub, CodeDataCreate>({
+  formRef: codeFormRef,
+  emptyForm: emptyCodeForm,
+  toForm: (row) => ({
+    code_id: row.code_id,
+    code_type: row.code_type,
+    name: row.name,
+    parent_id: row.parent_id ?? null,
+    in_use: row.in_use,
+    code_index: row.code_index,
+    is_annual_event: row.is_annual_event,
+  }),
+  getId: (row) => row.code_id,
+  create: (form) => createCode({ ...form }),
+  update: (id, form) => {
+    const { code_id, ...rest } = form
+    void code_id
+    return updateCode(id as string, rest)
+  },
+  remove: (id) => deleteCode(id as string),
+  refetch: () => store.fetchCodesWithSub(),
+  confirmDelete: (row) => ({
+    title: '刪除主分類',
+    message: `確定要刪除「${row.name}」? 子分類需先清空。`,
+  }),
+})
 
 const codeIndexModel = computed<number | undefined>({
   get: () => codeForm.value.code_index,
@@ -620,75 +623,10 @@ const codeIndexModel = computed<number | undefined>({
   },
 })
 
-const codeFormRules: FormRules = {
-  code_id: [{ required: true, message: '請輸入分類 ID', trigger: 'blur' }],
-  code_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
-  name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
-}
-
-function openCreateCode() {
-  codeFormMode.value = 'create'
-  editingCodeId.value = null
-  codeForm.value = emptyCodeForm()
-  codeDialogVisible.value = true
-}
-
-function openEditCode(row: CodeDataWithSub) {
-  codeFormMode.value = 'edit'
-  editingCodeId.value = row.code_id
-  codeForm.value = {
-    code_id: row.code_id,
-    code_type: row.code_type,
-    name: row.name,
-    parent_id: row.parent_id ?? null,
-    in_use: row.in_use,
-    code_index: row.code_index,
-    is_annual_event: row.is_annual_event,
-  }
-  codeDialogVisible.value = true
-}
-
-async function submitCode() {
-  if (!codeFormRef.value) return
-  const valid = await codeFormRef.value.validate().catch(() => false)
-  if (!valid) return
-  codeSubmitting.value = true
-  try {
-    if (codeFormMode.value === 'create') {
-      await createCode({ ...codeForm.value })
-      ElMessage.success('新增成功')
-    } else if (editingCodeId.value) {
-      const { code_id, ...rest } = codeForm.value
-      void code_id
-      await updateCode(editingCodeId.value, rest)
-      ElMessage.success('更新成功')
-    }
-    codeDialogVisible.value = false
-    await store.fetchCodesWithSub()
-  } finally {
-    codeSubmitting.value = false
-  }
-}
-
-async function handleDeleteCode(row: CodeDataWithSub) {
-  const ok = await confirm({
-    title: '刪除主分類',
-    message: `確定要刪除「${row.name}」? 子分類需先清空。`,
-    type: 'warning',
-  })
-  if (!ok) return
-  await deleteCode(row.code_id)
-  ElMessage.success('已刪除')
-  await store.fetchCodesWithSub()
-}
-
 // ─── Sub-code dialog ─────────────────────────────────────────────────────────
 
-const subCodeDialogVisible = ref(false)
-const subCodeFormMode = ref<'create' | 'edit'>('create')
-const subCodeSubmitting = ref(false)
 const subCodeFormRef = ref<FormInstance>()
-const editingSubCodeId = ref<string | null>(null)
+const subCodeParent = ref<CodeDataWithSub | null>(null)
 
 function emptySubCodeForm(parent: CodeDataWithSub): CodeDataCreate {
   return {
@@ -701,81 +639,61 @@ function emptySubCodeForm(parent: CodeDataWithSub): CodeDataCreate {
   }
 }
 
-const subCodeForm = ref<CodeDataCreate>({
-  code_id: '',
-  code_type: '',
-  name: '',
-  parent_id: null,
-  in_use: 'Y',
-})
-
 const subCodeFormRules: FormRules = {
   code_id: [{ required: true, message: '請輸入子分類 ID', trigger: 'blur' }],
   name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
 }
 
+const {
+  dialogVisible: subCodeDialogVisible,
+  formMode: subCodeFormMode,
+  submitting: subCodeSubmitting,
+  form: subCodeForm,
+  openCreate: openCreateSubCodeBase,
+  openEdit: openEditSubCodeBase,
+  submit: submitSubCode,
+  remove: handleDeleteSubCode,
+} = useCrudDialog<CodeData, CodeDataCreate>({
+  formRef: subCodeFormRef,
+  // The open* wrappers below always set `subCodeParent` before a dialog opens;
+  // the null branch only covers the eager emptyForm() call during setup.
+  emptyForm: () =>
+    subCodeParent.value
+      ? emptySubCodeForm(subCodeParent.value)
+      : { code_id: '', code_type: '', name: '', parent_id: null, in_use: 'Y' },
+  toForm: (row) => ({
+    code_id: row.code_id,
+    code_type: row.code_type || subCodeParent.value!.code_type,
+    name: row.name,
+    parent_id: subCodeParent.value!.code_id,
+    in_use: row.in_use,
+    code_index: row.code_index,
+  }),
+  getId: (row) => row.code_id,
+  create: (form) => createSubCode({ ...form }),
+  update: (id, form) => {
+    const { code_id, ...rest } = form
+    void code_id
+    return updateSubCode(id as string, rest)
+  },
+  remove: (id) => deleteSubCode(id as string),
+  refetch: () => store.fetchCodesWithSub(),
+  confirmDelete: (row) => ({ title: '刪除子分類', message: `確定要刪除「${row.name}」?` }),
+})
+
 function openCreateSubCode(parent: CodeDataWithSub) {
-  subCodeFormMode.value = 'create'
-  editingSubCodeId.value = null
-  subCodeForm.value = emptySubCodeForm(parent)
-  subCodeDialogVisible.value = true
+  subCodeParent.value = parent
+  openCreateSubCodeBase()
 }
 
 function openEditSubCode(parent: CodeDataWithSub, row: CodeData) {
-  subCodeFormMode.value = 'edit'
-  editingSubCodeId.value = row.code_id
-  subCodeForm.value = {
-    code_id: row.code_id,
-    code_type: row.code_type || parent.code_type,
-    name: row.name,
-    parent_id: parent.code_id,
-    in_use: row.in_use,
-    code_index: row.code_index,
-  }
-  subCodeDialogVisible.value = true
-}
-
-async function submitSubCode() {
-  if (!subCodeFormRef.value) return
-  const valid = await subCodeFormRef.value.validate().catch(() => false)
-  if (!valid) return
-  subCodeSubmitting.value = true
-  try {
-    if (subCodeFormMode.value === 'create') {
-      await createSubCode({ ...subCodeForm.value })
-      ElMessage.success('新增成功')
-    } else if (editingSubCodeId.value) {
-      const { code_id, ...rest } = subCodeForm.value
-      void code_id
-      await updateSubCode(editingSubCodeId.value, rest)
-      ElMessage.success('更新成功')
-    }
-    subCodeDialogVisible.value = false
-    await store.fetchCodesWithSub()
-  } finally {
-    subCodeSubmitting.value = false
-  }
-}
-
-async function handleDeleteSubCode(row: CodeData) {
-  const ok = await confirm({
-    title: '刪除子分類',
-    message: `確定要刪除「${row.name}」?`,
-    type: 'warning',
-  })
-  if (!ok) return
-  await deleteSubCode(row.code_id)
-  ElMessage.success('已刪除')
-  await store.fetchCodesWithSub()
+  subCodeParent.value = parent
+  openEditSubCodeBase(row)
 }
 
 // ─── Credit-card dialog ──────────────────────────────────────────────────────
 
-const creditCardDialogVisible = ref(false)
-const creditCardFormMode = ref<'create' | 'edit'>('create')
-const creditCardSubmitting = ref(false)
 const creditCardFormRef = ref<FormInstance>()
-const editingCreditCardId = ref<string | null>(null)
 
 function emptyCreditCardForm(): CreditCardCreate {
   return {
@@ -793,7 +711,48 @@ function emptyCreditCardForm(): CreditCardCreate {
   }
 }
 
-const creditCardForm = ref<CreditCardCreate>(emptyCreditCardForm())
+const creditCardFormRules: FormRules = {
+  credit_card_id: [{ required: true, message: '請輸入卡片 ID', trigger: 'blur' }],
+  card_name: [{ required: true, message: '請輸入卡名', trigger: 'blur' }],
+  fx_code: [{ required: true, message: '請輸入幣別', trigger: 'blur' }],
+}
+
+const {
+  dialogVisible: creditCardDialogVisible,
+  formMode: creditCardFormMode,
+  submitting: creditCardSubmitting,
+  form: creditCardForm,
+  openCreate: openCreateCreditCard,
+  openEdit: openEditCreditCard,
+  submit: submitCreditCard,
+  remove: handleDeleteCreditCard,
+} = useCrudDialog<CreditCard, CreditCardCreate>({
+  formRef: creditCardFormRef,
+  emptyForm: emptyCreditCardForm,
+  toForm: (row) => ({
+    credit_card_id: row.credit_card_id,
+    card_name: row.card_name,
+    card_no: row.card_no ?? null,
+    last_day: row.last_day ?? null,
+    charge_day: row.charge_day ?? null,
+    limit_date: row.limit_date ?? null,
+    feedback_way: row.feedback_way ?? null,
+    fx_code: row.fx_code,
+    in_use: row.in_use,
+    credit_card_index: row.credit_card_index,
+    note: row.note ?? null,
+  }),
+  getId: (row) => row.credit_card_id,
+  create: (form) => createCreditCard({ ...form }),
+  update: (id, form) => {
+    const { credit_card_id, ...rest } = form
+    void credit_card_id
+    return updateCreditCard(id as string, rest)
+  },
+  remove: (id) => deleteCreditCard(id as string),
+  refetch: () => store.fetchCreditCards(),
+  confirmDelete: (row) => ({ title: '刪除信用卡', message: `確定要刪除「${row.card_name}」?` }),
+})
 
 const cardNoModel = computed<string>({
   get: () => creditCardForm.value.card_no ?? '',
@@ -835,72 +794,6 @@ const creditCardNoteModel = computed<string>({
     creditCardForm.value.note = v ? v : null
   },
 })
-
-const creditCardFormRules: FormRules = {
-  credit_card_id: [{ required: true, message: '請輸入卡片 ID', trigger: 'blur' }],
-  card_name: [{ required: true, message: '請輸入卡名', trigger: 'blur' }],
-  fx_code: [{ required: true, message: '請輸入幣別', trigger: 'blur' }],
-}
-
-function openCreateCreditCard() {
-  creditCardFormMode.value = 'create'
-  editingCreditCardId.value = null
-  creditCardForm.value = emptyCreditCardForm()
-  creditCardDialogVisible.value = true
-}
-
-function openEditCreditCard(row: CreditCard) {
-  creditCardFormMode.value = 'edit'
-  editingCreditCardId.value = row.credit_card_id
-  creditCardForm.value = {
-    credit_card_id: row.credit_card_id,
-    card_name: row.card_name,
-    card_no: row.card_no ?? null,
-    last_day: row.last_day ?? null,
-    charge_day: row.charge_day ?? null,
-    limit_date: row.limit_date ?? null,
-    feedback_way: row.feedback_way ?? null,
-    fx_code: row.fx_code,
-    in_use: row.in_use,
-    credit_card_index: row.credit_card_index,
-    note: row.note ?? null,
-  }
-  creditCardDialogVisible.value = true
-}
-
-async function submitCreditCard() {
-  if (!creditCardFormRef.value) return
-  const valid = await creditCardFormRef.value.validate().catch(() => false)
-  if (!valid) return
-  creditCardSubmitting.value = true
-  try {
-    if (creditCardFormMode.value === 'create') {
-      await createCreditCard({ ...creditCardForm.value })
-      ElMessage.success('新增成功')
-    } else if (editingCreditCardId.value) {
-      const { credit_card_id, ...rest } = creditCardForm.value
-      void credit_card_id
-      await updateCreditCard(editingCreditCardId.value, rest)
-      ElMessage.success('更新成功')
-    }
-    creditCardDialogVisible.value = false
-    await store.fetchCreditCards()
-  } finally {
-    creditCardSubmitting.value = false
-  }
-}
-
-async function handleDeleteCreditCard(row: CreditCard) {
-  const ok = await confirm({
-    title: '刪除信用卡',
-    message: `確定要刪除「${row.card_name}」?`,
-    type: 'warning',
-  })
-  if (!ok) return
-  await deleteCreditCard(row.credit_card_id)
-  ElMessage.success('已刪除')
-  await store.fetchCreditCards()
-}
 </script>
 
 <style scoped>
