@@ -999,7 +999,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowReactive, watch } from 'vue'
 import dayjs from 'dayjs'
-import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -1018,7 +1017,6 @@ import InsuranceDetailFormFields, {
 import EstateDetailFormFields, {
   ESTATE_DETAIL_FULL_RULES,
 } from '@/components/forms/EstateDetailFormFields.vue'
-import { useConfirm } from '@/composables/useConfirm'
 import { useCrudDialog } from '@/composables/useCrudDialog'
 import { useOtherAssetsStore } from '@/stores/otherAssets'
 import {
@@ -1076,7 +1074,6 @@ import type {
 } from '@/types/models'
 
 const store = useOtherAssetsStore()
-const confirm = useConfirm()
 
 const activeTab = ref<string>('stocks')
 
@@ -1193,10 +1190,8 @@ interface StockDetailFormState extends StockJournalCreate {
   distinct_number?: number
 }
 
-const stockDetailDialogVisible = ref(false)
-const stockDetailFormMode = ref<'create' | 'edit'>('create')
-const stockDetailSubmitting = ref(false)
 const stockDetailFormRef = ref<FormInstance>()
+const stockDetailParent = ref<StockAsset | null>(null)
 
 function emptyStockDetailForm(stockId: string): StockDetailFormState {
   return {
@@ -1211,20 +1206,36 @@ function emptyStockDetailForm(stockId: string): StockDetailFormState {
   }
 }
 
-const stockDetailForm = ref<StockDetailFormState>(emptyStockDetailForm(''))
 const stockDetailFormRules: FormRules = STOCK_DETAIL_FULL_RULES
 
-function openCreateStockDetail(stock: StockAsset) {
-  stockDetailFormMode.value = 'create'
-  stockDetailForm.value = emptyStockDetailForm(stock.stock_id)
-  stockDetailDialogVisible.value = true
+function stockDetailPayload(form: StockDetailFormState): StockJournalCreate {
+  return {
+    stock_id: form.stock_id,
+    excute_type: form.excute_type,
+    excute_amount: Number(form.excute_amount ?? 0),
+    excute_price: Number(form.excute_price ?? 0),
+    excute_date: form.excute_date,
+    account_id: form.account_id,
+    account_name: form.account_name,
+    memo: form.memo || null,
+  }
 }
 
-function openEditStockDetail(stock: StockAsset, detail: StockJournal) {
-  stockDetailFormMode.value = 'edit'
-  stockDetailForm.value = {
+const {
+  dialogVisible: stockDetailDialogVisible,
+  formMode: stockDetailFormMode,
+  submitting: stockDetailSubmitting,
+  form: stockDetailForm,
+  openCreate: openCreateStockDetailBase,
+  openEdit: openEditStockDetailBase,
+  submit: submitStockDetail,
+  remove: removeStockDetailBase,
+} = useCrudDialog<StockJournal, StockDetailFormState>({
+  formRef: stockDetailFormRef,
+  emptyForm: () => emptyStockDetailForm(stockDetailParent.value?.stock_id ?? ''),
+  toForm: (detail) => ({
     distinct_number: detail.distinct_number,
-    stock_id: stock.stock_id,
+    stock_id: stockDetailParent.value!.stock_id,
     excute_type: detail.excute_type,
     excute_amount: detail.excute_amount,
     excute_price: detail.excute_price,
@@ -1232,50 +1243,31 @@ function openEditStockDetail(stock: StockAsset, detail: StockJournal) {
     account_id: detail.account_id,
     account_name: detail.account_name,
     memo: detail.memo ?? null,
-  }
-  stockDetailDialogVisible.value = true
-}
-
-async function submitStockDetail() {
-  if (!stockDetailFormRef.value) return
-  const valid = await stockDetailFormRef.value.validate().catch(() => false)
-  if (!valid) return
-  stockDetailSubmitting.value = true
-  try {
-    const payload: StockJournalCreate = {
-      stock_id: stockDetailForm.value.stock_id,
-      excute_type: stockDetailForm.value.excute_type,
-      excute_amount: Number(stockDetailForm.value.excute_amount ?? 0),
-      excute_price: Number(stockDetailForm.value.excute_price ?? 0),
-      excute_date: stockDetailForm.value.excute_date,
-      account_id: stockDetailForm.value.account_id,
-      account_name: stockDetailForm.value.account_name,
-      memo: stockDetailForm.value.memo || null,
-    }
-    if (stockDetailFormMode.value === 'create') {
-      await createStockDetail(stockDetailForm.value.stock_id, payload)
-      ElMessage.success('新增成功')
-    } else if (stockDetailForm.value.distinct_number !== undefined) {
-      await updateStockDetail(stockDetailForm.value.distinct_number, payload)
-      ElMessage.success('更新成功')
-    }
-    stockDetailDialogVisible.value = false
-    await fetchStockDetails(stockDetailForm.value.stock_id)
-  } finally {
-    stockDetailSubmitting.value = false
-  }
-}
-
-async function handleDeleteStockDetail(stock: StockAsset, detail: StockJournal) {
-  const ok = await confirm({
+  }),
+  getId: (detail) => detail.distinct_number,
+  create: (form) => createStockDetail(form.stock_id, stockDetailPayload(form)),
+  update: (id, form) => updateStockDetail(id as number, stockDetailPayload(form)),
+  remove: (id) => deleteStockDetail(id as number),
+  refetch: () => fetchStockDetails(stockDetailParent.value!.stock_id),
+  confirmDelete: (detail) => ({
     title: '刪除股票明細',
     message: `確定要刪除這筆 ${detail.excute_date} ${detail.excute_type} 紀錄?`,
-    type: 'warning',
-  })
-  if (!ok) return
-  await deleteStockDetail(detail.distinct_number)
-  ElMessage.success('已刪除')
-  await fetchStockDetails(stock.stock_id)
+  }),
+})
+
+function openCreateStockDetail(stock: StockAsset) {
+  stockDetailParent.value = stock
+  openCreateStockDetailBase()
+}
+
+function openEditStockDetail(stock: StockAsset, detail: StockJournal) {
+  stockDetailParent.value = stock
+  openEditStockDetailBase(detail)
+}
+
+function handleDeleteStockDetail(stock: StockAsset, detail: StockJournal) {
+  stockDetailParent.value = stock
+  return removeStockDetailBase(detail)
 }
 
 // ─── Estates ────────────────────────────────────────────────────────────────
@@ -1429,10 +1421,8 @@ interface EstateDetailFormState extends EstateJournalCreate {
   distinct_number?: number
 }
 
-const estateDetailDialogVisible = ref(false)
-const estateDetailFormMode = ref<'create' | 'edit'>('create')
-const estateDetailSubmitting = ref(false)
 const estateDetailFormRef = ref<FormInstance>()
+const estateDetailParent = ref<EstateAsset | null>(null)
 
 function emptyEstateDetailForm(estateId: string): EstateDetailFormState {
   return {
@@ -1444,66 +1434,62 @@ function emptyEstateDetailForm(estateId: string): EstateDetailFormState {
   }
 }
 
-const estateDetailForm = ref<EstateDetailFormState>(emptyEstateDetailForm(''))
-
 const estateDetailFormRules: FormRules = ESTATE_DETAIL_FULL_RULES
 
-function openCreateEstateDetail(estate: EstateAsset) {
-  estateDetailFormMode.value = 'create'
-  estateDetailForm.value = emptyEstateDetailForm(estate.estate_id)
-  estateDetailDialogVisible.value = true
+function estateDetailPayload(form: EstateDetailFormState): EstateJournalCreate {
+  return {
+    estate_id: form.estate_id,
+    estate_excute_type: form.estate_excute_type,
+    excute_price: Number(form.excute_price ?? 0),
+    excute_date: form.excute_date,
+    memo: form.memo || null,
+  }
 }
 
-function openEditEstateDetail(estate: EstateAsset, detail: EstateJournal) {
-  estateDetailFormMode.value = 'edit'
-  estateDetailForm.value = {
+const {
+  dialogVisible: estateDetailDialogVisible,
+  formMode: estateDetailFormMode,
+  submitting: estateDetailSubmitting,
+  form: estateDetailForm,
+  openCreate: openCreateEstateDetailBase,
+  openEdit: openEditEstateDetailBase,
+  submit: submitEstateDetail,
+  remove: removeEstateDetailBase,
+} = useCrudDialog<EstateJournal, EstateDetailFormState>({
+  formRef: estateDetailFormRef,
+  emptyForm: () => emptyEstateDetailForm(estateDetailParent.value?.estate_id ?? ''),
+  toForm: (detail) => ({
     distinct_number: detail.distinct_number,
-    estate_id: estate.estate_id,
+    estate_id: estateDetailParent.value!.estate_id,
     estate_excute_type: detail.estate_excute_type,
     excute_price: detail.excute_price,
     excute_date: detail.excute_date,
     memo: detail.memo ?? null,
-  }
-  estateDetailDialogVisible.value = true
-}
-
-async function submitEstateDetail() {
-  if (!estateDetailFormRef.value) return
-  const valid = await estateDetailFormRef.value.validate().catch(() => false)
-  if (!valid) return
-  estateDetailSubmitting.value = true
-  try {
-    const payload: EstateJournalCreate = {
-      estate_id: estateDetailForm.value.estate_id,
-      estate_excute_type: estateDetailForm.value.estate_excute_type,
-      excute_price: Number(estateDetailForm.value.excute_price ?? 0),
-      excute_date: estateDetailForm.value.excute_date,
-      memo: estateDetailForm.value.memo || null,
-    }
-    if (estateDetailFormMode.value === 'create') {
-      await createEstateDetail(estateDetailForm.value.estate_id, payload)
-      ElMessage.success('新增成功')
-    } else if (estateDetailForm.value.distinct_number !== undefined) {
-      await updateEstateDetail(estateDetailForm.value.distinct_number, payload)
-      ElMessage.success('更新成功')
-    }
-    estateDetailDialogVisible.value = false
-    await fetchEstateDetails(estateDetailForm.value.estate_id)
-  } finally {
-    estateDetailSubmitting.value = false
-  }
-}
-
-async function handleDeleteEstateDetail(estate: EstateAsset, detail: EstateJournal) {
-  const ok = await confirm({
+  }),
+  getId: (detail) => detail.distinct_number,
+  create: (form) => createEstateDetail(form.estate_id, estateDetailPayload(form)),
+  update: (id, form) => updateEstateDetail(id as number, estateDetailPayload(form)),
+  remove: (id) => deleteEstateDetail(id as number),
+  refetch: () => fetchEstateDetails(estateDetailParent.value!.estate_id),
+  confirmDelete: (detail) => ({
     title: '刪除房產明細',
     message: `確定要刪除這筆 ${detail.excute_date} ${detail.estate_excute_type} 紀錄?`,
-    type: 'warning',
-  })
-  if (!ok) return
-  await deleteEstateDetail(detail.distinct_number)
-  ElMessage.success('已刪除')
-  await fetchEstateDetails(estate.estate_id)
+  }),
+})
+
+function openCreateEstateDetail(estate: EstateAsset) {
+  estateDetailParent.value = estate
+  openCreateEstateDetailBase()
+}
+
+function openEditEstateDetail(estate: EstateAsset, detail: EstateJournal) {
+  estateDetailParent.value = estate
+  openEditEstateDetailBase(detail)
+}
+
+function handleDeleteEstateDetail(estate: EstateAsset, detail: EstateJournal) {
+  estateDetailParent.value = estate
+  return removeEstateDetailBase(detail)
 }
 
 // ─── Insurances ─────────────────────────────────────────────────────────────
@@ -1642,10 +1628,8 @@ interface InsuranceDetailFormState extends InsuranceJournalCreate {
   distinct_number?: number
 }
 
-const insuranceDetailDialogVisible = ref(false)
-const insuranceDetailFormMode = ref<'create' | 'edit'>('create')
-const insuranceDetailSubmitting = ref(false)
 const insuranceDetailFormRef = ref<FormInstance>()
+const insuranceDetailParent = ref<InsuranceAsset | null>(null)
 
 function emptyInsuranceDetailForm(insuranceId: string): InsuranceDetailFormState {
   return {
@@ -1657,66 +1641,62 @@ function emptyInsuranceDetailForm(insuranceId: string): InsuranceDetailFormState
   }
 }
 
-const insuranceDetailForm = ref<InsuranceDetailFormState>(emptyInsuranceDetailForm(''))
-
 const insuranceDetailFormRules: FormRules = INSURANCE_DETAIL_FULL_RULES
 
-function openCreateInsuranceDetail(insurance: InsuranceAsset) {
-  insuranceDetailFormMode.value = 'create'
-  insuranceDetailForm.value = emptyInsuranceDetailForm(insurance.insurance_id)
-  insuranceDetailDialogVisible.value = true
+function insuranceDetailPayload(form: InsuranceDetailFormState): InsuranceJournalCreate {
+  return {
+    insurance_id: form.insurance_id,
+    insurance_excute_type: form.insurance_excute_type,
+    excute_price: Number(form.excute_price ?? 0),
+    excute_date: form.excute_date,
+    memo: form.memo || null,
+  }
 }
 
-function openEditInsuranceDetail(insurance: InsuranceAsset, detail: InsuranceJournal) {
-  insuranceDetailFormMode.value = 'edit'
-  insuranceDetailForm.value = {
+const {
+  dialogVisible: insuranceDetailDialogVisible,
+  formMode: insuranceDetailFormMode,
+  submitting: insuranceDetailSubmitting,
+  form: insuranceDetailForm,
+  openCreate: openCreateInsuranceDetailBase,
+  openEdit: openEditInsuranceDetailBase,
+  submit: submitInsuranceDetail,
+  remove: removeInsuranceDetailBase,
+} = useCrudDialog<InsuranceJournal, InsuranceDetailFormState>({
+  formRef: insuranceDetailFormRef,
+  emptyForm: () => emptyInsuranceDetailForm(insuranceDetailParent.value?.insurance_id ?? ''),
+  toForm: (detail) => ({
     distinct_number: detail.distinct_number,
-    insurance_id: insurance.insurance_id,
+    insurance_id: insuranceDetailParent.value!.insurance_id,
     insurance_excute_type: detail.insurance_excute_type,
     excute_price: detail.excute_price,
     excute_date: detail.excute_date,
     memo: detail.memo ?? null,
-  }
-  insuranceDetailDialogVisible.value = true
-}
-
-async function submitInsuranceDetail() {
-  if (!insuranceDetailFormRef.value) return
-  const valid = await insuranceDetailFormRef.value.validate().catch(() => false)
-  if (!valid) return
-  insuranceDetailSubmitting.value = true
-  try {
-    const payload: InsuranceJournalCreate = {
-      insurance_id: insuranceDetailForm.value.insurance_id,
-      insurance_excute_type: insuranceDetailForm.value.insurance_excute_type,
-      excute_price: Number(insuranceDetailForm.value.excute_price ?? 0),
-      excute_date: insuranceDetailForm.value.excute_date,
-      memo: insuranceDetailForm.value.memo || null,
-    }
-    if (insuranceDetailFormMode.value === 'create') {
-      await createInsuranceDetail(insuranceDetailForm.value.insurance_id, payload)
-      ElMessage.success('新增成功')
-    } else if (insuranceDetailForm.value.distinct_number !== undefined) {
-      await updateInsuranceDetail(insuranceDetailForm.value.distinct_number, payload)
-      ElMessage.success('更新成功')
-    }
-    insuranceDetailDialogVisible.value = false
-    await fetchInsuranceDetails(insuranceDetailForm.value.insurance_id)
-  } finally {
-    insuranceDetailSubmitting.value = false
-  }
-}
-
-async function handleDeleteInsuranceDetail(insurance: InsuranceAsset, detail: InsuranceJournal) {
-  const ok = await confirm({
+  }),
+  getId: (detail) => detail.distinct_number,
+  create: (form) => createInsuranceDetail(form.insurance_id, insuranceDetailPayload(form)),
+  update: (id, form) => updateInsuranceDetail(id as number, insuranceDetailPayload(form)),
+  remove: (id) => deleteInsuranceDetail(id as number),
+  refetch: () => fetchInsuranceDetails(insuranceDetailParent.value!.insurance_id),
+  confirmDelete: (detail) => ({
     title: '刪除繳費明細',
     message: `確定要刪除這筆 ${detail.excute_date} ${detail.insurance_excute_type} 紀錄?`,
-    type: 'warning',
-  })
-  if (!ok) return
-  await deleteInsuranceDetail(detail.distinct_number)
-  ElMessage.success('已刪除')
-  await fetchInsuranceDetails(insurance.insurance_id)
+  }),
+})
+
+function openCreateInsuranceDetail(insurance: InsuranceAsset) {
+  insuranceDetailParent.value = insurance
+  openCreateInsuranceDetailBase()
+}
+
+function openEditInsuranceDetail(insurance: InsuranceAsset, detail: InsuranceJournal) {
+  insuranceDetailParent.value = insurance
+  openEditInsuranceDetailBase(detail)
+}
+
+function handleDeleteInsuranceDetail(insurance: InsuranceAsset, detail: InsuranceJournal) {
+  insuranceDetailParent.value = insurance
+  return removeInsuranceDetailBase(detail)
 }
 
 // ─── Loans ──────────────────────────────────────────────────────────────────
@@ -1839,10 +1819,8 @@ interface LoanDetailFormState extends LoanJournalCreate {
   distinct_number?: number
 }
 
-const loanDetailDialogVisible = ref(false)
-const loanDetailFormMode = ref<'create' | 'edit'>('create')
-const loanDetailSubmitting = ref(false)
 const loanDetailFormRef = ref<FormInstance>()
+const loanDetailParent = ref<LoanAsset | null>(null)
 
 function emptyLoanDetailForm(loanId: string): LoanDetailFormState {
   return {
@@ -1854,7 +1832,52 @@ function emptyLoanDetailForm(loanId: string): LoanDetailFormState {
   }
 }
 
-const loanDetailForm = ref<LoanDetailFormState>(emptyLoanDetailForm(''))
+const loanDetailFormRules: FormRules = {
+  excute_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
+  loan_excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
+  excute_price: [{ required: true, message: '請輸入金額', trigger: 'blur' }],
+}
+
+function loanDetailPayload(form: LoanDetailFormState): LoanJournalCreate {
+  return {
+    loan_id: form.loan_id,
+    loan_excute_type: form.loan_excute_type,
+    excute_price: Number(form.excute_price ?? 0),
+    excute_date: form.excute_date,
+    memo: form.memo ?? null,
+  }
+}
+
+const {
+  dialogVisible: loanDetailDialogVisible,
+  formMode: loanDetailFormMode,
+  submitting: loanDetailSubmitting,
+  form: loanDetailForm,
+  openCreate: openCreateLoanDetailBase,
+  openEdit: openEditLoanDetailBase,
+  submit: submitLoanDetail,
+  remove: removeLoanDetailBase,
+} = useCrudDialog<LoanJournal, LoanDetailFormState>({
+  formRef: loanDetailFormRef,
+  emptyForm: () => emptyLoanDetailForm(loanDetailParent.value?.loan_id ?? ''),
+  toForm: (detail) => ({
+    distinct_number: detail.distinct_number,
+    loan_id: loanDetailParent.value!.loan_id,
+    loan_excute_type: detail.loan_excute_type,
+    excute_price: detail.excute_price,
+    excute_date: detail.excute_date,
+    memo: detail.memo ?? null,
+  }),
+  getId: (detail) => detail.distinct_number,
+  create: (form) => createLoanDetail(form.loan_id, loanDetailPayload(form)),
+  update: (id, form) => updateLoanDetail(id as number, loanDetailPayload(form)),
+  remove: (id) => deleteLoanDetail(id as number),
+  refetch: () => fetchLoanDetails(loanDetailParent.value!.loan_id),
+  confirmDelete: (detail) => ({
+    title: '刪除還款明細',
+    message: `確定要刪除這筆 ${detail.excute_date} ${detail.loan_excute_type} 紀錄?`,
+  }),
+})
 
 const loanDetailMemoProxy = computed<string>({
   get: () => loanDetailForm.value.memo ?? '',
@@ -1873,68 +1896,19 @@ const loanDetailFormDate = computed<Date | null>({
   },
 })
 
-const loanDetailFormRules: FormRules = {
-  excute_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
-  loan_excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
-  excute_price: [{ required: true, message: '請輸入金額', trigger: 'blur' }],
-}
-
 function openCreateLoanDetail(loan: LoanAsset) {
-  loanDetailFormMode.value = 'create'
-  loanDetailForm.value = emptyLoanDetailForm(loan.loan_id)
-  loanDetailDialogVisible.value = true
+  loanDetailParent.value = loan
+  openCreateLoanDetailBase()
 }
 
 function openEditLoanDetail(loan: LoanAsset, detail: LoanJournal) {
-  loanDetailFormMode.value = 'edit'
-  loanDetailForm.value = {
-    distinct_number: detail.distinct_number,
-    loan_id: loan.loan_id,
-    loan_excute_type: detail.loan_excute_type,
-    excute_price: detail.excute_price,
-    excute_date: detail.excute_date,
-    memo: detail.memo ?? null,
-  }
-  loanDetailDialogVisible.value = true
+  loanDetailParent.value = loan
+  openEditLoanDetailBase(detail)
 }
 
-async function submitLoanDetail() {
-  if (!loanDetailFormRef.value) return
-  const valid = await loanDetailFormRef.value.validate().catch(() => false)
-  if (!valid) return
-  loanDetailSubmitting.value = true
-  try {
-    const payload: LoanJournalCreate = {
-      loan_id: loanDetailForm.value.loan_id,
-      loan_excute_type: loanDetailForm.value.loan_excute_type,
-      excute_price: Number(loanDetailForm.value.excute_price ?? 0),
-      excute_date: loanDetailForm.value.excute_date,
-      memo: loanDetailForm.value.memo ?? null,
-    }
-    if (loanDetailFormMode.value === 'create') {
-      await createLoanDetail(loanDetailForm.value.loan_id, payload)
-      ElMessage.success('新增成功')
-    } else if (loanDetailForm.value.distinct_number !== undefined) {
-      await updateLoanDetail(loanDetailForm.value.distinct_number, payload)
-      ElMessage.success('更新成功')
-    }
-    loanDetailDialogVisible.value = false
-    await fetchLoanDetails(loanDetailForm.value.loan_id)
-  } finally {
-    loanDetailSubmitting.value = false
-  }
-}
-
-async function handleDeleteLoanDetail(loan: LoanAsset, detail: LoanJournal) {
-  const ok = await confirm({
-    title: '刪除還款明細',
-    message: `確定要刪除這筆 ${detail.excute_date} ${detail.loan_excute_type} 紀錄?`,
-    type: 'warning',
-  })
-  if (!ok) return
-  await deleteLoanDetail(detail.distinct_number)
-  ElMessage.success('已刪除')
-  await fetchLoanDetails(loan.loan_id)
+function handleDeleteLoanDetail(loan: LoanAsset, detail: LoanJournal) {
+  loanDetailParent.value = loan
+  return removeLoanDetailBase(detail)
 }
 
 // ─── Other-Assets ───────────────────────────────────────────────────────────
