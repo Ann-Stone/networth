@@ -493,6 +493,8 @@ def seed_settled_month(
             name="Home Mortgage",
             balance=-240000.0 + delta_idx * 1500.0,
             cost=250000.0,
+            fx_code="TWD",
+            fx_rate=1.0,
         )
         session.add(lb)
 
@@ -504,6 +506,8 @@ def seed_settled_month(
             market_value=480000.0 * mult,
             cost=420000.0,
             estate_status="live",
+            fx_code="TWD",
+            fx_rate=1.0,
         )
         session.add(est)
 
@@ -589,6 +593,8 @@ def seed_year_report_history(session: Session) -> dict:
                     market_value=500000.0 + delta * 100,
                     cost=420000.0,
                     estate_status="live",
+                    fx_code="TWD",
+                    fx_rate=1.0,
                 )
             )
         else:

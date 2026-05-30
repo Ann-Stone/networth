@@ -304,6 +304,9 @@ def test_run_estate_step(settlement_fixture_session: Session) -> None:
     rows = settlement_fixture_session.exec(select(EstateNetValueHistory)).all()
     assert len(rows) == 1
     assert rows[0].cost == 500000.0
+    # TWD estate (no fx_code set → defaults TWD), base-currency rate.
+    assert rows[0].fx_code == "TWD"
+    assert rows[0].fx_rate == 1.0
 
 
 def test_run_insurance_step(settlement_fixture_session: Session) -> None:
@@ -323,6 +326,52 @@ def test_run_loan_step(settlement_fixture_session: Session) -> None:
     row = settlement_fixture_session.exec(select(LoanBalance)).first()
     assert row.balance == 240000.0
     assert row.cost == 500.0
+    # Repayment account TWD-1 → base currency.
+    assert row.fx_code == "TWD"
+    assert row.fx_rate == 1.0
+
+
+def test_run_estate_and_loan_step_foreign_currency(
+    settlement_fixture_session: Session,
+) -> None:
+    s = settlement_fixture_session
+    # Overseas property in USD (estate carries its own currency).
+    s.add(
+        Estate(
+            estate_id="EST-USD", estate_name="Overseas Condo", estate_type="residential",
+            estate_address="Y", asset_id="AC-REAL", obtain_date="20210101",
+            estate_status="hold", fx_code="USD",
+        )
+    )
+    s.add(
+        EstateJournal(
+            estate_id="EST-USD", estate_excute_type="purchase",
+            excute_price=300000.0, excute_date="20210115",
+        )
+    )
+    # Foreign loan: currency follows the USD repayment account.
+    s.add(
+        Loan(
+            loan_id="LN-USD", loan_name="US Mortgage", loan_type="mortgage",
+            account_id="USD-1", account_name="USD Bank", interest_rate=0.04,
+            period=360, apply_date="20210101", grace_expire_date=None,
+            pay_day=1, amount=100000.0, repayed=0.0, loan_index=2,
+        )
+    )
+    s.commit()
+
+    run_estate_step(s, VM)
+    run_loan_step(s, VM)
+    s.commit()
+
+    est = s.exec(
+        select(EstateNetValueHistory).where(EstateNetValueHistory.id == "EST-USD")
+    ).first()
+    assert est.fx_code == "USD"
+    assert est.fx_rate == 32.0
+    loan = s.exec(select(LoanBalance).where(LoanBalance.id == "LN-USD")).first()
+    assert loan.fx_code == "USD"
+    assert loan.fx_rate == 32.0
 
 
 def test_run_stock_step_zero_amount_skipped(

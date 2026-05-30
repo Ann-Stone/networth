@@ -85,7 +85,7 @@ def test_get_summary_asset_debt_trend_golden(client: TestClient, session: Sessio
             is_calculate="Y",
         )
     )
-    session.add(LoanBalance(vesting_month="202301", id="L1", name="Loan", balance=-30000.0, cost=0.0))
+    session.add(LoanBalance(vesting_month="202301", id="L1", name="Loan", balance=-30000.0, cost=0.0, fx_code="TWD", fx_rate=1.0))
     session.commit()
 
     r = client.get("/dashboard/summary?type=asset_debt_trend&period=202301-202302")

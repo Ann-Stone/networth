@@ -81,6 +81,7 @@ def get_balance_sheet(session: Session) -> BalanceSheetRead:
         BalanceLine(
             name=r.name,
             amount=round(r.balance * r.fx_rate, 2),
+            original_amount=round(r.balance, 2),
             currency=r.fx_code,
         )
         for r in accounts_latest
@@ -92,6 +93,7 @@ def get_balance_sheet(session: Session) -> BalanceSheetRead:
         BalanceLine(
             name=r.stock_name,
             amount=round(r.price * r.fx_rate, 2),
+            original_amount=round(r.price, 2),
             currency=r.fx_code,
         )
         for r in _latest_per_entity(stock_rows, key=lambda r: r.id)
@@ -101,8 +103,9 @@ def get_balance_sheet(session: Session) -> BalanceSheetRead:
     estates_lines = [
         BalanceLine(
             name=r.name,
-            amount=round(r.market_value, 2),
-            currency=BASE_CURRENCY,
+            amount=round(r.market_value * r.fx_rate, 2),
+            original_amount=round(r.market_value, 2),
+            currency=r.fx_code,
         )
         for r in _latest_per_entity(estate_rows, key=lambda r: r.id)
     ]
@@ -112,6 +115,7 @@ def get_balance_sheet(session: Session) -> BalanceSheetRead:
         BalanceLine(
             name=r.name,
             amount=round(r.surrender_value * r.fx_rate, 2),
+            original_amount=round(r.surrender_value, 2),
             currency=r.fx_code,
         )
         for r in _latest_per_entity(insurance_rows, key=lambda r: r.id)
@@ -121,8 +125,9 @@ def get_balance_sheet(session: Session) -> BalanceSheetRead:
     loan_lines = [
         BalanceLine(
             name=r.name,
-            amount=round(r.balance, 2),
-            currency=BASE_CURRENCY,
+            amount=round(r.balance * r.fx_rate, 2),
+            original_amount=round(r.balance, 2),
+            currency=r.fx_code,
         )
         for r in _latest_per_entity(loan_rows, key=lambda r: r.id)
     ]
@@ -132,6 +137,7 @@ def get_balance_sheet(session: Session) -> BalanceSheetRead:
         BalanceLine(
             name=r.name,
             amount=round(r.balance * r.fx_rate, 2),
+            original_amount=round(r.balance, 2),
             currency=BASE_CURRENCY,
         )
         for r in _latest_per_entity(cc_rows, key=lambda r: r.id)
@@ -221,7 +227,8 @@ def get_asset_breakdown(session: Session) -> AssetBreakdownRead:
 
     estate_rows = list(session.exec(select(EstateNetValueHistory)).all())
     estates_total = sum(
-        r.market_value for r in _latest_per_entity(estate_rows, key=lambda r: r.id)
+        r.market_value * r.fx_rate
+        for r in _latest_per_entity(estate_rows, key=lambda r: r.id)
     )
 
     insurance_rows = list(session.exec(select(InsuranceNetValueHistory)).all())

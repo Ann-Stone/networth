@@ -82,6 +82,8 @@ def _seed_balance_fixture(session: Session) -> None:
             market_value=500000.0,
             cost=400000.0,
             estate_status="hold",
+            fx_code="TWD",
+            fx_rate=1.0,
         )
     )
     session.add(
@@ -103,6 +105,8 @@ def _seed_balance_fixture(session: Session) -> None:
             name="Mortgage",
             balance=-200000.0,
             cost=0.0,
+            fx_code="TWD",
+            fx_rate=1.0,
         )
     )
     session.add(
@@ -137,6 +141,59 @@ def test_get_balance_sheet_golden(session: Session) -> None:
     assert cc_total == -3000.0
     # net worth = 132000 + 64000 + 500000 + 64000 - 200000 - 3000 = 557000
     assert sheet.net_worth == 557000.0
+
+    # original_amount = pre-FX native amount (base-currency entities echo `amount`)
+    accounts_by_name = {line.name: line for line in sheet.assets.accounts}
+    assert accounts_by_name["TWD Bank"].original_amount == 100000.0
+    assert accounts_by_name["USD Bank"].original_amount == 1000.0
+    assert sheet.assets.stocks[0].original_amount == 2000.0
+    assert sheet.assets.estates[0].original_amount == 500000.0
+    assert sheet.assets.insurances[0].original_amount == 2000.0
+    assert sheet.liabilities.loans[0].original_amount == -200000.0
+    assert sheet.liabilities.credit_cards[0].original_amount == -3000.0
+    # TWD entities expose their currency explicitly now (was hardcoded base).
+    assert sheet.assets.estates[0].currency == "TWD"
+    assert sheet.liabilities.loans[0].currency == "TWD"
+
+
+def test_get_balance_sheet_estate_and_loan_foreign_currency(session: Session) -> None:
+    # Overseas property + foreign loan held in USD: amount is FX-converted to
+    # base currency, original_amount keeps the native figure.
+    session.add(
+        EstateNetValueHistory(
+            vesting_month="202604",
+            id="E-US",
+            asset_id="AC-REAL-US",
+            name="Overseas Condo",
+            market_value=300000.0,  # native USD
+            cost=250000.0,
+            estate_status="hold",
+            fx_code="USD",
+            fx_rate=32.0,
+        )
+    )
+    session.add(
+        LoanBalance(
+            vesting_month="202604",
+            id="L-US",
+            name="US Mortgage",
+            balance=-100000.0,  # native USD
+            cost=120000.0,
+            fx_code="USD",
+            fx_rate=32.0,
+        )
+    )
+    session.commit()
+
+    sheet = get_balance_sheet(session)
+    estate = sheet.assets.estates[0]
+    assert estate.currency == "USD"
+    assert estate.original_amount == 300000.0
+    assert estate.amount == 9600000.0  # 300000 * 32
+    loan = sheet.liabilities.loans[0]
+    assert loan.currency == "USD"
+    assert loan.original_amount == -100000.0
+    assert loan.amount == -3200000.0  # -100000 * 32
 
 
 def test_get_balance_sheet_picks_latest_month(session: Session) -> None:

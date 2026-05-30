@@ -10,35 +10,39 @@ import type {
 const balance: BalanceReport = {
   assets: {
     accounts: [
-      { name: '現金 (TWD)', amount: 125000, currency: 'TWD' },
-      { name: '中信活存',   amount: 480000, currency: 'TWD' },
-      { name: 'Wise USD',  amount: 240000, currency: 'TWD' },
+      { name: '現金 (TWD)', amount: 125000, original_amount: 125000, currency: 'TWD' },
+      { name: '中信活存',   amount: 480000, original_amount: 480000, currency: 'TWD' },
+      { name: 'Wise USD',  amount: 240000, original_amount: 7500,    currency: 'USD' },
+      { name: '日本郵貯',   amount: 90000,  original_amount: 400000, currency: 'JPY' },
     ],
     estates: [
-      { name: '主要住所', amount: 12500000, currency: 'TWD' },
-      { name: '投資宅 A', amount: 8500000,  currency: 'TWD' },
+      { name: '主要住所', amount: 12500000, original_amount: 12500000, currency: 'TWD' },
+      { name: '投資宅 A', amount: 8500000,  original_amount: 8500000,  currency: 'TWD' },
+      { name: '美國公寓', amount: 4800000,  original_amount: 150000,    currency: 'USD' },
     ],
     insurances: [
-      { name: '終身壽險', amount: 320000,   currency: 'TWD' },
-      { name: '醫療險',   amount: 80000,    currency: 'TWD' },
+      { name: '終身壽險',   amount: 320000, original_amount: 320000, currency: 'TWD' },
+      { name: '醫療險',     amount: 80000,  original_amount: 80000,  currency: 'TWD' },
+      { name: '美元儲蓄險', amount: 480000, original_amount: 15000,  currency: 'USD' },
     ],
     stocks: [
-      { name: '元大台灣 50',     amount: 169800, currency: 'TWD' },
-      { name: '台積電',         amount: 372800, currency: 'TWD' },
-      { name: 'Vanguard S&P500', amount: 192500, currency: 'TWD' },
+      { name: '元大台灣 50',     amount: 169800, original_amount: 169800,  currency: 'TWD' },
+      { name: '台積電',         amount: 372800, original_amount: 372800,  currency: 'TWD' },
+      { name: 'Vanguard S&P500', amount: 192500, original_amount: 6015.63, currency: 'USD' },
     ],
   },
   liabilities: {
     credit_cards: [
-      { name: 'Visa 御璽', amount: 1820, currency: 'TWD' },
+      { name: 'Visa 御璽', amount: 1820, original_amount: 1820, currency: 'TWD' },
     ],
     loans: [
-      { name: '房貸主貸', amount: 6800000, currency: 'TWD' },
-      { name: '車貸',     amount: 480000,  currency: 'TWD' },
-      { name: '信貸',     amount: 400000,  currency: 'TWD' },
+      { name: '房貸主貸', amount: 6800000, original_amount: 6800000, currency: 'TWD' },
+      { name: '車貸',     amount: 480000,  original_amount: 480000,  currency: 'TWD' },
+      { name: '信貸',     amount: 400000,  original_amount: 400000,  currency: 'TWD' },
+      { name: '美國房貸', amount: 2880000, original_amount: 90000,   currency: 'USD' },
     ],
   },
-  net_worth: 14998480,
+  net_worth: 17788280,
 }
 
 function expenditureSeries(type: string, vestingMonth: string): ExpenditureReport {

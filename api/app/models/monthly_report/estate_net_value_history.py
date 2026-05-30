@@ -13,6 +13,8 @@ _EXAMPLE = {
     "market_value": 500000.0,
     "cost": 420000.0,
     "estate_status": "hold",
+    "fx_code": "TWD",
+    "fx_rate": 1.0,
 }
 
 
@@ -26,6 +28,8 @@ class EstateNetValueHistory(SQLModel, table=True):
     market_value: float = Field(..., description="Market value snapshot", schema_extra={"examples": [500000.0]})
     cost: float = Field(..., description="Acquisition cost", schema_extra={"examples": [420000.0]})
     estate_status: str = Field(..., description="Status (hold / sold / ...)", schema_extra={"examples": ["hold"]})
+    fx_code: str = Field(..., description="Currency code", schema_extra={"examples": ["TWD"]})
+    fx_rate: float = Field(..., description="Exchange rate to base currency", schema_extra={"examples": [1.0]})
 
     model_config = ConfigDict(json_schema_extra={"example": _EXAMPLE})
 
@@ -38,6 +42,8 @@ class EstateNetValueHistoryCreate(SQLModel):
     market_value: float = Field(..., description="Market value", schema_extra={"examples": [500000.0]})
     cost: float = Field(..., description="Acquisition cost", schema_extra={"examples": [420000.0]})
     estate_status: str = Field(..., description="Status", schema_extra={"examples": ["hold"]})
+    fx_code: str = Field(..., description="Currency code", schema_extra={"examples": ["TWD"]})
+    fx_rate: float = Field(..., description="Exchange rate to base currency", schema_extra={"examples": [1.0]})
 
     model_config = ConfigDict(json_schema_extra={"example": _EXAMPLE})
 
@@ -59,5 +65,7 @@ class EstateNetValueHistoryRead(SQLModel):
     market_value: float = Field(..., description="Market value", schema_extra={"examples": [500000.0]})
     cost: float = Field(..., description="Acquisition cost", schema_extra={"examples": [420000.0]})
     estate_status: str = Field(..., description="Status", schema_extra={"examples": ["hold"]})
+    fx_code: str = Field(..., description="Currency code", schema_extra={"examples": ["TWD"]})
+    fx_rate: float = Field(..., description="Exchange rate to base currency", schema_extra={"examples": [1.0]})
 
     model_config = ConfigDict(json_schema_extra={"example": _EXAMPLE})

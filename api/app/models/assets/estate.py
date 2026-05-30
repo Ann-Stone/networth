@@ -19,6 +19,7 @@ _ESTATE_EXAMPLE = {
     "obtain_date": "20200101",
     "loan_id": "LN-001",
     "estate_status": "live",
+    "fx_code": "TWD",
     "memo": "Primary residence",
 }
 _ESTATE_JOURNAL_EXAMPLE = {
@@ -39,6 +40,7 @@ class Estate(SQLModel, table=True):
     estate_type: str = Field(..., description="Estate type (residential / commercial / ...)", schema_extra={"examples": ["residential"]})
     estate_address: str = Field(..., description="Physical address", schema_extra={"examples": ["123 Main St"]})
     asset_id: str = Field(..., description="Asset category ID", schema_extra={"examples": ["AC-REAL-001"]})
+    fx_code: str = Field(default="TWD", description="Currency code (TWD; USD/JPY/... for overseas property)", schema_extra={"examples": ["TWD"]})
     obtain_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     loan_id: str | None = Field(default=None, description="Associated loan ID", schema_extra={"examples": ["LN-001"]})
     estate_status: str = Field(..., description="Status (idle / live / rent / sold)", schema_extra={"examples": ["live"]})
@@ -53,6 +55,7 @@ class EstateCreate(SQLModel):
     estate_type: str = Field(..., description="Estate type", schema_extra={"examples": ["residential"]})
     estate_address: str = Field(..., description="Physical address", schema_extra={"examples": ["123 Main St"]})
     asset_id: str = Field(..., description="Asset category ID", schema_extra={"examples": ["AC-REAL-001"]})
+    fx_code: str = Field(default="TWD", description="Currency code (TWD; USD/JPY/... for overseas property)", schema_extra={"examples": ["TWD"]})
     obtain_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     loan_id: str | None = Field(default=None, description="Associated loan ID", schema_extra={"examples": ["LN-001"]})
     estate_status: EstateStatus = Field(..., description="Status", schema_extra={"examples": ["live"]})
@@ -66,6 +69,7 @@ class EstateUpdate(SQLModel):
     estate_type: str | None = Field(default=None, description="Estate type", schema_extra={"examples": ["residential"]})
     estate_address: str | None = Field(default=None, description="Physical address", schema_extra={"examples": ["123 Main St"]})
     asset_id: str | None = Field(default=None, description="Asset category ID", schema_extra={"examples": ["AC-REAL-001"]})
+    fx_code: str | None = Field(default=None, description="Currency code (TWD; USD/JPY/... for overseas property)", schema_extra={"examples": ["USD"]})
     obtain_date: str | None = Field(default=None, description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     loan_id: str | None = Field(default=None, description="Associated loan ID", schema_extra={"examples": ["LN-001"]})
     estate_status: EstateStatus | None = Field(default=None, description="Status", schema_extra={"examples": ["sold"]})
@@ -80,6 +84,7 @@ class EstateRead(SQLModel):
     estate_type: str = Field(..., description="Estate type", schema_extra={"examples": ["residential"]})
     estate_address: str = Field(..., description="Physical address", schema_extra={"examples": ["123 Main St"]})
     asset_id: str = Field(..., description="Asset category ID", schema_extra={"examples": ["AC-REAL-001"]})
+    fx_code: str = Field(default="TWD", description="Currency code (TWD; USD/JPY/... for overseas property)", schema_extra={"examples": ["TWD"]})
     obtain_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     loan_id: str | None = Field(default=None, description="Associated loan ID", schema_extra={"examples": ["LN-001"]})
     estate_status: str = Field(..., description="Status", schema_extra={"examples": ["hold"]})

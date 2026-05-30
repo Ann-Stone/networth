@@ -641,6 +641,18 @@
         <el-form-item label="資產分類">
           <el-input :model-value="estateForm.asset_id" disabled />
         </el-form-item>
+        <el-form-item label="幣別" prop="fx_code">
+          <el-select v-model="estateForm.fx_code" style="width: 100%">
+            <el-option label="台幣 (TWD)" value="TWD" />
+            <el-option label="美金 (USD)" value="USD" />
+            <el-option label="日圓 (JPY)" value="JPY" />
+            <el-option label="歐元 (EUR)" value="EUR" />
+            <el-option label="人民幣 (CNY)" value="CNY" />
+            <el-option label="港幣 (HKD)" value="HKD" />
+            <el-option label="英鎊 (GBP)" value="GBP" />
+            <el-option label="澳幣 (AUD)" value="AUD" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="取得日期" prop="obtain_date">
           <el-date-picker
             v-model="estateFormObtainDate"
@@ -1358,6 +1370,7 @@ function emptyEstateForm(): EstateAssetCreate {
     estate_type: '',
     estate_address: '',
     asset_id: estatesAssetId.value,
+    fx_code: 'TWD',
     obtain_date: dayjs().format('YYYYMMDD'),
     loan_id: null,
     estate_status: 'live',
@@ -1392,6 +1405,7 @@ const {
     estate_type: row.estate_type,
     estate_address: row.estate_address,
     asset_id: row.asset_id,
+    fx_code: row.fx_code ?? 'TWD',
     obtain_date: row.obtain_date,
     loan_id: row.loan_id ?? null,
     estate_status: row.estate_status,
@@ -1405,6 +1419,7 @@ const {
       estate_type: form.estate_type,
       estate_address: form.estate_address,
       asset_id: form.asset_id,
+      fx_code: form.fx_code,
       obtain_date: form.obtain_date,
       loan_id: form.loan_id ?? null,
       estate_status: form.estate_status,

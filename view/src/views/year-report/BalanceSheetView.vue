@@ -15,8 +15,9 @@
     <el-skeleton v-if="store.balanceLoading" :rows="6" animated />
     <EmptyState v-else-if="!store.balanceReport" message="尚無資產負債資料" />
     <template v-else>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard label="總資產" :amount="totalAssets" />
+        <MetricCard label="總負債" :amount="totalLiabilities" tone="rose" />
         <MetricCard
           label="淨資產"
           :amount="store.balanceReport.net_worth"
@@ -33,12 +34,39 @@
         <section class="flex flex-col gap-4">
           <SectionHeader title="資產明細" />
           <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
-            <el-table :data="assetRows" stripe border style="width: 100%">
-              <el-table-column prop="category" label="類別" width="110" />
-              <el-table-column prop="name" label="名稱" min-width="160" />
-              <el-table-column label="金額" width="180" align="right">
+            <el-table
+              :data="assetTree"
+              row-key="key"
+              :tree-props="{ children: 'children' }"
+              border
+              style="width: 100%"
+            >
+              <el-table-column prop="label" label="項目" min-width="200" />
+              <el-table-column label="金額" width="160" align="right">
                 <template #default="{ row }">
-                  <MoneyDisplay :amount="row.amount" :currency="row.currency" :positive="true" size="sm" />
+                  <MoneyDisplay :amount="row.amount" currency="TWD" :positive="true" size="sm" />
+                </template>
+              </el-table-column>
+              <el-table-column label="原幣" width="140" align="right">
+                <template #default="{ row }">
+                  <MoneyDisplay
+                    v-if="row.originalCurrency && row.originalCurrency !== 'TWD'"
+                    :amount="row.originalAmount"
+                    :currency="row.originalCurrency"
+                    size="sm"
+                  />
+                  <span v-else class="text-on-surface-variant/40">—</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="佔比" width="84" align="right">
+                <template #default="{ row }">
+                  <span
+                    v-if="row.share != null"
+                    class="tabular-nums text-sm text-on-surface-variant"
+                  >
+                    {{ row.share.toFixed(1) }}%
+                  </span>
+                  <span v-else class="text-on-surface-variant/40">—</span>
                 </template>
               </el-table-column>
             </el-table>
@@ -48,12 +76,45 @@
         <section class="flex flex-col gap-4">
           <SectionHeader title="負債明細" />
           <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
-            <el-table :data="liabilityRows" stripe border style="width: 100%">
-              <el-table-column prop="category" label="類別" width="110" />
-              <el-table-column prop="name" label="名稱" min-width="160" />
-              <el-table-column label="金額" width="180" align="right">
+            <el-table
+              :data="liabilityTree"
+              row-key="key"
+              :tree-props="{ children: 'children' }"
+              border
+              style="width: 100%"
+            >
+              <el-table-column prop="label" label="項目" min-width="200" />
+              <el-table-column label="金額" width="160" align="right">
                 <template #default="{ row }">
-                  <MoneyDisplay :amount="row.amount" :currency="row.currency" :positive="false" size="sm" />
+                  <MoneyDisplay
+                    :amount="Math.abs(row.amount)"
+                    currency="TWD"
+                    :positive="false"
+                    size="sm"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column label="原幣" width="140" align="right">
+                <template #default="{ row }">
+                  <MoneyDisplay
+                    v-if="row.originalCurrency && row.originalCurrency !== 'TWD'"
+                    :amount="Math.abs(row.originalAmount)"
+                    :currency="row.originalCurrency"
+                    :positive="false"
+                    size="sm"
+                  />
+                  <span v-else class="text-on-surface-variant/40">—</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="佔比" width="84" align="right">
+                <template #default="{ row }">
+                  <span
+                    v-if="row.share != null"
+                    class="tabular-nums text-sm text-on-surface-variant"
+                  >
+                    {{ row.share.toFixed(1) }}%
+                  </span>
+                  <span v-else class="text-on-surface-variant/40">—</span>
                 </template>
               </el-table-column>
             </el-table>
@@ -73,7 +134,12 @@ import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'
-import type { BalanceReportLine } from '@/types/models'
+import {
+  buildAssetTree,
+  buildLiabilityTree,
+  totalAssets as sumAssets,
+  totalLiabilities as sumLiabilities,
+} from './balanceTree'
 
 const store = useYearReportStore()
 
@@ -91,89 +157,31 @@ onMounted(() => {
   void store.fetchBalanceReport(store.selectedYear)
 })
 
-interface FlatRow {
-  category: string
-  name: string
-  amount: number
-  currency: string
-}
-
-const ASSET_CATEGORY_LABEL: Record<string, string> = {
-  accounts: '帳戶',
-  estates: '不動產',
-  insurances: '保險',
-  stocks: '股票',
-}
-
-const LIABILITY_CATEGORY_LABEL: Record<string, string> = {
-  credit_cards: '信用卡',
-  loans: '貸款',
-}
-
-function flatten(
-  groups: Record<string, BalanceReportLine[]>,
-  labels: Record<string, string>,
-): FlatRow[] {
-  const rows: FlatRow[] = []
-  for (const [key, lines] of Object.entries(groups)) {
-    for (const line of lines) {
-      rows.push({
-        category: labels[key] ?? key,
-        name: line.name,
-        amount: line.amount,
-        currency: line.currency ?? 'TWD',
-      })
-    }
-  }
-  return rows
-}
-
-const assetRows = computed<FlatRow[]>(() =>
-  store.balanceReport
-    ? flatten(
-        store.balanceReport.assets as unknown as Record<string, BalanceReportLine[]>,
-        ASSET_CATEGORY_LABEL,
-      )
-    : [],
+const assetTree = computed(() =>
+  store.balanceReport ? buildAssetTree(store.balanceReport) : [],
 )
 
-const liabilityRows = computed<FlatRow[]>(() =>
-  store.balanceReport
-    ? flatten(
-        store.balanceReport.liabilities as unknown as Record<string, BalanceReportLine[]>,
-        LIABILITY_CATEGORY_LABEL,
-      )
-    : [],
+const liabilityTree = computed(() =>
+  store.balanceReport ? buildLiabilityTree(store.balanceReport) : [],
 )
 
 const totalAssets = computed(() =>
-  assetRows.value.reduce((sum, row) => sum + row.amount, 0),
+  store.balanceReport ? sumAssets(store.balanceReport) : 0,
+)
+
+const totalLiabilities = computed(() =>
+  store.balanceReport ? sumLiabilities(store.balanceReport) : 0,
 )
 
 const categoryChart = computed(() => {
-  const report = store.balanceReport
-  if (!report) return { xData: [], series: [] }
-  const assetEntries = Object.entries(report.assets) as Array<
-    [string, BalanceReportLine[]]
-  >
-  const liabilityEntries = Object.entries(report.liabilities) as Array<
-    [string, BalanceReportLine[]]
-  >
   const xData = [
-    ...assetEntries.map(([k]) => ASSET_CATEGORY_LABEL[k] ?? k),
-    ...liabilityEntries.map(([k]) => LIABILITY_CATEGORY_LABEL[k] ?? k),
+    ...assetTree.value.map((n) => n.label),
+    ...liabilityTree.value.map((n) => n.label),
   ]
-  const sums = [
-    ...assetEntries.map(([, lines]) =>
-      lines.reduce((s, l) => s + l.amount, 0),
-    ),
-    ...liabilityEntries.map(([, lines]) =>
-      lines.reduce((s, l) => s + Math.abs(l.amount), 0),
-    ),
+  const data = [
+    ...assetTree.value.map((n) => n.amount),
+    ...liabilityTree.value.map((n) => Math.abs(n.amount)),
   ]
-  return {
-    xData,
-    series: [{ name: '金額', data: sums }],
-  }
+  return { xData, series: [{ name: '金額', data }] }
 })
 </script>

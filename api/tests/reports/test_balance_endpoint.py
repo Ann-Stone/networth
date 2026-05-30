@@ -49,6 +49,8 @@ def test_get_balance_golden(client: TestClient, session: Session) -> None:
             name="Mortgage",
             balance=-200000.0,
             cost=0.0,
+            fx_code="TWD",
+            fx_rate=1.0,
         )
     )
     session.add(
@@ -69,3 +71,9 @@ def test_get_balance_golden(client: TestClient, session: Session) -> None:
     assert data["net_worth"] == -71000.0
     assert {line["name"] for line in data["assets"]["accounts"]} == {"TWD Bank", "USD Bank"}
     assert data["liabilities"]["loans"][0]["amount"] == -200000.0
+    # original_amount carries the pre-FX native figure
+    accounts_by_name = {line["name"]: line for line in data["assets"]["accounts"]}
+    assert accounts_by_name["USD Bank"]["amount"] == 32000.0
+    assert accounts_by_name["USD Bank"]["original_amount"] == 1000.0
+    assert accounts_by_name["TWD Bank"]["original_amount"] == 100000.0
+    assert data["liabilities"]["loans"][0]["original_amount"] == -200000.0

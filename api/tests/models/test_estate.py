@@ -36,6 +36,7 @@ def test_estate_fields() -> None:
         "obtain_date",
         "loan_id",
         "estate_status",
+        "fx_code",
         "memo",
     }
     assert set(table.c.keys()) == expected

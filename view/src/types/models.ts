@@ -446,6 +446,7 @@ export interface EstateAsset {
   estate_type: string
   estate_address: string
   asset_id: string
+  fx_code: string               // currency code (TWD; USD/JPY/... for overseas)
   obtain_date: string           // YYYYMMDD
   loan_id?: string | null
   estate_status: string         // 'idle' | 'live' | 'rent' | 'sold'
@@ -458,6 +459,7 @@ export interface EstateAssetCreate {
   estate_type: string
   estate_address: string
   asset_id: string
+  fx_code?: string              // currency code; defaults to TWD on the backend
   obtain_date: string
   loan_id?: string | null
   estate_status: string
@@ -614,7 +616,8 @@ export interface OtherAssetItem {
 
 export interface BalanceReportLine {
   name: string
-  amount: number
+  amount: number                // base-currency (TWD) equivalent
+  original_amount: number       // amount in original currency (pre-FX)
   currency?: string
 }
 

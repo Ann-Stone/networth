@@ -11,6 +11,8 @@ _EXAMPLE = {
     "name": "Mortgage",
     "balance": -250000.0,
     "cost": 250000.0,
+    "fx_code": "TWD",
+    "fx_rate": 1.0,
 }
 
 
@@ -22,6 +24,8 @@ class LoanBalance(SQLModel, table=True):
     name: str = Field(..., description="Loan display name", schema_extra={"examples": ["Mortgage"]})
     balance: float = Field(..., description="Outstanding balance (negative = liability)", schema_extra={"examples": [-250000.0]})
     cost: float = Field(..., description="Original loan amount", schema_extra={"examples": [250000.0]})
+    fx_code: str = Field(..., description="Currency code", schema_extra={"examples": ["TWD"]})
+    fx_rate: float = Field(..., description="Exchange rate to base currency", schema_extra={"examples": [1.0]})
 
     model_config = ConfigDict(json_schema_extra={"example": _EXAMPLE})
 
@@ -32,6 +36,8 @@ class LoanBalanceCreate(SQLModel):
     name: str = Field(..., description="Loan display name", schema_extra={"examples": ["Mortgage"]})
     balance: float = Field(..., description="Outstanding balance", schema_extra={"examples": [-250000.0]})
     cost: float = Field(..., description="Original loan amount", schema_extra={"examples": [250000.0]})
+    fx_code: str = Field(..., description="Currency code", schema_extra={"examples": ["TWD"]})
+    fx_rate: float = Field(..., description="Exchange rate to base currency", schema_extra={"examples": [1.0]})
 
     model_config = ConfigDict(json_schema_extra={"example": _EXAMPLE})
 
@@ -50,5 +56,7 @@ class LoanBalanceRead(SQLModel):
     name: str = Field(..., description="Loan display name", schema_extra={"examples": ["Mortgage"]})
     balance: float = Field(..., description="Outstanding balance", schema_extra={"examples": [-250000.0]})
     cost: float = Field(..., description="Original loan amount", schema_extra={"examples": [250000.0]})
+    fx_code: str = Field(..., description="Currency code", schema_extra={"examples": ["TWD"]})
+    fx_rate: float = Field(..., description="Exchange rate to base currency", schema_extra={"examples": [1.0]})
 
     model_config = ConfigDict(json_schema_extra={"example": _EXAMPLE})

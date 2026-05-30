@@ -51,6 +51,8 @@ def test_monthly_report_models_roundtrip(session: Session) -> None:
         market_value=500000.0,
         cost=420000.0,
         estate_status="hold",
+        fx_code="TWD",
+        fx_rate=1.0,
     )
     ins_hist = InsuranceNetValueHistory(
         vesting_month="202604",
@@ -68,6 +70,8 @@ def test_monthly_report_models_roundtrip(session: Session) -> None:
         name="Mortgage",
         balance=-250000.0,
         cost=250000.0,
+        fx_code="TWD",
+        fx_rate=1.0,
     )
     stock_hist = StockNetValueHistory(
         vesting_month="202604",

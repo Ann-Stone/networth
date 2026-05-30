@@ -16,7 +16,7 @@ def test_triple_composite_pk() -> None:
     pk = {c.name for c in table.primary_key.columns}
     assert pk == {"vesting_month", "id", "asset_id"}
 
-    expected = {"vesting_month", "id", "asset_id", "name", "market_value", "cost", "estate_status"}
+    expected = {"vesting_month", "id", "asset_id", "name", "market_value", "cost", "estate_status", "fx_code", "fx_rate"}
     assert set(table.c.keys()) == expected
 
     for cls in (

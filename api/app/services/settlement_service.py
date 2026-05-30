@@ -125,6 +125,9 @@ def run_estate_step(session: Session, vesting_month: str) -> int:
         # Market value defaults to cost when no explicit market entry exists
         # (legacy convention — there is no separate market_value source table).
         market_value = cost
+        # FX: estate carries its own currency (overseas property may be USD/JPY/...).
+        fx_code = estate.fx_code or BASE_CURRENCY
+        fx_rate = select_fx_rate_for_month(session, fx_code, vesting_month)
         session.add(
             EstateNetValueHistory(
                 vesting_month=vesting_month,
@@ -134,6 +137,8 @@ def run_estate_step(session: Session, vesting_month: str) -> int:
                 market_value=round(market_value, 2),
                 cost=round(cost, 2),
                 estate_status=estate.estate_status,
+                fx_code=fx_code,
+                fx_rate=fx_rate,
             )
         )
         inserted += 1
@@ -205,6 +210,12 @@ def run_loan_step(session: Session, vesting_month: str) -> int:
             r.excute_price for r in rows if r.loan_excute_type in {"interest", "fee"}
         )
         balance = loan.amount - principal
+        # FX: repayment account drives currency (overseas loan may be USD/JPY/...).
+        account = session.exec(
+            select(Account).where(Account.account_id == loan.account_id)
+        ).first()
+        fx_code = account.fx_code if account is not None else BASE_CURRENCY
+        fx_rate = select_fx_rate_for_month(session, fx_code, vesting_month)
         session.add(
             LoanBalance(
                 vesting_month=vesting_month,
@@ -212,6 +223,8 @@ def run_loan_step(session: Session, vesting_month: str) -> int:
                 name=loan.loan_name,
                 balance=round(balance, 2),
                 cost=round(cost, 2),
+                fx_code=fx_code,
+                fx_rate=fx_rate,
             )
         )
         inserted += 1

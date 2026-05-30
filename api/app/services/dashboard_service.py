@@ -187,14 +187,16 @@ def get_asset_debt_trend(session: Session, period: str) -> SummaryRead:
             r.price * r.fx_rate for r in _latest_per_entity_at(stocks, m, key=lambda r: r.id)
         )
         e_total = sum(
-            r.market_value for r in _latest_per_entity_at(estates, m, key=lambda r: r.id)
+            r.market_value * r.fx_rate
+            for r in _latest_per_entity_at(estates, m, key=lambda r: r.id)
         )
         i_total = sum(
             r.surrender_value * r.fx_rate
             for r in _latest_per_entity_at(insurances, m, key=lambda r: r.id)
         )
         l_total = sum(
-            r.balance for r in _latest_per_entity_at(loans, m, key=lambda r: r.id)
+            r.balance * r.fx_rate
+            for r in _latest_per_entity_at(loans, m, key=lambda r: r.id)
         )
         c_total = sum(
             r.balance * r.fx_rate

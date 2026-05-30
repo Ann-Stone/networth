@@ -554,6 +554,8 @@ def migrate_loan_balances(src: sqlite3.Connection, session: Session) -> int:
             name=row["name"],
             balance=float(row["balance"]),
             cost=float(row["cost"]),
+            fx_code="TWD",
+            fx_rate=1.0,
         ))
         count += 1
     session.commit()
@@ -734,6 +736,8 @@ def migrate_estate_net_value_history(src: sqlite3.Connection, session: Session) 
             market_value=float(row["market_value"]),
             cost=float(row["cost"]),
             estate_status=row["estate_status"],
+            fx_code="TWD",
+            fx_rate=1.0,
         ))
         count += 1
     session.commit()

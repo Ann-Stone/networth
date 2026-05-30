@@ -16,7 +16,7 @@ def test_loan_balance_composite_pk() -> None:
     pk = {c.name for c in table.primary_key.columns}
     assert pk == {"vesting_month", "id"}
 
-    expected = {"vesting_month", "id", "name", "balance", "cost"}
+    expected = {"vesting_month", "id", "name", "balance", "cost", "fx_code", "fx_rate"}
     assert set(table.c.keys()) == expected
 
     for cls in (LoanBalance, LoanBalanceCreate, LoanBalanceUpdate, LoanBalanceRead):

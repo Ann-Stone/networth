@@ -53,6 +53,8 @@ def test_get_asset_breakdown_golden(client: TestClient, session: Session) -> Non
             market_value=200000.0,
             cost=0.0,
             estate_status="hold",
+            fx_code="TWD",
+            fx_rate=1.0,
         )
     )
     session.commit()
