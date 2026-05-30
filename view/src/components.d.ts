@@ -62,6 +62,7 @@ declare module 'vue' {
     PageHeader: typeof import('./components/ui/PageHeader.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    RowActions: typeof import('./components/ui/RowActions.vue')['default']
     SectionHeader: typeof import('./components/ui/SectionHeader.vue')['default']
     Sidebar: typeof import('./components/layout/Sidebar.vue')['default']
     SidebarContent: typeof import('./components/layout/SidebarContent.vue')['default']
