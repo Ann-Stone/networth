@@ -384,6 +384,7 @@ export interface StockAsset {
   stock_name: string
   asset_id: string
   expected_spend: number
+  category_id?: string | null   // FK to StockCategory; null = unclassified
 }
 
 export interface StockAssetCreate {
@@ -392,9 +393,29 @@ export interface StockAssetCreate {
   stock_name: string
   asset_id: string
   expected_spend: number
+  category_id?: string | null
 }
 
 export type StockAssetUpdate = Partial<StockAssetCreate>
+
+// ─── Assets — StockCategory (allocation dictionary) ──────────────────────────
+// User-maintained classes (成長型 / 債券 / 類現金 / …) referenced by
+// StockAsset.category_id. category_id is generated server-side (SC-NNN).
+
+export interface StockCategory {
+  category_id: string
+  name: string
+  in_use: string                // Y/N
+  category_index: number
+}
+
+export interface StockCategoryCreate {
+  name: string
+  in_use?: string
+  category_index?: number
+}
+
+export type StockCategoryUpdate = Partial<StockCategoryCreate>
 
 export interface StockJournal extends AssetDetailBase {
   stock_id: string
@@ -632,6 +653,18 @@ export interface AssetReport {
   items: AssetReportItem[]
 }
 
+export interface StockAllocationReportItem {
+  category_id: string | null    // null = unclassified bucket
+  category_name: string         // '未分類' for the unclassified bucket
+  amount: number
+  share: number                 // percentage 0-100
+}
+
+export interface StockAllocationReport {
+  total: number
+  items: StockAllocationReportItem[]
+}
+
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 
 export interface DashboardSummaryPoint {
@@ -710,4 +743,16 @@ export type SelectionLoan = SelectionGroup
 
 export interface ImportResult {
   message: string
+}
+
+export interface InvoiceImportError {
+  line: number
+  reason: string
+}
+
+export interface InvoiceImportResult {
+  imported: number
+  skipped: number
+  failed: number
+  errors: InvoiceImportError[]
 }

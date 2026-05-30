@@ -15,6 +15,9 @@ import type {
   CreditCard,
   CreditCardCreate,
   CreditCardUpdate,
+  StockCategory,
+  StockCategoryCreate,
+  StockCategoryUpdate,
 } from '@/types/models'
 
 // ─── Accounts ────────────────────────────────────────────────────────────────
@@ -60,6 +63,15 @@ let creditCards: CreditCard[] = [
   { credit_card_id: 'CC_AMEX',   card_name: 'Amex Gold',  card_no: '3777-XXXXXX-12345', last_day: 25, charge_day: 15, limit_date: 0, feedback_way: 'points',  fx_code: 'USD', in_use: 'Y', credit_card_index: 3, note: null },
   { credit_card_id: 'CC_OLD',    card_name: '舊卡（停用）', card_no: null, last_day: null, charge_day: null, limit_date: null, feedback_way: null, fx_code: 'TWD', in_use: 'N', credit_card_index: 4, note: null },
 ]
+
+// ─── Stock categories (allocation dictionary) ────────────────────────────────
+
+let stockCategories: StockCategory[] = [
+  { category_id: 'SC-001', name: '成長型', in_use: 'Y', category_index: 1 },
+  { category_id: 'SC-002', name: '債券',   in_use: 'Y', category_index: 2 },
+  { category_id: 'SC-003', name: '類現金', in_use: 'Y', category_index: 3 },
+]
+let stockCategorySeq = stockCategories.length
 
 // ─── Budgets ─────────────────────────────────────────────────────────────────
 //
@@ -248,6 +260,38 @@ export const settingsHandlers = [
     const before = creditCards.length
     creditCards = creditCards.filter((c) => c.credit_card_id !== params.id)
     if (creditCards.length === before) return fail('card not found', 404)
+    return ok(null)
+  }),
+
+  // Stock categories
+  http.get('*/settings/stock-categories', () =>
+    ok([...stockCategories].sort((a, b) => a.category_index - b.category_index)),
+  ),
+  http.post('*/settings/stock-categories', async ({ request }) => {
+    const body = (await request.json()) as StockCategoryCreate
+    stockCategorySeq += 1
+    const created: StockCategory = {
+      category_id: `SC-${String(stockCategorySeq).padStart(3, '0')}`,
+      name: body.name,
+      in_use: body.in_use ?? 'Y',
+      category_index: body.category_index ?? stockCategories.length + 1,
+    }
+    stockCategories.push(created)
+    return ok(created)
+  }),
+  http.put('*/settings/stock-categories/:id', async ({ params, request }) => {
+    const body = (await request.json()) as StockCategoryUpdate
+    const idx = stockCategories.findIndex((c) => c.category_id === params.id)
+    const cur = stockCategories[idx]
+    if (!cur) return fail('stock category not found', 404)
+    const next: StockCategory = { ...cur, ...body }
+    stockCategories[idx] = next
+    return ok(next)
+  }),
+  http.delete('*/settings/stock-categories/:id', ({ params }) => {
+    const before = stockCategories.length
+    stockCategories = stockCategories.filter((c) => c.category_id !== params.id)
+    if (stockCategories.length === before) return fail('stock category not found', 404)
     return ok(null)
   }),
 

@@ -52,6 +52,7 @@ declare module 'vue' {
     ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
+    ElUpload: typeof import('element-plus/es')['ElUpload']
     EmptyState: typeof import('./components/ui/EmptyState.vue')['default']
     EstateDetailFormFields: typeof import('./components/forms/EstateDetailFormFields.vue')['default']
     FormDialog: typeof import('./components/ui/FormDialog.vue')['default']

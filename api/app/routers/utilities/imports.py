@@ -1,9 +1,13 @@
 """Data import endpoints: stock prices, FX rates, invoice CSV."""
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, File, UploadFile
 
-from app.models.utilities.imports import ImportAcceptedResponse, ImportRequest
+from app.models.utilities.imports import (
+    ImportAcceptedResponse,
+    ImportRequest,
+    InvoiceImportResult,
+)
 from app.schemas.response import (
     INTERNAL_ERROR,
     VALIDATION_ERROR,
@@ -61,17 +65,20 @@ def trigger_fx_import(
 
 @router.post(
     "/invoices",
-    summary="Import government invoice CSV",
+    summary="Import an uploaded government invoice CSV",
     description=(
-        "Kicks off a background task that parses the configured pipe-delimited "
-        "invoice CSV and inserts deduplicated journal rows."
+        "Parses an uploaded pipe-delimited invoice CSV and inserts deduplicated "
+        "journal rows. Runs synchronously and returns the import counts."
     ),
-    response_model=ApiResponse[ImportAcceptedResponse],
+    response_model=ApiResponse[InvoiceImportResult],
     responses=_ACCEPTED_RESPONSES,
-    status_code=202,
 )
 def trigger_invoice_import(
-    body: ImportRequest, tasks: BackgroundTasks
-) -> ApiResponse[ImportAcceptedResponse]:
-    tasks.add_task(import_invoices, body.period)
-    return ApiResponse(data=ImportAcceptedResponse(message="invoice import started"))
+    file: UploadFile = File(..., description="Pipe-delimited invoice CSV"),
+) -> ApiResponse[InvoiceImportResult]:
+    raw = file.file.read()
+    # utf-8-sig strips the BOM the government export tends to prepend; replace
+    # keeps a stray byte from aborting the whole import.
+    content = raw.decode("utf-8-sig", errors="replace")
+    result = import_invoices(content)
+    return ApiResponse(data=result)

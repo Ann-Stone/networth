@@ -164,6 +164,40 @@
           </div>
         </DataListCard>
       </el-tab-pane>
+
+      <el-tab-pane label="股票分類" name="stock-categories">
+        <DataListCard title="股票分類">
+          <template #menu>
+            <el-button type="primary" :icon="PlusIcon" @click="openCreateStockCategory">
+              新增分類
+            </el-button>
+          </template>
+
+          <div class="p-4">
+            <el-table
+              :data="store.stockCategories"
+              v-loading="store.stockCategoriesLoading"
+              row-key="category_id"
+              stripe
+              empty-text="尚無股票分類"
+            >
+              <el-table-column prop="category_index" label="排序" width="80" align="right" />
+              <el-table-column prop="category_id" label="分類 ID" min-width="120" />
+              <el-table-column prop="name" label="名稱" min-width="200" />
+              <el-table-column label="啟用" width="80">
+                <template #default="{ row }">
+                  <StatusBadge :value="row.in_use" />
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="160" fixed="right">
+                <template #default="{ row }">
+                  <RowActions variant="link" @edit="openEditStockCategory(row)" @delete="handleDeleteStockCategory(row)" />
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </DataListCard>
+      </el-tab-pane>
     </el-tabs>
 
     <FormDialog
@@ -246,6 +280,47 @@
         </el-form-item>
         <el-form-item label="備註">
           <el-input v-model="creditCardNoteModel" type="textarea" :rows="2" />
+        </el-form-item>
+      </el-form>
+    </FormDialog>
+
+    <FormDialog
+      v-model="stockCategoryDialogVisible"
+      :title="stockCategoryFormMode === 'create' ? '新增股票分類' : '編輯股票分類'"
+      :loading="stockCategorySubmitting"
+      width="460px"
+      @submit="submitStockCategory"
+    >
+      <el-form
+        ref="stockCategoryFormRef"
+        :model="stockCategoryForm"
+        :rules="stockCategoryFormRules"
+        label-width="100px"
+      >
+        <el-form-item v-if="stockCategoryFormMode === 'edit'" label="分類 ID">
+          <el-input :model-value="String(editingStockCategoryId ?? '')" disabled />
+        </el-form-item>
+        <el-form-item label="名稱" prop="name">
+          <el-input v-model="stockCategoryForm.name" placeholder="如 成長型 / 債券 / 類現金" />
+        </el-form-item>
+        <el-form-item label="啟用">
+          <el-radio-group v-model="stockCategoryForm.in_use">
+            <el-radio value="Y">啟用</el-radio>
+            <el-radio value="N">停用</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number
+            v-model="stockCategoryIndexModel"
+            :min="0"
+            :step="1"
+            :precision="0"
+            controls-position="right"
+            style="width: 100%"
+          />
+          <p class="text-xs text-on-surface-variant mt-1">
+            分類 ID 由系統自動產生 (SC-NNN);留空排序時自動接續
+          </p>
         </el-form-item>
       </el-form>
     </FormDialog>
@@ -441,6 +516,9 @@ import {
   createCreditCard,
   updateCreditCard,
   deleteCreditCard,
+  createStockCategory,
+  updateStockCategory,
+  deleteStockCategory,
 } from '@/api/setting'
 import type {
   Account,
@@ -450,13 +528,15 @@ import type {
   CodeDataWithSub,
   CreditCard,
   CreditCardCreate,
+  StockCategory,
+  StockCategoryCreate,
 } from '@/types/models'
 
 const CODE_TYPE_OPTIONS = ['Floating', 'Fixed', 'Invest', 'Income', 'Transfer'] as const
 
 const store = useSettingStore()
 
-const activeTab = ref<'accounts' | 'codes' | 'credit-cards'>('accounts')
+const activeTab = ref<'accounts' | 'codes' | 'credit-cards' | 'stock-categories'>('accounts')
 
 onMounted(() => {
   void store.fetchAccounts()
@@ -464,6 +544,7 @@ onMounted(() => {
 
 const codesLoaded = ref(false)
 const creditCardsLoaded = ref(false)
+const stockCategoriesLoaded = ref(false)
 watch(activeTab, (tab) => {
   if (tab === 'codes' && !codesLoaded.value) {
     codesLoaded.value = true
@@ -472,6 +553,10 @@ watch(activeTab, (tab) => {
   if (tab === 'credit-cards' && !creditCardsLoaded.value) {
     creditCardsLoaded.value = true
     void store.fetchCreditCards()
+  }
+  if (tab === 'stock-categories' && !stockCategoriesLoaded.value) {
+    stockCategoriesLoaded.value = true
+    void store.fetchStockCategories()
   }
 })
 
@@ -792,6 +877,59 @@ const creditCardNoteModel = computed<string>({
   get: () => creditCardForm.value.note ?? '',
   set: (v) => {
     creditCardForm.value.note = v ? v : null
+  },
+})
+
+// ─── Stock category dialog ───────────────────────────────────────────────────
+
+const stockCategoryFormRef = ref<FormInstance>()
+
+function emptyStockCategoryForm(): StockCategoryCreate {
+  return { name: '', in_use: 'Y', category_index: undefined }
+}
+
+const stockCategoryFormRules: FormRules = {
+  name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
+}
+
+const {
+  dialogVisible: stockCategoryDialogVisible,
+  formMode: stockCategoryFormMode,
+  submitting: stockCategorySubmitting,
+  form: stockCategoryForm,
+  editingId: editingStockCategoryId,
+  openCreate: openCreateStockCategory,
+  openEdit: openEditStockCategory,
+  submit: submitStockCategory,
+  remove: handleDeleteStockCategory,
+} = useCrudDialog<StockCategory, StockCategoryCreate>({
+  formRef: stockCategoryFormRef,
+  emptyForm: emptyStockCategoryForm,
+  toForm: (row) => ({
+    name: row.name,
+    in_use: row.in_use,
+    category_index: row.category_index,
+  }),
+  getId: (row) => row.category_id,
+  create: (form) => createStockCategory({ ...form }),
+  update: (id, form) =>
+    updateStockCategory(id as string, {
+      name: form.name,
+      in_use: form.in_use,
+      category_index: form.category_index,
+    }),
+  remove: (id) => deleteStockCategory(id as string),
+  refetch: () => store.fetchStockCategories(),
+  confirmDelete: (row) => ({
+    title: '刪除股票分類',
+    message: `確定要刪除「${row.name}」? 已被持股引用的分類請改為停用 (停用)。`,
+  }),
+})
+
+const stockCategoryIndexModel = computed<number | undefined>({
+  get: () => stockCategoryForm.value.category_index,
+  set: (v) => {
+    stockCategoryForm.value.category_index = typeof v === 'number' ? v : undefined
   },
 })
 </script>

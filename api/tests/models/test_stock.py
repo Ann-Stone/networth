@@ -27,7 +27,7 @@ def test_stock_journal_fields() -> None:
     assert StockJournal.__tablename__ == "Stock_Journal"
     assert table.c.stock_id.primary_key is True
 
-    expected = {"stock_id", "stock_code", "stock_name", "asset_id", "expected_spend"}
+    expected = {"stock_id", "stock_code", "stock_name", "asset_id", "expected_spend", "category_id"}
     assert set(table.c.keys()) == expected
     _check_doc_discipline(StockJournal, StockJournalCreate, StockJournalUpdate, StockJournalRead)
 

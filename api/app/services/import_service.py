@@ -6,6 +6,7 @@ must not reuse the request session. Failures are logged and never raise.
 from __future__ import annotations
 
 import csv
+import io
 import json
 import logging
 import random
@@ -242,19 +243,17 @@ def _append_error_log(message: str) -> None:
         logger.error("Cannot write invoice error log: %s", e)
 
 
-def import_invoices(period: str) -> InvoiceImportResult:
-    """Background worker: import an invoice CSV into Journal."""
+def import_invoices(content: str) -> InvoiceImportResult:
+    """Import an uploaded invoice CSV (pipe-delimited text) into Journal.
+
+    `content` is the decoded text of the uploaded file. Every M-row is imported;
+    rows whose carrier is in the skip list or whose (invoice_number,
+    vesting_month) already exists are skipped, and per-row failures are collected
+    (never raised). The previous disk-read path (``settings.import_csv``) and the
+    period filter were removed when the page switched to direct file upload.
+    """
     skip_list = load_invoice_skip_list(settings.invoice_skip_path)
     mapping = load_merchant_mapping(settings.merchant_mapping_path)
-    csv_path = Path(settings.import_csv)
-    if not csv_path.exists():
-        _append_error_log(f"invoice.csv missing at {csv_path}")
-        return InvoiceImportResult(
-            imported=0,
-            skipped=0,
-            failed=0,
-            errors=[InvoiceImportError(line=0, reason="invoice.csv missing")],
-        )
 
     imported = 0
     skipped = 0
@@ -274,94 +273,80 @@ def import_invoices(period: str) -> InvoiceImportResult:
                 if tail:
                     card_by_last4[tail] = c
 
-        try:
-            with csv_path.open("r", encoding="utf-8", newline="") as fp:
-                reader = csv.reader(fp, delimiter="|")
-                m_rows: list[tuple[int, list[str]]] = []
-                for line_no, row in enumerate(reader, start=1):
-                    if not row:
-                        continue
-                    kind = row[0].strip() if row else ""
-                    if kind == "M":
-                        m_rows.append((line_no, row))
-                    elif kind == "D" and len(row) >= 4:
-                        inv = row[1].strip()
-                        pending_items.setdefault(inv, []).append(row[3].strip())
+        reader = csv.reader(io.StringIO(content), delimiter="|")
+        m_rows: list[tuple[int, list[str]]] = []
+        for line_no, row in enumerate(reader, start=1):
+            if not row:
+                continue
+            kind = row[0].strip() if row else ""
+            if kind == "M":
+                m_rows.append((line_no, row))
+            elif kind == "D" and len(row) >= 4:
+                inv = row[1].strip()
+                pending_items.setdefault(inv, []).append(row[3].strip())
 
-                for line_no, row in m_rows:
-                    try:
-                        if len(row) < 8:
-                            raise ValueError("M-row missing columns")
-                        carrier_no = row[2].strip()
-                        invoice_date = row[3].strip()
-                        shop_name = row[5].strip() if len(row) > 5 else ""
-                        invoice_number = row[6].strip() if len(row) > 6 else ""
-                        amount = int(row[7]) * -1
-                        vesting_month = invoice_date[:6]
-                        if not vesting_month or len(vesting_month) != 6:
-                            raise ValueError("invoice_date missing")
-                        if period and vesting_month != period:
-                            continue
-                        if carrier_no in skip_list:
-                            skipped += 1
-                            continue
-                        existing = session.exec(
-                            select(Journal).where(
-                                Journal.invoice_number == invoice_number,
-                                Journal.vesting_month == vesting_month,
-                            )
-                        ).first()
-                        if existing is not None:
-                            skipped += 1
-                            continue
+        for line_no, row in m_rows:
+            try:
+                if len(row) < 8:
+                    raise ValueError("M-row missing columns")
+                carrier_no = row[2].strip()
+                invoice_date = row[3].strip()
+                shop_name = row[5].strip() if len(row) > 5 else ""
+                invoice_number = row[6].strip() if len(row) > 6 else ""
+                amount = int(row[7]) * -1
+                vesting_month = invoice_date[:6]
+                if not vesting_month or len(vesting_month) != 6:
+                    raise ValueError("invoice_date missing")
+                if carrier_no in skip_list:
+                    skipped += 1
+                    continue
+                existing = session.exec(
+                    select(Journal).where(
+                        Journal.invoice_number == invoice_number,
+                        Journal.vesting_month == vesting_month,
+                    )
+                ).first()
+                if existing is not None:
+                    skipped += 1
+                    continue
 
-                        spend_way = ""
-                        spend_way_type = ""
-                        spend_way_table = ""
-                        carrier_tail = "".join(
-                            ch for ch in carrier_no if ch.isdigit()
-                        )[-4:]
-                        card = card_by_last4.get(carrier_tail) if carrier_tail else None
-                        if card is not None:
-                            spend_way = card.credit_card_id
-                            spend_way_type = "credit_card"
-                            spend_way_table = "Credit_Card"
+                spend_way = ""
+                spend_way_type = ""
+                spend_way_table = ""
+                carrier_tail = "".join(ch for ch in carrier_no if ch.isdigit())[-4:]
+                card = card_by_last4.get(carrier_tail) if carrier_tail else None
+                if card is not None:
+                    spend_way = card.credit_card_id
+                    spend_way_type = "credit_card"
+                    spend_way_table = "Credit_Card"
 
-                        action_main = _match_merchant(shop_name, mapping) or ""
-                        item_names = pending_items.get(invoice_number, [])
-                        note = ", ".join(filter(None, item_names)) or shop_name
+                action_main = _match_merchant(shop_name, mapping) or ""
+                item_names = pending_items.get(invoice_number, [])
+                note = ", ".join(filter(None, item_names)) or shop_name
 
-                        journal = Journal(
-                            vesting_month=vesting_month,
-                            spend_date=invoice_date,
-                            spend_way=spend_way,
-                            spend_way_type=spend_way_type,
-                            spend_way_table=spend_way_table,
-                            action_main=action_main,
-                            action_main_type="Floating" if action_main else "",
-                            action_main_table="Code_Data",
-                            action_sub=None,
-                            action_sub_type=None,
-                            action_sub_table=None,
-                            spending=float(amount),
-                            invoice_number=invoice_number or None,
-                            note=note or None,
-                        )
-                        session.add(journal)
-                        imported += 1
-                    except Exception as e:  # noqa: BLE001
-                        failed += 1
-                        errors.append(InvoiceImportError(line=line_no, reason=str(e)))
-                        _append_error_log(f"line {line_no}: {e}")
-                session.commit()
-        except OSError as e:
-            _append_error_log(f"invoice.csv read failed: {e}")
-            return InvoiceImportResult(
-                imported=imported,
-                skipped=skipped,
-                failed=failed + 1,
-                errors=[*errors, InvoiceImportError(line=0, reason=str(e))],
-            )
+                journal = Journal(
+                    vesting_month=vesting_month,
+                    spend_date=invoice_date,
+                    spend_way=spend_way,
+                    spend_way_type=spend_way_type,
+                    spend_way_table=spend_way_table,
+                    action_main=action_main,
+                    action_main_type="Floating" if action_main else "",
+                    action_main_table="Code_Data",
+                    action_sub=None,
+                    action_sub_type=None,
+                    action_sub_table=None,
+                    spending=float(amount),
+                    invoice_number=invoice_number or None,
+                    note=note or None,
+                )
+                session.add(journal)
+                imported += 1
+            except Exception as e:  # noqa: BLE001
+                failed += 1
+                errors.append(InvoiceImportError(line=line_no, reason=str(e)))
+                _append_error_log(f"line {line_no}: {e}")
+        session.commit()
 
     return InvoiceImportResult(
         imported=imported, skipped=skipped, failed=failed, errors=errors

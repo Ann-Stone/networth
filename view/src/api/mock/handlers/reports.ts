@@ -1,6 +1,11 @@
 import { http } from 'msw'
 import { ok } from '../util'
-import type { AssetReport, BalanceReport, ExpenditureReport } from '@/types/models'
+import type {
+  AssetReport,
+  BalanceReport,
+  ExpenditureReport,
+  StockAllocationReport,
+} from '@/types/models'
 
 const balance: BalanceReport = {
   assets: {
@@ -71,6 +76,15 @@ const assetReport: AssetReport = {
   ],
 }
 
+const stockAllocation: StockAllocationReport = {
+  total: 735100,
+  items: [
+    { category_id: 'SC-001', category_name: '成長型', amount: 542600, share: 73.8 },
+    { category_id: 'SC-002', category_name: '債券',   amount: 110000, share: 15.0 },
+    { category_id: null,     category_name: '未分類', amount: 82500,  share: 11.2 },
+  ],
+}
+
 export const reportsHandlers = [
   http.get('*/reports/balance', () => ok(balance)),
   http.get('*/reports/expenditure/:type', ({ params, request }) => {
@@ -79,4 +93,5 @@ export const reportsHandlers = [
     return ok(expenditureSeries(String(params.type), month))
   }),
   http.get('*/reports/assets', () => ok(assetReport)),
+  http.get('*/reports/stock-allocation', () => ok(stockAllocation)),
 ]

@@ -49,7 +49,6 @@ def test_invoice_fields_default_empty(
         "INVOICE_CARD_NO",
         "INVOICE_PASSWORD",
         "INVOICE_APP_ID",
-        "IMPORT_CSV",
     ]:
         monkeypatch.delenv(key, raising=False)
     monkeypatch.chdir(tmp_path)
@@ -60,7 +59,6 @@ def test_invoice_fields_default_empty(
     assert s.invoice_card_no == ""
     assert s.invoice_password == ""
     assert s.invoice_app_id == ""
-    assert s.import_csv == "invoice.csv"
     assert s.invoice_skip_path == "config/invoice_skip.json"
     assert s.merchant_mapping_path == "config/merchant_mapping.json"
 
@@ -72,7 +70,6 @@ def test_import_config_fields(
     for key in [
         "INVOICE_SKIP_PATH",
         "MERCHANT_MAPPING_PATH",
-        "IMPORT_CSV",
         "INVOICE_ERROR_LOG",
     ]:
         monkeypatch.delenv(key, raising=False)
@@ -83,7 +80,6 @@ def test_import_config_fields(
 
     assert s.invoice_skip_path == "config/invoice_skip.json"
     assert s.merchant_mapping_path == "config/merchant_mapping.json"
-    assert s.import_csv == "invoice.csv"
     assert s.invoice_error_log == "logs/invoice_import_errors.log"
 
 

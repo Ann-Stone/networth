@@ -3,6 +3,7 @@ import type {
   AssetReport,
   BalanceReport,
   ExpenditureReport,
+  StockAllocationReport,
 } from '@/types/models'
 
 export function getBalanceReport(): Promise<BalanceReport> {
@@ -18,4 +19,8 @@ export function getExpenditureReport(
 
 export function getAssetsReport(): Promise<AssetReport> {
   return request.get('/reports/assets')
+}
+
+export function getStockAllocation(): Promise<StockAllocationReport> {
+  return request.get('/reports/stock-allocation')
 }

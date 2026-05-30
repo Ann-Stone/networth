@@ -112,6 +112,11 @@
             <el-table-column prop="stock_id" label="持有 ID" width="160" />
             <el-table-column prop="stock_code" label="代號" width="140" />
             <el-table-column prop="stock_name" label="名稱" min-width="200" />
+            <el-table-column label="分類" width="120">
+              <template #default="{ row }">
+                <span>{{ row.category_id ? (allocationCategoryNameById.get(row.category_id) ?? row.category_id) : '—' }}</span>
+              </template>
+            </el-table-column>
             <el-table-column label="預計投入" width="200" align="right">
               <template #default="{ row }">
                 <MoneyDisplay :amount="row.expected_spend" size="sm" />
@@ -552,6 +557,21 @@
         </el-form-item>
         <el-form-item label="資產分類">
           <el-input :model-value="stockForm.asset_id" disabled />
+        </el-form-item>
+        <el-form-item label="分類">
+          <el-select
+            v-model="stockCategoryIdModel"
+            placeholder="(可選) 選擇成長型 / 債券 / 類現金"
+            clearable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="cat in allocationCategoryOptions"
+              :key="cat.category_id"
+              :label="cat.name"
+              :value="cat.category_id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="預計投入" prop="expected_spend">
           <el-input-number
@@ -1019,6 +1039,7 @@ import EstateDetailFormFields, {
 } from '@/components/forms/EstateDetailFormFields.vue'
 import { useCrudDialog } from '@/composables/useCrudDialog'
 import { useOtherAssetsStore } from '@/stores/otherAssets'
+import { useSettingStore } from '@/stores/setting'
 import {
   createEstate,
   createEstateDetail,
@@ -1074,6 +1095,7 @@ import type {
 } from '@/types/models'
 
 const store = useOtherAssetsStore()
+const settingStore = useSettingStore()
 
 const activeTab = ref<string>('stocks')
 
@@ -1102,6 +1124,21 @@ async function fetchStocks(assetId: string) {
   await store.fetchStocks(assetId)
 }
 
+// ─── Stock allocation category (Stock_Category dictionary) ───────────────────
+// Active categories feed the holding form's dropdown; the full list (including
+// retired ones) backs the list-column name lookup so an existing holding keeps
+// a readable label even after its category is disabled.
+const allocationCategoryOptions = computed(() =>
+  [...settingStore.stockCategories]
+    .filter((c) => c.in_use === 'Y')
+    .sort((a, b) => a.category_index - b.category_index),
+)
+const allocationCategoryNameById = computed(() => {
+  const map = new Map<string, string>()
+  for (const c of settingStore.stockCategories) map.set(c.category_id, c.name)
+  return map
+})
+
 // ─── Stock create/edit form ─────────────────────────────────────────────────
 const stockFormRef = ref<FormInstance>()
 
@@ -1114,6 +1151,7 @@ function emptyStockForm(): StockFormState {
     stock_name: '',
     asset_id: stocksAssetId.value,
     expected_spend: 0,
+    category_id: null,
   }
 }
 
@@ -1142,6 +1180,7 @@ const {
     stock_name: row.stock_name,
     asset_id: row.asset_id,
     expected_spend: row.expected_spend,
+    category_id: row.category_id ?? null,
   }),
   getId: (row) => row.stock_id,
   create: (form) => createStock({ ...form }),
@@ -1151,6 +1190,7 @@ const {
       stock_name: form.stock_name,
       asset_id: form.asset_id,
       expected_spend: form.expected_spend,
+      category_id: form.category_id ?? null,
     }),
   remove: (id) => deleteStock(id as string),
   refetch: () => {
@@ -1162,6 +1202,13 @@ const {
   }),
   onAfterDelete: (row) => {
     stockDetailsByStock.delete(row.stock_id)
+  },
+})
+
+const stockCategoryIdModel = computed<string | undefined>({
+  get: () => stockForm.value.category_id ?? undefined,
+  set: (v) => {
+    stockForm.value.category_id = v ? v : null
   },
 })
 
@@ -1983,5 +2030,6 @@ const otherAssetIndexProxy = computed<number | undefined>({
 onMounted(() => {
   void store.fetchOtherAssets()
   void store.fetchLoans()
+  void settingStore.fetchStockCategories()
 })
 </script>

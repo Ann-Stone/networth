@@ -45,6 +45,12 @@ from app.models.assets.stock import (
     StockJournalRead,
     StockJournalUpdate,
 )
+from app.models.assets.stock_category import (
+    StockCategory,
+    StockCategoryCreate,
+    StockCategoryRead,
+    StockCategoryUpdate,
+)
 
 __all__ = [
     "Estate",
@@ -83,4 +89,8 @@ __all__ = [
     "StockJournalCreate",
     "StockJournalRead",
     "StockJournalUpdate",
+    "StockCategory",
+    "StockCategoryCreate",
+    "StockCategoryRead",
+    "StockCategoryUpdate",
 ]

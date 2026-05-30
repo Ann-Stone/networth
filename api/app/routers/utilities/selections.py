@@ -22,6 +22,7 @@ from app.services.utility_service import (
     get_insurance_selection_groups,
     get_loan_selection_groups,
     get_other_asset_type_selection_groups,
+    get_stock_category_selection_groups,
     get_stock_selection_groups,
     get_sub_code_selection_groups,
 )
@@ -101,6 +102,23 @@ def list_stock_selections(
     session: Session = Depends(get_session),
 ) -> ApiResponse[list[SelectionGroup]]:
     return ApiResponse(data=get_stock_selection_groups(session))
+
+
+@router.get(
+    "/stock-categories",
+    summary="List active stock categories as a single group",
+    description=(
+        "Return active (in_use='Y') stock allocation categories in one group "
+        "labelled 'Stock_Category', ordered by category_index. Drives the "
+        "allocation-category dropdown on the stock holding form."
+    ),
+    response_model=ApiResponse[list[SelectionGroup]],
+    responses=_COMMON_RESPONSES,
+)
+def list_stock_category_selections(
+    session: Session = Depends(get_session),
+) -> ApiResponse[list[SelectionGroup]]:
+    return ApiResponse(data=get_stock_category_selection_groups(session))
 
 
 @router.get(

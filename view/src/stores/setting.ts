@@ -7,6 +7,7 @@ import {
   getBudgets,
   getCodesWithSub,
   getCreditCards,
+  getStockCategories,
 } from '@/api/setting'
 import type {
   Account,
@@ -14,6 +15,7 @@ import type {
   BudgetRead,
   CodeDataWithSub,
   CreditCard,
+  StockCategory,
 } from '@/types/models'
 
 export const useSettingStore = defineStore('setting', () => {
@@ -88,6 +90,18 @@ export const useSettingStore = defineStore('setting', () => {
     }
   }
 
+  // Stock categories (allocation dictionary)
+  const stockCategories = ref<StockCategory[]>([])
+  const stockCategoriesLoading = ref(false)
+  async function fetchStockCategories() {
+    stockCategoriesLoading.value = true
+    try {
+      stockCategories.value = await getStockCategories()
+    } finally {
+      stockCategoriesLoading.value = false
+    }
+  }
+
   return {
     accounts,
     accountsLoading,
@@ -106,5 +120,8 @@ export const useSettingStore = defineStore('setting', () => {
     creditCards,
     creditCardsLoading,
     fetchCreditCards,
+    stockCategories,
+    stockCategoriesLoading,
+    fetchStockCategories,
   }
 })

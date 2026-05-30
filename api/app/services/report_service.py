@@ -10,6 +10,8 @@ from typing import Literal
 from sqlmodel import Session, select
 
 from app.models.assets.other_asset import OtherAsset
+from app.models.assets.stock import StockJournal
+from app.models.assets.stock_category import StockCategory
 from app.models.dashboard.fx_rate import FXRate
 from app.models.monthly_report.account_balance import AccountBalance
 from app.models.monthly_report.credit_card_balance import CreditCardBalance
@@ -21,6 +23,7 @@ from app.models.monthly_report.journal import Journal
 from app.models.monthly_report.loan_balance import LoanBalance
 from app.models.monthly_report.stock_net_value_history import StockNetValueHistory
 from app.models.reports.asset_breakdown import AssetBreakdownRead, AssetShare
+from app.models.reports.stock_allocation import StockAllocationRead, StockAllocationShare
 from app.models.reports.balance import (
     BalanceAssets,
     BalanceLiabilities,
@@ -248,3 +251,48 @@ def get_asset_breakdown(session: Session) -> AssetBreakdownRead:
             AssetShare(type=bucket_type, amount=round(amount, 2), share=share)
         )
     return AssetBreakdownRead(total=round(total, 2), items=items)
+
+
+def get_stock_allocation(session: Session) -> StockAllocationRead:
+    """Latest-month stock value split by ``Stock_Journal.category_id``.
+
+    Mirrors ``get_asset_breakdown``'s stock valuation (``price * fx_rate`` on the
+    latest snapshot per holding) so the per-category amounts reconcile with the
+    ``stocks`` bucket there. Holdings with a null or dangling category collapse
+    into the synthetic "未分類" (unclassified) share. Items are ordered by
+    ``category_index`` with the unclassified share last.
+    """
+    unclassified = "未分類"
+
+    stock_rows = list(session.exec(select(StockNetValueHistory)).all())
+    latest = _latest_per_entity(stock_rows, key=lambda r: r.id)
+
+    category_of = {
+        s.stock_id: s.category_id for s in session.exec(select(StockJournal)).all()
+    }
+    categories = list(session.exec(select(StockCategory)).all())
+    name_of = {c.category_id: c.name for c in categories}
+    index_of = {c.category_id: c.category_index for c in categories}
+
+    amounts: dict[str | None, float] = {}
+    for r in latest:
+        cid = category_of.get(r.id)
+        if cid is not None and cid not in name_of:
+            cid = None  # dangling reference → unclassified
+        amounts[cid] = amounts.get(cid, 0.0) + r.price * r.fx_rate
+
+    total = sum(amounts.values())
+    ordered = sorted(
+        amounts.items(),
+        key=lambda kv: (kv[0] is None, index_of.get(kv[0], 0), kv[0] or ""),
+    )
+    items = [
+        StockAllocationShare(
+            category_id=cid,
+            category_name=name_of[cid] if cid is not None else unclassified,
+            amount=round(amount, 2),
+            share=round(amount * 100 / total, 2) if total else 0.0,
+        )
+        for cid, amount in ordered
+    ]
+    return StockAllocationRead(total=round(total, 2), items=items)

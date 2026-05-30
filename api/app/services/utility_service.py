@@ -10,6 +10,7 @@ from app.models.assets.insurance import Insurance
 from app.models.assets.loan import Loan
 from app.models.assets.other_asset import OtherAsset
 from app.models.assets.stock import StockJournal
+from app.models.assets.stock_category import StockCategory
 from app.models.settings.account import Account
 from app.models.settings.code_data import CodeData
 from app.models.settings.credit_card import CreditCard
@@ -136,6 +137,30 @@ def get_stock_selection_groups(session: Session) -> list[SelectionGroup]:
             ],
         )
         for key, items in grouped.items()
+    ]
+
+
+def get_stock_category_selection_groups(session: Session) -> list[SelectionGroup]:
+    """Active stock categories as a single group labelled 'Stock_Category'.
+
+    Drives the allocation-category dropdown on the stock holding form. Inactive
+    (in_use != 'Y') categories are excluded so retired classes stop appearing
+    for new holdings while existing holdings keep their reference.
+    """
+    rows = session.exec(
+        select(StockCategory)
+        .where(StockCategory.in_use == "Y")
+        .order_by(StockCategory.category_index.asc(), StockCategory.category_id.asc())
+    ).all()
+    if not rows:
+        return []
+    return [
+        SelectionGroup(
+            label="Stock_Category",
+            options=[
+                SelectionOption(value=c.category_id, label=c.name) for c in rows
+            ],
+        )
     ]
 
 

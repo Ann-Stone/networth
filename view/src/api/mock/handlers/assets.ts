@@ -35,9 +35,9 @@ import type {
 // ─── Stocks ──────────────────────────────────────────────────────────────────
 
 let stocks: StockAsset[] = [
-  { stock_id: 'STK_0050', stock_code: '0050', stock_name: '元大台灣 50',     asset_id: 'STK', expected_spend: 200000 },
-  { stock_id: 'STK_2330', stock_code: '2330', stock_name: '台積電',         asset_id: 'STK', expected_spend: 500000 },
-  { stock_id: 'STK_VOO',  stock_code: 'VOO',  stock_name: 'Vanguard S&P500', asset_id: 'STK_US', expected_spend: 300000 },
+  { stock_id: 'STK_0050', stock_code: '0050', stock_name: '元大台灣 50',     asset_id: 'STK', expected_spend: 200000, category_id: 'SC-001' },
+  { stock_id: 'STK_2330', stock_code: '2330', stock_name: '台積電',         asset_id: 'STK', expected_spend: 500000, category_id: 'SC-001' },
+  { stock_id: 'STK_VOO',  stock_code: 'VOO',  stock_name: 'Vanguard S&P500', asset_id: 'STK_US', expected_spend: 300000, category_id: 'SC-002' },
 ]
 
 export const _stocksSnapshot = (): readonly StockAsset[] => stocks

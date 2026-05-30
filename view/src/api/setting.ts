@@ -15,6 +15,9 @@ import type {
   CreditCard,
   CreditCardCreate,
   CreditCardUpdate,
+  StockCategory,
+  StockCategoryCreate,
+  StockCategoryUpdate,
 } from '@/types/models'
 
 // ─── Accounts ────────────────────────────────────────────────────────────────
@@ -136,4 +139,25 @@ export function updateCreditCard(id: string, data: CreditCardUpdate): Promise<Cr
 
 export function deleteCreditCard(id: string): Promise<null> {
   return request.delete(`/settings/credit-cards/${id}`)
+}
+
+// ─── Stock categories ────────────────────────────────────────────────────────
+
+export function getStockCategories(): Promise<StockCategory[]> {
+  return request.get('/settings/stock-categories')
+}
+
+export function createStockCategory(data: StockCategoryCreate): Promise<StockCategory> {
+  return request.post('/settings/stock-categories', data)
+}
+
+export function updateStockCategory(
+  id: string,
+  data: StockCategoryUpdate,
+): Promise<StockCategory> {
+  return request.put(`/settings/stock-categories/${id}`, data)
+}
+
+export function deleteStockCategory(id: string): Promise<null> {
+  return request.delete(`/settings/stock-categories/${id}`)
 }

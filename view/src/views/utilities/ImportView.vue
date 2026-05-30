@@ -57,28 +57,40 @@
     </DataListCard>
 
     <DataListCard title="發票匯入">
-      <div class="p-6 flex flex-col gap-3">
+      <div v-loading="invoiceLoading" class="p-6 flex flex-col gap-3">
         <p class="text-sm text-on-surface-variant">
-          解析財政部電子發票管道兜售平台 CSV，去重後寫入 Journal。背景任務處理。
+          上傳財政部電子發票平台匯出的 CSV（pipe 分隔），系統會解析、去重後寫入 Journal，並回報匯入結果。
         </p>
         <div class="flex flex-wrap items-center gap-3">
-          <el-date-picker
-            v-model="invoicePeriod"
-            type="month"
-            value-format="YYYYMM"
-            placeholder="留白表示今日"
-            style="width: 200px"
-          />
+          <el-upload
+            ref="invoiceUploadRef"
+            class="shrink-0"
+            :auto-upload="false"
+            :limit="1"
+            accept=".csv"
+            :on-change="handleInvoiceChange"
+            :on-remove="handleInvoiceRemove"
+            :on-exceed="handleInvoiceExceed"
+          >
+            <template #trigger>
+              <el-button>選擇 CSV 檔</el-button>
+            </template>
+          </el-upload>
           <el-button
             type="primary"
             :loading="invoiceLoading"
+            :disabled="!invoiceFile"
             @click="handleInvoiceImport"
           >
             匯入發票
           </el-button>
         </div>
-        <p class="text-xs text-on-surface-muted">
-          需先將 invoice CSV 放至 api 端設定的匯入目錄；留白表示今日。
+        <p v-if="invoiceResult" class="text-xs text-on-surface-muted">
+          最近一次：匯入 {{ invoiceResult.imported }} 筆 · 略過
+          {{ invoiceResult.skipped }} 筆 · 失敗 {{ invoiceResult.failed }} 筆
+        </p>
+        <p v-else class="text-xs text-on-surface-muted">
+          僅接受 CSV 檔；選擇檔案後按「匯入發票」即可。
         </p>
       </div>
     </DataListCard>
@@ -87,7 +99,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, genFileId } from 'element-plus'
+import type { UploadInstance, UploadProps, UploadRawFile } from 'element-plus'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import DataListCard from '@/components/ui/DataListCard.vue'
 import {
@@ -95,14 +108,18 @@ import {
   importFxRates,
   importInvoices,
 } from '@/api/utilities'
+import type { InvoiceImportResult } from '@/types/models'
 
 const stockPeriod = ref<string>('')
 const fxPeriod = ref<string>('')
-const invoicePeriod = ref<string>('')
 
 const stockLoading = ref(false)
 const fxLoading = ref(false)
 const invoiceLoading = ref(false)
+
+const invoiceUploadRef = ref<UploadInstance>()
+const invoiceFile = ref<File | null>(null)
+const invoiceResult = ref<InvoiceImportResult | null>(null)
 
 async function handleStockPriceImport() {
   stockLoading.value = true
@@ -128,11 +145,39 @@ async function handleFxRateImport() {
   }
 }
 
+const handleInvoiceChange: UploadProps['onChange'] = (uploadFile) => {
+  invoiceFile.value = uploadFile.raw ?? null
+  invoiceResult.value = null
+}
+
+const handleInvoiceRemove: UploadProps['onRemove'] = () => {
+  invoiceFile.value = null
+}
+
+// el-upload is capped at one file; picking another replaces the current one.
+const handleInvoiceExceed: UploadProps['onExceed'] = (files) => {
+  invoiceUploadRef.value?.clearFiles()
+  const file = files[0] as UploadRawFile
+  file.uid = genFileId()
+  invoiceUploadRef.value?.handleStart(file)
+  invoiceFile.value = file
+  invoiceResult.value = null
+}
+
 async function handleInvoiceImport() {
+  if (!invoiceFile.value) {
+    ElMessage.warning('請先選擇要匯入的 CSV 檔')
+    return
+  }
   invoiceLoading.value = true
   try {
-    const res = await importInvoices(invoicePeriod.value)
-    ElMessage.success(res.message || '發票匯入已排程')
+    const res = await importInvoices(invoiceFile.value)
+    invoiceResult.value = res
+    const msg = `匯入 ${res.imported} 筆，略過 ${res.skipped} 筆，失敗 ${res.failed} 筆`
+    if (res.failed > 0) ElMessage.warning(msg)
+    else ElMessage.success(msg)
+    invoiceUploadRef.value?.clearFiles()
+    invoiceFile.value = null
   } catch {
     ElMessage.error('發票匯入失敗')
   } finally {

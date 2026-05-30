@@ -208,17 +208,14 @@ def test_fx_upsert_is_idempotent(session: Session) -> None:
 # ---------- Invoice CSV import ----------
 
 
-def _write_invoice_csv(path: Path, rows: list[list[str]]) -> None:
-    path.write_text(
-        "\n".join("|".join(r) for r in rows) + "\n", encoding="utf-8"
-    )
+def _invoice_csv(rows: list[list[str]]) -> str:
+    return "\n".join("|".join(r) for r in rows) + "\n"
 
 
-def _configure_invoice_paths(monkeypatch, csv_path, skip_path, map_path, log_path):
+def _configure_invoice_paths(monkeypatch, skip_path, map_path, log_path):
     # Patch the settings object that import_service holds a reference to.
     live = svc.settings
 
-    monkeypatch.setattr(live, "import_csv", str(csv_path))
     monkeypatch.setattr(live, "invoice_skip_path", str(skip_path))
     monkeypatch.setattr(live, "merchant_mapping_path", str(map_path))
     monkeypatch.setattr(live, "invoice_error_log", str(log_path))
@@ -227,13 +224,12 @@ def _configure_invoice_paths(monkeypatch, csv_path, skip_path, map_path, log_pat
 def test_import_invoices_partial_success_and_dedup(
     session: Session, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    csv_path = tmp_path / "invoice.csv"
     skip_path = tmp_path / "skip.json"
     map_path = tmp_path / "map.json"
     log_path = tmp_path / "logs" / "errors.log"
     skip_path.write_text('["SKIPME"]', encoding="utf-8")
     map_path.write_text('{"Coffee": "FOOD-01"}', encoding="utf-8")
-    _configure_invoice_paths(monkeypatch, csv_path, skip_path, map_path, log_path)
+    _configure_invoice_paths(monkeypatch, skip_path, map_path, log_path)
 
     engine = session.get_bind()
     monkeypatch.setattr(svc, "engine", engine)
@@ -242,43 +238,42 @@ def test_import_invoices_partial_success_and_dedup(
         # (M, carrier_name, carrier_no, invoice_date, shop_id, shop_name, invoice_number, total)
         ["M", "Carrier", "CAR1", "20260105", "S1", "Coffee Shop", "INV-1", "150", "OK", ""],
         ["D", "INV-1", "150", "Latte", ""],
-        # malformed (amount)
+        # malformed (amount) → failed
         ["M", "Carrier", "CAR1", "20260106", "S1", "Bad Shop", "INV-2", "abc", "OK", ""],
-        # in skip-list
+        # in skip-list → skipped
         ["M", "Carrier", "SKIPME", "20260107", "S1", "Skipped", "INV-3", "100", "OK", ""],
-        # outside requested period
+        # a different month — now imported too, since the period filter is gone
         ["M", "Carrier", "CAR1", "20260205", "S1", "Other", "INV-4", "200", "OK", ""],
     ]
-    _write_invoice_csv(csv_path, rows)
+    content = _invoice_csv(rows)
 
-    result = svc.import_invoices("202601")
-    assert result.imported == 1
-    assert result.skipped == 1
-    assert result.failed == 1
+    result = svc.import_invoices(content)
+    assert result.imported == 2  # INV-1 + INV-4
+    assert result.skipped == 1  # SKIPME
+    assert result.failed == 1  # INV-2 bad amount
     assert any(e.line == 3 for e in result.errors)
 
-    # Re-run: previously-imported INV-1 should now dedup → skipped goes up.
-    result2 = svc.import_invoices("202601")
+    # Re-run: previously-imported INV-1 + INV-4 now dedup → skipped goes up.
+    result2 = svc.import_invoices(content)
     assert result2.imported == 0
-    assert result2.skipped == 2  # INV-1 dedup + SKIPME
+    assert result2.skipped == 3  # INV-1 dedup + INV-4 dedup + SKIPME
 
     journals = session.exec(select(Journal)).all()
-    assert len(journals) == 1
-    assert journals[0].invoice_number == "INV-1"
-    assert journals[0].action_main == "FOOD-01"
-    assert "Latte" in (journals[0].note or "")
+    assert len(journals) == 2
+    inv1 = next(j for j in journals if j.invoice_number == "INV-1")
+    assert inv1.action_main == "FOOD-01"
+    assert "Latte" in (inv1.note or "")
 
 
-def test_import_invoices_missing_csv(
+def test_import_invoices_empty_content(
     session: Session, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    csv_path = tmp_path / "missing.csv"
     skip_path = tmp_path / "skip.json"
     map_path = tmp_path / "map.json"
     log_path = tmp_path / "logs" / "errors.log"
     skip_path.write_text("[]", encoding="utf-8")
     map_path.write_text("{}", encoding="utf-8")
-    _configure_invoice_paths(monkeypatch, csv_path, skip_path, map_path, log_path)
+    _configure_invoice_paths(monkeypatch, skip_path, map_path, log_path)
 
     engine = session.get_bind()
     monkeypatch.setattr(svc, "engine", engine)
@@ -287,7 +282,7 @@ def test_import_invoices_missing_csv(
     assert result.imported == 0
     assert result.skipped == 0
     assert result.failed == 0
-    assert result.errors[0].reason == "invoice.csv missing"
+    assert result.errors == []
 
 
 def test_invoice_dedup_and_partial_success(

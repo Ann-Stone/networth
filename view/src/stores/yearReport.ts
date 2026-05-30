@@ -4,11 +4,13 @@ import {
   getAssetsReport,
   getBalanceReport,
   getExpenditureReport,
+  getStockAllocation,
 } from '@/api/yearReport'
 import type {
   AssetReport,
   BalanceReport,
   ExpenditureReport,
+  StockAllocationReport,
 } from '@/types/models'
 
 export const useYearReportStore = defineStore('yearReport', () => {
@@ -58,6 +60,18 @@ export const useYearReportStore = defineStore('yearReport', () => {
     }
   }
 
+  // Stock allocation by category — API takes no year param.
+  const stockAllocation = ref<StockAllocationReport | null>(null)
+  const stockAllocationLoading = ref(false)
+  async function fetchStockAllocation() {
+    stockAllocationLoading.value = true
+    try {
+      stockAllocation.value = await getStockAllocation()
+    } finally {
+      stockAllocationLoading.value = false
+    }
+  }
+
   return {
     selectedYear,
     balanceReport,
@@ -69,5 +83,8 @@ export const useYearReportStore = defineStore('yearReport', () => {
     assetsReport,
     assetsLoading,
     fetchAssetsReport,
+    stockAllocation,
+    stockAllocationLoading,
+    fetchStockAllocation,
   }
 })

@@ -103,5 +103,5 @@ export const utilitiesHandlers = [
   // Import endpoints — return immediate stub success
   http.post('*/utilities/import/stock-prices', () => ok({ message: 'mock: stock-prices imported' })),
   http.post('*/utilities/import/fx-rates',     () => ok({ message: 'mock: fx-rates imported' })),
-  http.post('*/utilities/import/invoices',     () => ok({ message: 'mock: invoices imported' })),
+  http.post('*/utilities/import/invoices',     () => ok({ imported: 3, skipped: 1, failed: 0, errors: [] })),
 ]

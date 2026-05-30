@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 
 from app.models.assets.other_asset import OtherAsset
 from app.models.assets.stock import StockJournal
+from app.models.assets.stock_category import StockCategory
 from app.models.settings.account import Account
 from app.models.settings.code_data import CodeData
 
@@ -36,6 +37,7 @@ def test_all_selection_endpoints_return_envelope(client: TestClient, session: Se
         "/utilities/selections/insurances",
         "/utilities/selections/other-asset-types",
         "/utilities/selections/stocks",
+        "/utilities/selections/stock-categories",
         "/utilities/selections/codes",
     ):
         resp = client.get(path)
@@ -143,6 +145,22 @@ def test_other_asset_type_selection_distinct(
     values = [o["value"] for o in groups[0]["options"]]
     # stock appears once even though two rows have it; estate excluded (in_use=N).
     assert values == ["stock", "insurance"]
+
+
+def test_stock_category_selection_happy(client: TestClient, session: Session) -> None:
+    session.add(StockCategory(category_id="SC-001", name="成長型", in_use="Y", category_index=1))
+    session.add(StockCategory(category_id="SC-002", name="債券", in_use="N", category_index=2))
+    session.commit()
+
+    resp = client.get("/utilities/selections/stock-categories")
+    assert resp.status_code == 200
+    groups = resp.json()["data"]
+    assert len(groups) == 1
+    assert groups[0]["label"] == "Stock_Category"
+    # in_use="N" category is excluded from the dropdown.
+    values = [o["value"] for o in groups[0]["options"]]
+    assert values == ["SC-001"]
+    assert groups[0]["options"][0]["label"] == "成長型"
 
 
 def test_credit_card_selection_empty(client: TestClient, session: Session) -> None:

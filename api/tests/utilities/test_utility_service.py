@@ -7,6 +7,7 @@ from sqlmodel import Session
 
 from app.models.assets.insurance import Insurance
 from app.models.assets.loan import Loan
+from app.models.assets.stock_category import StockCategory
 from app.models.settings.account import Account
 from app.models.settings.code_data import CodeData
 from app.models.settings.credit_card import CreditCard
@@ -16,6 +17,7 @@ from app.services.utility_service import (
     get_credit_card_selection_groups,
     get_insurance_selection_groups,
     get_loan_selection_groups,
+    get_stock_category_selection_groups,
     get_sub_code_selection_groups,
 )
 
@@ -153,6 +155,22 @@ def test_get_insurance_selection_groups(session: Session) -> None:
     assert len(groups) == 1
     assert groups[0].label == "Insurance"
     assert [o.value for o in groups[0].options] == ["INS1"]
+
+
+def test_get_stock_category_selection_groups(session: Session) -> None:
+    assert get_stock_category_selection_groups(session) == []
+
+    session.add(StockCategory(category_id="SC-001", name="成長型", in_use="Y", category_index=2))
+    session.add(StockCategory(category_id="SC-002", name="債券", in_use="Y", category_index=1))
+    session.add(StockCategory(category_id="SC-003", name="停用", in_use="N", category_index=3))
+    session.commit()
+
+    groups = get_stock_category_selection_groups(session)
+    assert len(groups) == 1
+    assert groups[0].label == "Stock_Category"
+    # Ordered by category_index (債券=1 before 成長型=2); inactive excluded.
+    assert [o.value for o in groups[0].options] == ["SC-002", "SC-001"]
+    assert [o.label for o in groups[0].options] == ["債券", "成長型"]
 
 
 def _make_code(**overrides) -> CodeData:
