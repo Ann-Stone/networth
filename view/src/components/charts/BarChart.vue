@@ -31,7 +31,7 @@ use([
 const props = withDefaults(
   defineProps<{
     xData: string[]
-    series: Array<{ name: string; data: number[]; type?: 'bar' | 'line' }>
+    series: Array<{ name: string; data: number[]; type?: 'bar' | 'line'; stack?: string }>
     height?: string
   }>(),
   { height: '300px' },
@@ -52,6 +52,8 @@ const option = computed(() => {
       name: s.name,
       type: s.type ?? 'bar',
       data: s.data,
+      // Bars sharing a `stack` key pile up (e.g. fixed + variable expense).
+      ...(s.stack ? { stack: s.stack } : {}),
       // A line series (e.g. net balance) overlays the bars; smooth it and lift
       // it above the bars so the trend reads clearly.
       ...(s.type === 'line'

@@ -25,32 +25,39 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.create_table(
-        'Stock_Category',
-        sa.Column('category_id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column('in_use', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column('category_index', sa.Integer(), nullable=False),
-        sa.PrimaryKeyConstraint('category_id'),
-    )
-    op.bulk_insert(
-        sa.table(
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    tables = inspector.get_table_names()
+    if 'Stock_Category' not in tables:
+        op.create_table(
             'Stock_Category',
-            sa.column('category_id', sa.String),
-            sa.column('name', sa.String),
-            sa.column('in_use', sa.String),
-            sa.column('category_index', sa.Integer),
-        ),
-        [
-            {'category_id': 'SC-001', 'name': '成長型', 'in_use': 'Y', 'category_index': 1},
-            {'category_id': 'SC-002', 'name': '債券', 'in_use': 'Y', 'category_index': 2},
-            {'category_id': 'SC-003', 'name': '類現金', 'in_use': 'Y', 'category_index': 3},
-        ],
-    )
-    op.add_column(
-        'Stock_Journal',
-        sa.Column('category_id', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    )
+            sa.Column('category_id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+            sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+            sa.Column('in_use', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+            sa.Column('category_index', sa.Integer(), nullable=False),
+            sa.PrimaryKeyConstraint('category_id'),
+        )
+        op.bulk_insert(
+            sa.table(
+                'Stock_Category',
+                sa.column('category_id', sa.String),
+                sa.column('name', sa.String),
+                sa.column('in_use', sa.String),
+                sa.column('category_index', sa.Integer),
+            ),
+            [
+                {'category_id': 'SC-001', 'name': '成長型', 'in_use': 'Y', 'category_index': 1},
+                {'category_id': 'SC-002', 'name': '債券', 'in_use': 'Y', 'category_index': 2},
+                {'category_id': 'SC-003', 'name': '類現金', 'in_use': 'Y', 'category_index': 3},
+            ],
+        )
+    if 'Stock_Journal' in tables:
+        columns = [c['name'] for c in inspector.get_columns('Stock_Journal')]
+        if 'category_id' not in columns:
+            op.add_column(
+                'Stock_Journal',
+                sa.Column('category_id', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+            )
 
 
 def downgrade() -> None:

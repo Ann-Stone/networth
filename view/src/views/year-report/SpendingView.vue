@@ -51,17 +51,25 @@
           message="暫無支出明細"
         />
         <template v-else>
-          <div class="flex flex-wrap items-center gap-x-8 gap-y-2 text-sm">
-            <div class="flex items-center gap-2">
-              <span class="text-on-surface-variant">固定支出</span>
-              <MoneyDisplay :amount="composition.fixed_total" currency="TWD" :positive="true" size="sm" />
-              <span class="text-on-surface-variant/70 tabular-nums">{{ fixedShare.toFixed(1) }}%</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="text-on-surface-variant">變動支出</span>
-              <MoneyDisplay :amount="composition.floating_total" currency="TWD" :positive="true" size="sm" />
-              <span class="text-on-surface-variant/70 tabular-nums">{{ floatingShare.toFixed(1) }}%</span>
-            </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <MetricCard
+              label="固定支出（燒錢底線）"
+              :amount="composition.fixed_total"
+              :delta-label="`佔支出 ${fixedShare.toFixed(0)}%`"
+              tooltip="每月幾乎跑不掉的底線：房租/房貸、保險、訂閱等"
+            />
+            <MetricCard
+              label="變動支出"
+              :amount="composition.floating_total"
+              :delta-label="`佔支出 ${floatingShare.toFixed(0)}%`"
+            />
+            <MetricCard
+              label="固定佔收入"
+              :amount="fixedToIncomePct"
+              format="percent"
+              :tone="fixedToIncomePct > 50 ? 'rose' : 'primary'"
+              tooltip="固定支出 ÷ 收入，你的「生存門檻」——越低代表收入掉了也越撐得住"
+            />
           </div>
           <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
             <el-table
@@ -367,7 +375,10 @@ const chart = computed(() => {
     xData: report.points.map((p) => p.period),
     series: [
       { name: '收入', data: report.points.map((p) => p.income) },
-      { name: '支出', data: report.points.map((p) => p.expense) },
+      // Fixed (the burn floor) at the bottom, variable stacked on top, so each
+      // month's bar shows the locked-in floor vs the flexible part.
+      { name: '固定支出', data: report.points.map((p) => p.fixed), stack: 'expense' },
+      { name: '變動支出', data: report.points.map((p) => p.floating), stack: 'expense' },
       {
         name: '淨結餘',
         data: report.points.map((p) => p.net),
@@ -391,6 +402,15 @@ const fixedShare = computed(() => {
 const floatingShare = computed(() => {
   const c = store.compositionReport
   return c && c.total ? (c.floating_total / c.total) * 100 : 0
+})
+
+// Burn-floor health: fixed expenses as a share of income — the "survival
+// threshold". Fixed total comes from the composition report, income from the
+// income-expense summary (both cover the same window).
+const fixedToIncomePct = computed(() => {
+  const income = store.incomeExpenseReport?.summary.total_income ?? 0
+  const fixed = store.compositionReport?.fixed_total ?? 0
+  return income ? (fixed / income) * 100 : 0
 })
 
 const budget = computed(() => store.budgetReport)
