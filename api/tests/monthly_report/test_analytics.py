@@ -89,6 +89,65 @@ def test_liability_golden(analytics_fixture_session: Session) -> None:
     )
 
 
+# ---- Regression: capitalized action_main_type (real production casing) ----
+
+
+def test_expenditure_ratio_excludes_capitalized_invest_transfer(
+    capitalized_analytics_session: Session,
+) -> None:
+    """Capitalized Invest/Transfer rows must be excluded from the ratio.
+
+    Regression: the exclusion used a lowercase ``in {"invest", "transfer"}``
+    check that never matched real (capitalized) data, so invest/transfer leaked
+    into both the outer (by main-type) and inner (by sub-type) groupings,
+    inflating the ratio.
+    """
+    result = compute_expenditure_ratio(capitalized_analytics_session, "202603").model_dump()
+    outer = {item["name"]: item["value"] for item in result["outer"]}
+    inner = {item["name"]: item["value"] for item in result["inner"]}
+
+    # Invest/Transfer main types are gone; their sub-types never appear.
+    assert "Invest" not in outer
+    assert "Transfer" not in outer
+    assert "stock" not in inner
+    assert "self" not in inner
+
+    # The kept expense/income rows are unaffected.
+    assert outer == {"Fixed": 2000.0, "Floating": 1000.0, "Income": 5000.0}
+    assert inner == {"rent": 2000.0, "food": 1000.0, "salary": 5000.0}
+
+
+def test_invest_ratio_includes_capitalized_invest(
+    capitalized_analytics_session: Session,
+) -> None:
+    """compute_invest_ratio must match capitalized "Invest" rows.
+
+    Regression: the ``!= "invest"`` guard skipped every row on capitalized data,
+    so the invest ratio came back empty on real production data.
+    """
+    result = compute_invest_ratio(capitalized_analytics_session, "202603").model_dump()
+    by_name = {item["name"]: item["value"] for item in result["items"]}
+    assert by_name == {"stock": 800.0}
+
+
+def test_expenditure_budget_aligns_mixed_casing(
+    capitalized_analytics_session: Session,
+) -> None:
+    """Budget ``code_type`` and journal ``action_main_type`` align case-insensitively.
+
+    Regression: the budget (``code_type="fixed"``) and the journal
+    (``action_main_type="Fixed"``) differ only in casing; expected and actual
+    must collapse into a single row instead of splitting into two.
+    """
+    result = compute_expenditure_budget(capitalized_analytics_session, "202603").model_dump()
+    fixed_rows = [r for r in result["rows"] if r["action_main_type"].lower() == "fixed"]
+    assert len(fixed_rows) == 1
+    row = fixed_rows[0]
+    assert row["expected"] == 1500.0
+    assert row["actual"] == 2000.0
+    assert row["diff"] == 500.0
+
+
 # ---- Sub-task 9-12: endpoint smoke tests ----
 
 

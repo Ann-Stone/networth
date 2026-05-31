@@ -3,13 +3,23 @@ import { ref } from 'vue'
 import {
   getAssetsReport,
   getBalanceReport,
+  getBudgetVariance,
+  getCashFlow,
+  getExpenditureComposition,
   getExpenditureReport,
+  getExpenseInsights,
+  getIncomeExpenseReport,
   getStockAllocation,
 } from '@/api/yearReport'
 import type {
   AssetReport,
   BalanceReport,
+  BudgetVariance,
+  CashFlow,
+  ExpenditureComposition,
   ExpenditureReport,
+  ExpenseInsights,
+  IncomeExpenseReport,
   StockAllocationReport,
 } from '@/types/models'
 
@@ -47,6 +57,84 @@ export const useYearReportStore = defineStore('yearReport', () => {
     }
   }
 
+  // Income vs expense report — same anchor convention as expenditure
+  // (December of selectedYear when only a year is supplied).
+  const incomeExpenseReport = ref<IncomeExpenseReport | null>(null)
+  const incomeExpenseLoading = ref(false)
+  async function fetchIncomeExpenseReport(type: string, year?: number) {
+    if (year != null) selectedYear.value = year
+    const anchorYear = year ?? selectedYear.value
+    const vestingMonth = `${anchorYear}12`
+    incomeExpenseLoading.value = true
+    try {
+      incomeExpenseReport.value = await getIncomeExpenseReport(type, {
+        vesting_month: vestingMonth,
+      })
+    } finally {
+      incomeExpenseLoading.value = false
+    }
+  }
+
+  // Expenditure composition tree — same anchor convention as income/expense.
+  const compositionReport = ref<ExpenditureComposition | null>(null)
+  const compositionLoading = ref(false)
+  async function fetchExpenditureComposition(type: string, year?: number) {
+    if (year != null) selectedYear.value = year
+    const anchorYear = year ?? selectedYear.value
+    const vestingMonth = `${anchorYear}12`
+    compositionLoading.value = true
+    try {
+      compositionReport.value = await getExpenditureComposition(type, {
+        vesting_month: vestingMonth,
+      })
+    } finally {
+      compositionLoading.value = false
+    }
+  }
+
+  // Budget vs actual variance — annual, keyed by year only.
+  const budgetReport = ref<BudgetVariance | null>(null)
+  const budgetLoading = ref(false)
+  async function fetchBudgetVariance(year?: number) {
+    if (year != null) selectedYear.value = year
+    const anchorYear = year ?? selectedYear.value
+    budgetLoading.value = true
+    try {
+      budgetReport.value = await getBudgetVariance(anchorYear)
+    } finally {
+      budgetLoading.value = false
+    }
+  }
+
+  // Cash-flow statement (生活/投資/債務) — same anchor convention.
+  const cashFlowReport = ref<CashFlow | null>(null)
+  const cashFlowLoading = ref(false)
+  async function fetchCashFlow(type: string, year?: number) {
+    if (year != null) selectedYear.value = year
+    const anchorYear = year ?? selectedYear.value
+    const vestingMonth = `${anchorYear}12`
+    cashFlowLoading.value = true
+    try {
+      cashFlowReport.value = await getCashFlow(type, { vesting_month: vestingMonth })
+    } finally {
+      cashFlowLoading.value = false
+    }
+  }
+
+  // Expense insights — YoY + largest transactions, keyed by year.
+  const insightsReport = ref<ExpenseInsights | null>(null)
+  const insightsLoading = ref(false)
+  async function fetchExpenseInsights(year?: number) {
+    if (year != null) selectedYear.value = year
+    const anchorYear = year ?? selectedYear.value
+    insightsLoading.value = true
+    try {
+      insightsReport.value = await getExpenseInsights(anchorYear)
+    } finally {
+      insightsLoading.value = false
+    }
+  }
+
   // Assets report — API takes no year param.
   const assetsReport = ref<AssetReport | null>(null)
   const assetsLoading = ref(false)
@@ -80,6 +168,21 @@ export const useYearReportStore = defineStore('yearReport', () => {
     expenditureReport,
     expenditureLoading,
     fetchExpenditureReport,
+    incomeExpenseReport,
+    incomeExpenseLoading,
+    fetchIncomeExpenseReport,
+    compositionReport,
+    compositionLoading,
+    fetchExpenditureComposition,
+    budgetReport,
+    budgetLoading,
+    fetchBudgetVariance,
+    cashFlowReport,
+    cashFlowLoading,
+    fetchCashFlow,
+    insightsReport,
+    insightsLoading,
+    fetchExpenseInsights,
     assetsReport,
     assetsLoading,
     fetchAssetsReport,

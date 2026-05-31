@@ -40,6 +40,21 @@ from app.models.settings.credit_card import CreditCard
 
 BASE_CURRENCY = "TWD"
 
+# Canonical action_main_type buckets, matched case-insensitively via _norm_type.
+# Real production data capitalizes these values ("Invest"/"Transfer"/"Fixed"/
+# "Income") while seeded/imported data is lowercase. Always normalize before
+# comparing — a raw ``in {"invest", "transfer"}`` check silently misses rows on
+# real data, leaking invest/transfer into the expenditure aggregates below.
+# Mirrors the frozensets in ``report_service`` (kept local so the lower-level
+# monthly domain does not import the higher-level reports domain).
+INVEST_MAIN_TYPES = frozenset({"invest"})
+TRANSFER_MAIN_TYPES = frozenset({"transfer"})
+
+
+def _norm_type(action_main_type: str | None) -> str:
+    """Lowercase/trim an action_main_type for case-insensitive comparison."""
+    return (action_main_type or "").strip().lower()
+
 
 def normalize_spend_date(value: str) -> str:
     """Accept ISO 8601 or `YYYYMMDD` and return canonical `YYYYMMDD`."""
@@ -483,13 +498,15 @@ def update_journal_with_estate_transaction(
 def compute_expenditure_ratio(session: Session, vesting_month: str) -> ExpenditureRatioResponse:
     """Outer = sum spending grouped by action_main_type; inner = by action_sub_type.
 
-    Excludes ``invest`` and ``transfer`` main-type rows.
+    Excludes ``invest`` and ``transfer`` main-type rows (matched case-insensitively
+    so capitalized real data — "Invest"/"Transfer" — is excluded too).
     """
     journals = list_journals_by_month(session, vesting_month)
+    excluded = INVEST_MAIN_TYPES | TRANSFER_MAIN_TYPES
     outer: dict[str, float] = {}
     inner: dict[str, float] = {}
     for j in journals:
-        if j.action_main_type in {"invest", "transfer"}:
+        if _norm_type(j.action_main_type) in excluded:
             continue
         amount = abs(j.spending)
         outer[j.action_main_type] = outer.get(j.action_main_type, 0.0) + amount
@@ -505,7 +522,7 @@ def compute_invest_ratio(session: Session, vesting_month: str) -> InvestRatioRes
     journals = list_journals_by_month(session, vesting_month)
     items: dict[str, float] = {}
     for j in journals:
-        if j.action_main_type != "invest":
+        if _norm_type(j.action_main_type) not in INVEST_MAIN_TYPES:
             continue
         key = j.action_sub_type or j.action_main_type
         items[key] = items.get(key, 0.0) + abs(j.spending)
@@ -525,22 +542,30 @@ def compute_expenditure_budget(
         c.code_id for c in session.exec(select(CodeData)).all() if c.is_annual_event
     }
 
+    # Group by a normalized type key so a budget ``code_type`` ("fixed") and a
+    # journal ``action_main_type`` ("Fixed") that differ only in casing align in
+    # the same row instead of splitting expected/actual apart. ``label_by_type``
+    # keeps the original casing for display (budget's preferred, journal's as a
+    # fallback for types that only appear in journals, e.g. invest/transfer).
     budget_rows = list(session.exec(select(Budget).where(Budget.budget_year == year)).all())
     expected_by_type: dict[str, float] = {}
+    label_by_type: dict[str, str] = {}
     for b in budget_rows:
         if b.category_code in event_codes:
             continue
         amt = float(getattr(b, budget_field) or 0.0)
-        expected_by_type[b.code_type] = expected_by_type.get(b.code_type, 0.0) + amt
+        key = _norm_type(b.code_type)
+        expected_by_type[key] = expected_by_type.get(key, 0.0) + amt
+        label_by_type.setdefault(key, b.code_type or key)
 
     journals = list_journals_by_month(session, vesting_month)
     actual_by_type: dict[str, float] = {}
     for j in journals:
         if j.action_main in event_codes:
             continue
-        actual_by_type[j.action_main_type] = (
-            actual_by_type.get(j.action_main_type, 0.0) + abs(j.spending)
-        )
+        key = _norm_type(j.action_main_type)
+        actual_by_type[key] = actual_by_type.get(key, 0.0) + abs(j.spending)
+        label_by_type.setdefault(key, j.action_main_type or key)
 
     rows: list[ExpenditureBudgetRow] = []
     for action_type in sorted(set(expected_by_type) | set(actual_by_type)):
@@ -550,7 +575,7 @@ def compute_expenditure_budget(
         usage = round(actual / expected, 4) if expected else 0.0
         rows.append(
             ExpenditureBudgetRow(
-                action_main_type=action_type,
+                action_main_type=label_by_type.get(action_type, action_type),
                 expected=expected,
                 actual=actual,
                 diff=diff,

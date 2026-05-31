@@ -119,3 +119,65 @@ def analytics_fixture_session() -> Generator[Session, None, None]:
         yield session
     finally:
         session.close()
+
+
+@pytest.fixture
+def capitalized_analytics_session() -> Generator[Session, None, None]:
+    """Session seeded with CAPITALIZED action_main_type values, mirroring real
+    production data ("Invest"/"Transfer"/"Fixed"/"Floating"/"Income").
+
+    Regression guard for the casing bug where a lowercase ``in {"invest",
+    "transfer"}`` exclusion silently failed on capitalized data, leaking
+    invest/transfer rows into the expenditure ratio. The Budget here deliberately
+    uses a lowercase ``code_type`` ("fixed") while the matching journal uses
+    "Fixed" so the budget comparison's case-insensitive key alignment is
+    exercised too (expected + actual must land in one row, not two).
+    """
+    from app.models.monthly_report.journal import JournalCreate
+    from app.models.settings.budget import Budget
+    from app.services.monthly_report_service import create_journal
+
+    session = _new_session()
+    try:
+        session.add(
+            Budget(
+                budget_year="2026",
+                category_code="FIX01",
+                category_name="Rent",
+                code_type="fixed",  # lowercase budget vs capitalized "Fixed" journal
+                **{f"expected{m:02d}": (1500.0 if m == 3 else 0.0) for m in range(1, 13)},
+            )
+        )
+        session.commit()
+
+        def j(**ov):
+            base = dict(
+                vesting_month="202603",
+                spend_date="20260315",
+                spend_way="ACC-1",
+                spend_way_type="account",
+                spend_way_table="Account",
+                action_main="FIX01",
+                action_main_type="Fixed",
+                action_main_table="Code_Data",
+                action_sub=None,
+                action_sub_type=None,
+                action_sub_table=None,
+                spending=-100.0,
+                invoice_number=None,
+                note=None,
+            )
+            base.update(ov)
+            create_journal(session, JournalCreate(**base))
+
+        # Expense / income rows (capitalized) — kept in the expenditure ratio.
+        j(action_main="FIX01", action_main_type="Fixed", action_sub_type="rent", spending=-2000.0)
+        j(action_main="FLO01", action_main_type="Floating", action_sub_type="food", spending=-1000.0)
+        j(action_main="INC01", action_main_type="Income", action_sub_type="salary", spending=5000.0)
+        # Invest / Transfer (capitalized) — MUST be excluded from the ratio.
+        j(action_main="INV01", action_main_type="Invest", action_sub_type="stock", spending=-800.0)
+        j(action_main="TRF01", action_main_type="Transfer", action_sub_type="self", spending=-300.0)
+
+        yield session
+    finally:
+        session.close()

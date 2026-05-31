@@ -6,7 +6,10 @@
 import { computed } from 'vue'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { BarChart as EchartsBarChart } from 'echarts/charts'
+import {
+  BarChart as EchartsBarChart,
+  LineChart as EchartsLineChart,
+} from 'echarts/charts'
 import {
   GridComponent,
   TooltipComponent,
@@ -19,6 +22,7 @@ import { getChartColors } from '@/utils/chartTheme'
 use([
   CanvasRenderer,
   EchartsBarChart,
+  EchartsLineChart,
   GridComponent,
   TooltipComponent,
   LegendComponent,
@@ -27,7 +31,7 @@ use([
 const props = withDefaults(
   defineProps<{
     xData: string[]
-    series: Array<{ name: string; data: number[] }>
+    series: Array<{ name: string; data: number[]; type?: 'bar' | 'line' }>
     height?: string
   }>(),
   { height: '300px' },
@@ -46,8 +50,13 @@ const option = computed(() => {
     yAxis: { type: 'value' },
     series: props.series.map((s) => ({
       name: s.name,
-      type: 'bar',
+      type: s.type ?? 'bar',
       data: s.data,
+      // A line series (e.g. net balance) overlays the bars; smooth it and lift
+      // it above the bars so the trend reads clearly.
+      ...(s.type === 'line'
+        ? { smooth: true, symbol: 'circle', symbolSize: 6, z: 3 }
+        : {}),
     })),
   }
 })

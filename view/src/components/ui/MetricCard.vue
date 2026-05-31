@@ -90,6 +90,8 @@ const props = withDefaults(
     icon?: Component
     tone?: 'primary' | 'rose'
     format?: 'currency' | 'percent'
+    /** When format='percent', keep the sign instead of showing |value| (e.g. negative savings rate). */
+    signed?: boolean
     points?: Array<{ period: string; value: number }>
     /** Tooltip shown on hover next to label (HTML allowed via raw-content). */
     tooltip?: string
@@ -98,6 +100,7 @@ const props = withDefaults(
     currency: 'TWD',
     tone: 'primary',
     format: 'currency',
+    signed: false,
   },
 )
 
@@ -133,5 +136,8 @@ const hasDelta = computed(
   () => props.deltaPercent !== undefined || !!props.deltaLabel,
 )
 
-const percentText = computed(() => `${Math.abs(props.amount).toFixed(1)}%`)
+const percentText = computed(() => {
+  const value = props.signed ? props.amount : Math.abs(props.amount)
+  return `${value.toFixed(1)}%`
+})
 </script>

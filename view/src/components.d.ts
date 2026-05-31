@@ -40,6 +40,7 @@ declare module 'vue' {
     ElOption: typeof import('element-plus/es')['ElOption']
     ElOptionGroup: typeof import('element-plus/es')['ElOptionGroup']
     ElPopconfirm: typeof import('element-plus/es')['ElPopconfirm']
+    ElProgress: typeof import('element-plus/es')['ElProgress']
     ElRadio: typeof import('element-plus/es')['ElRadio']
     ElRadioButton: typeof import('element-plus/es')['ElRadioButton']
     ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
@@ -71,6 +72,7 @@ declare module 'vue' {
     StatusBadge: typeof import('./components/ui/StatusBadge.vue')['default']
     StockDetailFormFields: typeof import('./components/forms/StockDetailFormFields.vue')['default']
     TrendBadge: typeof import('./components/ui/TrendBadge.vue')['default']
+    WaterfallChart: typeof import('./components/charts/WaterfallChart.vue')['default']
   }
   export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

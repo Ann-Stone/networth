@@ -645,6 +645,117 @@ export interface ExpenditureReport {
   points: ExpenditureReportPoint[]
 }
 
+export interface IncomeExpensePoint {
+  period: string                // YYYYMM or YYYY
+  income: number                // positive
+  fixed: number                 // fixed-expense magnitude, positive
+  floating: number              // variable-expense magnitude, positive
+  expense: number               // fixed + floating, positive
+  net: number                   // income - expense (signed; negative = overspent)
+}
+
+export interface IncomeExpenseSummary {
+  total_income: number
+  total_expense: number
+  net: number
+  savings_rate: number          // net / total_income (0 when no income; may be negative)
+}
+
+export interface IncomeExpenseReport {
+  type: string                  // 'monthly' | 'yearly'
+  points: IncomeExpensePoint[]
+  summary: IncomeExpenseSummary
+}
+
+export interface ExpenditureSubNode {
+  code: string                  // action_sub code_id ('' = un-subcategorized remainder)
+  name: string
+  amount: number
+  share: number                 // % of grand total expense
+}
+
+export interface ExpenditureCategoryNode {
+  code: string                  // action_main code_id
+  name: string
+  type: string                  // 'Fixed' | 'Floating'
+  amount: number
+  share: number                 // % of grand total expense
+  children: ExpenditureSubNode[]
+}
+
+export interface ExpenditureComposition {
+  total: number
+  fixed_total: number
+  floating_total: number
+  categories: ExpenditureCategoryNode[]
+}
+
+export interface BudgetVarianceRow {
+  code: string
+  name: string
+  type: string                  // 'Fixed' | 'Floating'
+  expected: number
+  actual: number
+  diff: number                  // actual - expected (positive = over budget)
+  usage_rate: number            // actual / expected (0 when no budget)
+}
+
+export interface BudgetVarianceSummary {
+  total_expected: number
+  total_actual: number
+  total_diff: number
+  usage_rate: number
+  elapsed_months: number        // latest month (1-12) with data; drives projection
+  projected_total: number       // run-rate annualized actual
+}
+
+export interface BudgetVariance {
+  year: string
+  rows: BudgetVarianceRow[]
+  summary: BudgetVarianceSummary
+}
+
+export interface CashFlowItem {
+  label: string
+  amount: number                // signed (positive = cash in, negative = cash out)
+}
+
+export interface CashFlowActivity {
+  key: string                   // 'operating' | 'investing' | 'financing'
+  label: string                 // 生活 / 投資 / 債務
+  net: number
+  items: CashFlowItem[]
+}
+
+export interface CashFlow {
+  activities: CashFlowActivity[]
+  net_change: number
+}
+
+export interface YoYRow {
+  code: string
+  name: string
+  type: string                  // 'Fixed' | 'Floating'
+  current: number
+  previous: number
+  delta: number                 // current - previous
+  yoy_rate: number              // (current - previous) / previous (0 when previous == 0)
+}
+
+export interface LargeTxn {
+  date: string                  // YYYYMMDD
+  category: string
+  amount: number
+  pay_way: string
+  note: string | null
+}
+
+export interface ExpenseInsights {
+  year: string
+  yoy: YoYRow[]
+  largest: LargeTxn[]
+}
+
 export interface AssetReportItem {
   type: string
   amount: number

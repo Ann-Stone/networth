@@ -8,7 +8,32 @@ from app.models.reports.balance import (
     BalanceLine,
     BalanceSheetRead,
 )
+from app.models.reports.budget_variance import (
+    BudgetVarianceRead,
+    BudgetVarianceRow,
+    BudgetVarianceSummary,
+)
+from app.models.reports.cash_flow import (
+    CashFlowActivity,
+    CashFlowItem,
+    CashFlowRead,
+)
+from app.models.reports.expense_insights import (
+    ExpenseInsightsRead,
+    LargeTxn,
+    YoYRow,
+)
 from app.models.reports.expenditure import ExpenditurePoint, ExpenditureTrendRead
+from app.models.reports.expenditure_composition import (
+    ExpenditureCategoryNode,
+    ExpenditureCompositionRead,
+    ExpenditureSubNode,
+)
+from app.models.reports.income_expense import (
+    IncomeExpensePoint,
+    IncomeExpenseReportRead,
+    IncomeExpenseSummary,
+)
 
 
 def _has_example_and_field_docs(cls) -> None:
@@ -30,4 +55,29 @@ def test_expenditure_schema_example() -> None:
 
 def test_asset_breakdown_schema_example() -> None:
     for cls in (AssetShare, AssetBreakdownRead):
+        _has_example_and_field_docs(cls)
+
+
+def test_income_expense_schema_example() -> None:
+    for cls in (IncomeExpensePoint, IncomeExpenseSummary, IncomeExpenseReportRead):
+        _has_example_and_field_docs(cls)
+
+
+def test_expenditure_composition_schema_example() -> None:
+    for cls in (ExpenditureSubNode, ExpenditureCategoryNode, ExpenditureCompositionRead):
+        _has_example_and_field_docs(cls)
+
+
+def test_budget_variance_schema_example() -> None:
+    for cls in (BudgetVarianceRow, BudgetVarianceSummary, BudgetVarianceRead):
+        _has_example_and_field_docs(cls)
+
+
+def test_cash_flow_schema_example() -> None:
+    for cls in (CashFlowItem, CashFlowActivity, CashFlowRead):
+        _has_example_and_field_docs(cls)
+
+
+def test_expense_insights_schema_example() -> None:
+    for cls in (YoYRow, LargeTxn, ExpenseInsightsRead):
         _has_example_and_field_docs(cls)
