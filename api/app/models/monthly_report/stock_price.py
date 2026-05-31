@@ -81,8 +81,21 @@ class StockPriceMonthRead(SQLModel):
     stock_name: str = Field(
         ..., description="Stock display name", schema_extra={"examples": ["Apple Inc."]}
     )
-    close_price: float = Field(
-        ..., description="Selected month-end close price", schema_extra={"examples": [181.8]}
+    close_price: float | None = Field(
+        default=None,
+        description=(
+            "Close price of the most recent in-month row, or null when the "
+            "requested month has no price data (signals a fetch is needed)."
+        ),
+        schema_extra={"examples": [181.8]},
+    )
+    fetch_date: str | None = Field(
+        default=None,
+        description=(
+            "YYYYMMDD of the row the close_price came from, or null when the "
+            "month has no price data."
+        ),
+        schema_extra={"examples": ["20260430"]},
     )
 
     model_config = ConfigDict(
@@ -91,6 +104,7 @@ class StockPriceMonthRead(SQLModel):
                 "stock_code": "AAPL",
                 "stock_name": "Apple Inc.",
                 "close_price": 181.8,
+                "fetch_date": "20260430",
             }
         }
     )

@@ -157,7 +157,7 @@
       width="640px"
     >
       <div class="flex justify-end mb-3">
-        <el-button type="primary" :icon="Plus" size="small" @click="openStockPriceDialog">
+        <el-button type="primary" :icon="Plus" size="small" @click="openStockPriceDialog()">
           新增股價
         </el-button>
       </div>
@@ -167,11 +167,27 @@
         message="本月尚無股價快照"
       />
       <el-table v-else :data="store.stockPrices" border>
-        <el-table-column prop="stock_code" label="代號" width="140" />
-        <el-table-column prop="stock_name" label="名稱" min-width="200" />
+        <el-table-column prop="stock_code" label="代號" width="120" />
+        <el-table-column prop="stock_name" label="名稱" min-width="180" />
+        <el-table-column label="日期" width="120" align="center">
+          <template #default="{ row }">
+            <span v-if="row.fetch_date">{{ formatDate(row.fetch_date) }}</span>
+            <span v-else class="text-gray-400">—</span>
+          </template>
+        </el-table-column>
         <el-table-column label="收盤價" width="180" align="right">
           <template #default="{ row }">
-            <MoneyDisplay :amount="row.close_price" size="sm" />
+            <MoneyDisplay v-if="row.close_price !== null" :amount="row.close_price" size="sm" />
+            <el-button
+              v-else
+              type="warning"
+              size="small"
+              link
+              :icon="Plus"
+              @click="openStockPriceDialog(row.stock_code)"
+            >
+              待補
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -454,6 +470,11 @@ import { translateGroupLabel } from '@/constants/selectionLabels'
 import type { CodeDataWithSub, Journal, JournalCreate, SelectionGroup } from '@/types/models'
 
 const store = useCashFlowStore()
+
+// YYYYMMDD → YYYY-MM-DD for display.
+function formatDate(yyyymmdd: string): string {
+  return dayjs(yyyymmdd, 'YYYYMMDD').format('YYYY-MM-DD')
+}
 
 const selectedMonthDate = ref<Date>(dayjs(store.selectedMonth, 'YYYYMM').toDate())
 
@@ -1198,8 +1219,11 @@ const stockPriceRules: FormRules = {
   close_price: [{ required: true, message: '請輸入收盤價', trigger: 'blur' }],
 }
 
-function openStockPriceDialog() {
-  stockPriceForm.value = emptyStockPriceForm()
+function openStockPriceDialog(prefillCode?: string) {
+  stockPriceForm.value = {
+    ...emptyStockPriceForm(),
+    ...(prefillCode ? { stock_code: prefillCode } : {}),
+  }
   stockPriceDialogVisible.value = true
 }
 

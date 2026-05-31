@@ -11,7 +11,6 @@ from sqlmodel import Session, select
 
 from app.models.assets.stock import StockJournal
 from app.models.dashboard.stock_price_history import StockPriceHistory
-from app.models.monthly_report.journal import Journal
 from app.models.monthly_report.stock_price import (
     StockPriceCreate,
     StockPriceMonthRead,
@@ -20,6 +19,29 @@ from app.models.monthly_report.stock_price import (
 
 def _month_end(vesting_month: str) -> str:
     return f"{vesting_month}31"
+
+
+def _month_start(vesting_month: str) -> str:
+    return f"{vesting_month}01"
+
+
+def select_in_month_close_price(
+    session: Session, stock_code: str, vesting_month: str
+) -> StockPriceHistory | None:
+    """Pick the most recent ``StockPriceHistory`` row *within* the requested month.
+
+    Unlike :func:`select_month_close_price`, this never falls back to prior
+    months. Returns ``None`` when the month itself has no price row, so callers
+    can surface a blank and know a fetch is needed.
+    """
+    stmt = (
+        select(StockPriceHistory)
+        .where(StockPriceHistory.stock_code == stock_code)
+        .where(StockPriceHistory.fetch_date >= _month_start(vesting_month))
+        .where(StockPriceHistory.fetch_date <= _month_end(vesting_month))
+        .order_by(StockPriceHistory.fetch_date.desc())
+    )
+    return session.exec(stmt).first()
 
 
 def select_month_close_price(
@@ -50,24 +72,24 @@ def select_month_close_price(
 def list_month_stock_prices(
     session: Session, vesting_month: str
 ) -> list[StockPriceMonthRead]:
-    """Return the month-close price for every stock referenced by the holdings table."""
+    """Return each held stock's in-month close price for the requested month.
+
+    The price window is strictly the requested month: only a row whose
+    ``fetch_date`` falls within ``{vesting_month}01``..``{vesting_month}31`` is
+    used (no fallback to prior months). When the month has no row for a holding
+    the row is still emitted with ``close_price`` / ``fetch_date`` set to
+    ``None`` — that blank tells the caller to fetch a fresh price for that month.
+    """
     holdings = list(session.exec(select(StockJournal)).all())
     out: list[StockPriceMonthRead] = []
     for h in holdings:
-        # Skip holdings with no journal activity through this month — they
-        # are not active positions for the requested month.
-        any_journal = session.exec(
-            select(Journal).where(Journal.action_main == h.stock_code)
-        ).first()
-        del any_journal  # informational; we always include holdings rows
-        price = select_month_close_price(session, h.stock_code, vesting_month)
-        if price is None:
-            continue
+        price = select_in_month_close_price(session, h.stock_code, vesting_month)
         out.append(
             StockPriceMonthRead(
                 stock_code=h.stock_code,
                 stock_name=h.stock_name,
-                close_price=price.close_price,
+                close_price=price.close_price if price is not None else None,
+                fetch_date=price.fetch_date if price is not None else None,
             )
         )
     return out

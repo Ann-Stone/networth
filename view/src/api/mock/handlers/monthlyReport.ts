@@ -81,18 +81,32 @@ function liability() {
 // ─── Stock prices ────────────────────────────────────────────────────────────
 
 let stockPriceHistory: StockPriceHistory[] = [
-  { stock_code: '0050', fetch_date: '20260430', open_price: 168.5, highest_price: 170.2, lowest_price: 167.0, close_price: 169.8 },
-  { stock_code: '2330', fetch_date: '20260430', open_price: 920,   highest_price: 935,   lowest_price: 918,   close_price: 932   },
+  { stock_code: '0050', fetch_date: '20260530', open_price: 168.5, highest_price: 170.2, lowest_price: 167.0, close_price: 169.8 },
+  { stock_code: '2330', fetch_date: '20260530', open_price: 920,   highest_price: 935,   lowest_price: 918,   close_price: 932   },
+  // VOO only has an April row → no May data, surfaces as a "待補" row.
   { stock_code: 'VOO',  fetch_date: '20260430', open_price: 510,   highest_price: 514,   lowest_price: 508,   close_price: 512.5 },
 ]
 
+const stockHoldings = [
+  { stock_code: '0050', stock_name: '元大台灣 50' },
+  { stock_code: '2330', stock_name: '台積電' },
+  { stock_code: 'VOO',  stock_name: 'Vanguard S&P500' },
+]
+
+// Mirror the backend: pick the most recent history row strictly within the
+// requested month; emit null close_price / fetch_date when the month has none.
 function currentPrices(month: string): StockPriceEntry[] {
-  void month
-  return [
-    { stock_code: '0050', stock_name: '元大台灣 50',     close_price: 169.8 },
-    { stock_code: '2330', stock_name: '台積電',         close_price: 932   },
-    { stock_code: 'VOO',  stock_name: 'Vanguard S&P500', close_price: 512.5 },
-  ]
+  return stockHoldings.map(({ stock_code, stock_name }) => {
+    const inMonth = stockPriceHistory
+      .filter((h) => h.stock_code === stock_code && h.fetch_date.slice(0, 6) === month)
+      .sort((a, b) => b.fetch_date.localeCompare(a.fetch_date))[0]
+    return {
+      stock_code,
+      stock_name,
+      close_price: inMonth ? inMonth.close_price : null,
+      fetch_date: inMonth ? inMonth.fetch_date : null,
+    }
+  })
 }
 
 // ─── Handlers ────────────────────────────────────────────────────────────────

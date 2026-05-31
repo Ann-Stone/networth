@@ -18,6 +18,7 @@ from app.services.stock_service import (
     fetch_yfinance_price,
     insert_stock_price,
     list_month_stock_prices,
+    select_in_month_close_price,
     select_month_close_price,
 )
 
@@ -62,16 +63,35 @@ def test_select_month_close_price_fallback(session: Session) -> None:
     assert select_month_close_price(session, "MSFT", "202603") is None
 
 
+def test_select_in_month_close_price_no_fallback(session: Session) -> None:
+    session.add(_price(fetch_date="20260120", close_price=170.0))
+    session.add(_price(fetch_date="20260315", close_price=190.0))
+    session.commit()
+
+    # March has an in-month row.
+    march = select_in_month_close_price(session, "AAPL", "202603")
+    assert march is not None and march.close_price == 190.0
+
+    # February has none → no fallback to January's row.
+    assert select_in_month_close_price(session, "AAPL", "202602") is None
+
+
 def test_list_month_stock_prices_golden(session: Session) -> None:
     session.add(StockJournal(stock_id="H1", stock_code="AAPL", stock_name="Apple", asset_id="A", expected_spend=0.0))
     session.add(StockJournal(stock_id="H2", stock_code="GOOG", stock_name="Google", asset_id="A", expected_spend=0.0))
     session.add(_price(stock_code="AAPL", fetch_date="20260331", close_price=200.0))
+    # GOOG only has a January row — outside the requested March window.
     session.add(_price(stock_code="GOOG", fetch_date="20260120", close_price=140.0))
     session.commit()
 
     result = list_month_stock_prices(session, "202603")
-    by_code = {r.stock_code: r.close_price for r in result}
-    assert by_code == {"AAPL": 200.0, "GOOG": 140.0}
+    by_code = {r.stock_code: r for r in result}
+    # AAPL: in-month row with its date.
+    assert by_code["AAPL"].close_price == 200.0
+    assert by_code["AAPL"].fetch_date == "20260331"
+    # GOOG: no March row → blank, signalling a fetch is needed.
+    assert by_code["GOOG"].close_price is None
+    assert by_code["GOOG"].fetch_date is None
 
 
 def test_insert_stock_price_manual(session: Session) -> None:
@@ -127,7 +147,12 @@ def test_get_stock_prices_endpoint(client: TestClient, session: Session) -> None
     r = client.get("/monthly-report/stock-prices/202603")
     assert r.status_code == 200
     assert r.json()["data"] == [
-        {"stock_code": "AAPL", "stock_name": "Apple", "close_price": 210.0}
+        {
+            "stock_code": "AAPL",
+            "stock_name": "Apple",
+            "close_price": 210.0,
+            "fetch_date": "20260331",
+        }
     ]
 
 

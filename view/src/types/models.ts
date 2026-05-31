@@ -341,7 +341,8 @@ export interface JournalLiability {
 export interface StockPriceEntry {
   stock_code: string
   stock_name: string
-  close_price: number
+  close_price: number | null   // null when the requested month has no price row
+  fetch_date: string | null    // YYYYMMDD of the row close_price came from, else null
 }
 
 export type StockPriceRead = StockPriceEntry
