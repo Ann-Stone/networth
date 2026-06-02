@@ -5,6 +5,7 @@ and asset composition views. FX-converts everything to ``BASE_CURRENCY``.
 """
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Callable
 from typing import Literal
 
@@ -62,9 +63,13 @@ from app.models.settings.account import Account
 from app.models.settings.budget import Budget
 from app.models.settings.code_data import CodeData
 from app.models.settings.credit_card import CreditCard
+from app.services.expense_netting import (
+    category_net_by_bucket,
+    floor_expense,
+    floor_income,
+)
 
 BASE_CURRENCY = "TWD"
-EXPENSE_TYPES = ("Floating", "Fixed")
 
 # Canonical action_main_type buckets, matched case-insensitively via _norm_type.
 # The value's casing is inconsistent across the codebase and legacy data — the
@@ -72,7 +77,10 @@ EXPENSE_TYPES = ("Floating", "Fixed")
 # monthly domain and some imports use lowercase. Always normalize before
 # comparing, or filters silently miss rows on real (capitalized) data.
 EXPENSE_MAIN_TYPES = frozenset({"fixed", "floating"})
-INCOME_MAIN_TYPES = frozenset({"income"})
+# ``passive`` (passive income: dividends/interest/rent) is income too — the
+# dashboard already counts it (Income + Passive); including it here keeps
+# total_income / savings-rate consistent across the reports and cash flow.
+INCOME_MAIN_TYPES = frozenset({"income", "passive"})
 INVEST_MAIN_TYPES = frozenset({"invest"})
 TRANSFER_MAIN_TYPES = frozenset({"transfer"})
 
@@ -309,23 +317,20 @@ def get_expenditure_trend(
     vesting_month: str,
 ) -> ExpenditureTrendRead:
     periods, bucket_of, start_vm, end_vm = _period_window(type, vesting_month)
-    rows = list(
-        session.exec(
-            select(Journal)
-            .where(Journal.vesting_month >= start_vm)
-            .where(Journal.vesting_month <= end_vm)
-            .where(Journal.action_main_type.in_(EXPENSE_TYPES))
-        ).all()
+    journals = list_journals_by_range(session, start_vm, end_vm)
+    fx_cache: dict[tuple[str, str], float] = {}
+    # Net per (period, category) then floor at 0 per category, so a mis-typed
+    # inflow or a reimbursed 代買 cannot inflate the period. FX-convert first
+    # (raw sums would mix USD card spend with TWD).
+    net, cat_type = category_net_by_bucket(
+        journals,
+        bucket_of=lambda j: bucket_of(j.vesting_month),
+        amount_of=lambda j: journal_amount_twd(session, j, fx_cache),
     )
     sums: dict[str, float] = {p: 0.0 for p in periods}
-    fx_cache: dict[tuple[str, str], float] = {}
-    for j in rows:
-        bucket = bucket_of(j.vesting_month)
-        if bucket in sums:
-            # FX-convert to base currency before summing; previously raw amounts
-            # were added, mixing currencies (e.g. USD card spend + TWD). Rate is
-            # positive, so abs() after conversion gives the expense magnitude.
-            sums[bucket] += abs(journal_amount_twd(session, j, fx_cache))
+    for (bucket, cat), value in net.items():
+        if bucket in sums and _norm_type(cat_type[cat]) in EXPENSE_MAIN_TYPES:
+            sums[bucket] += floor_expense(value)
 
     return ExpenditureTrendRead(
         type=type,
@@ -341,29 +346,40 @@ def get_income_expense_report(
     """Income-statement view: per-period income / fixed / floating / net plus an
     annual summary with savings rate.
 
-    Invest and transfer rows are excluded — they are balance-sheet swaps, not
-    operating income or expense. ``action_main_type`` is matched
-    case-insensitively (``_norm_type``) so capitalized real data and lowercase
-    legacy/import data both classify correctly.
+    Each category's signed cash flow is netted before counting, then floored at 0
+    per category (``floor_expense`` / ``floor_income``) — a reimbursed 代買 or a
+    mis-typed inflow can neither inflate expense nor cancel another category. The
+    per-period **points** floor within each month; the **summary** nets each
+    category across the whole window (the "monthly" window is one calendar year,
+    so a 代買 reimbursed in a later month still offsets in the annual totals).
+    The summary therefore can differ from the sum of the points when an offset
+    spans months — it is the netted-over-the-year truth. Invest and transfer rows
+    are excluded; ``action_main_type`` is matched case-insensitively (``_norm_type``).
     """
     periods, bucket_of, start_vm, end_vm = _period_window(type, vesting_month)
     journals = list_journals_by_range(session, start_vm, end_vm)
     fx_cache: dict[tuple[str, str], float] = {}
+    net, cat_type = category_net_by_bucket(
+        journals,
+        bucket_of=lambda j: bucket_of(j.vesting_month),
+        amount_of=lambda j: journal_amount_twd(session, j, fx_cache),
+    )
+
     income = {p: 0.0 for p in periods}
     fixed = {p: 0.0 for p in periods}
     floating = {p: 0.0 for p in periods}
-    for j in journals:
-        bucket = bucket_of(j.vesting_month)
+    window_net: dict[str, float] = defaultdict(float)
+    for (bucket, cat), value in net.items():
+        window_net[cat] += value
         if bucket not in income:
             continue
-        t = _norm_type(j.action_main_type)
-        amount = journal_amount_twd(session, j, fx_cache)
+        t = _norm_type(cat_type[cat])
         if t in INCOME_MAIN_TYPES:
-            income[bucket] += amount  # signed pass-through; income is positive
+            income[bucket] += floor_income(value)
         elif t == "fixed":
-            fixed[bucket] += abs(amount)
+            fixed[bucket] += floor_expense(value)
         elif t == "floating":
-            floating[bucket] += abs(amount)
+            floating[bucket] += floor_expense(value)
         # invest / transfer intentionally excluded
 
     points: list[IncomeExpensePoint] = []
@@ -383,17 +399,27 @@ def get_income_expense_report(
             )
         )
 
-    total_income = round(sum(pt.income for pt in points), 2)
-    total_expense = round(sum(pt.expense for pt in points), 2)
-    net = round(total_income - total_expense, 2)
-    savings_rate = round(net / total_income, 4) if total_income else 0.0
+    # Summary nets each category over the whole window before flooring, so
+    # cross-month offsets within the year resolve (≠ sum of the per-month points).
+    total_income = 0.0
+    total_expense = 0.0
+    for cat, value in window_net.items():
+        t = _norm_type(cat_type[cat])
+        if t in INCOME_MAIN_TYPES:
+            total_income += floor_income(value)
+        elif t in EXPENSE_MAIN_TYPES:
+            total_expense += floor_expense(value)
+    total_income = round(total_income, 2)
+    total_expense = round(total_expense, 2)
+    net_total = round(total_income - total_expense, 2)
+    savings_rate = round(net_total / total_income, 4) if total_income else 0.0
     return IncomeExpenseReportRead(
         type=type,
         points=points,
         summary=IncomeExpenseSummary(
             total_income=total_income,
             total_expense=total_expense,
-            net=net,
+            net=net_total,
             savings_rate=savings_rate,
         ),
     )
@@ -406,31 +432,37 @@ def get_expenditure_composition(
 ) -> ExpenditureCompositionRead:
     """Category → subcategory tree of expense magnitude over the window.
 
-    Only Fixed/Floating rows are counted (income/invest/transfer excluded).
-    Amounts are FX-converted; labels resolve ``action_main``/``action_sub`` codes
-    to ``Code_Data.name``. Each node's ``share`` is a percentage of the grand
-    total. When a category is partly sub-categorized, a synthetic "未細分"
-    remainder child is appended so children reconcile to the category total.
+    Only Fixed/Floating rows are counted (income/invest/transfer excluded). Each
+    category's signed cash flow is netted then floored at 0 (``floor_expense``),
+    so a category reimbursed to a net inflow (代買) or carrying a mis-typed inflow
+    drops out instead of inflating the tree. Amounts are FX-converted; labels
+    resolve ``action_main``/``action_sub`` codes to ``Code_Data.name``. Each
+    node's ``share`` is a percentage of the grand total; a synthetic "未細分"
+    remainder reconciles partly sub-categorized categories to their total.
     """
     _, _, start_vm, end_vm = _period_window(type, vesting_month)
     journals = list_journals_by_range(session, start_vm, end_vm)
     codes = {c.code_id: c for c in session.exec(select(CodeData)).all()}
     fx_cache: dict[tuple[str, str], float] = {}
 
-    cat_amount: dict[str, float] = {}
+    cat_net: dict[str, float] = defaultdict(float)
     cat_type: dict[str, str] = {}
-    sub_amount: dict[str, dict[str, float]] = {}
+    sub_net: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     for j in journals:
         if _norm_type(j.action_main_type) not in EXPENSE_MAIN_TYPES:
             continue
-        amount = abs(journal_amount_twd(session, j, fx_cache))
+        amount = journal_amount_twd(session, j, fx_cache)  # signed
         cat = j.action_main
-        cat_amount[cat] = cat_amount.get(cat, 0.0) + amount
+        cat_net[cat] += amount
         cat_type.setdefault(cat, j.action_main_type)
         if j.action_sub:
-            sub_amount.setdefault(cat, {})
-            sub_amount[cat][j.action_sub] = sub_amount[cat].get(j.action_sub, 0.0) + amount
+            sub_net[cat][j.action_sub] += amount
 
+    # Floor each category's net; net-inflow / net-zero categories drop out.
+    cat_amount: dict[str, float] = {
+        cat: floor_expense(value) for cat, value in cat_net.items()
+    }
+    cat_amount = {cat: amt for cat, amt in cat_amount.items() if amt > 0.005}
     total = sum(cat_amount.values())
 
     def share(value: float) -> float:
@@ -442,7 +474,11 @@ def get_expenditure_composition(
 
     categories: list[ExpenditureCategoryNode] = []
     for cat in sorted(cat_amount, key=lambda c: cat_amount[c], reverse=True):
-        subs = sub_amount.get(cat, {})
+        subs = {
+            sc: floor_expense(value)
+            for sc, value in sub_net.get(cat, {}).items()
+        }
+        subs = {sc: amt for sc, amt in subs.items() if amt > 0.005}
         children: list[ExpenditureSubNode] = [
             ExpenditureSubNode(
                 code=sc,
@@ -519,13 +555,12 @@ def get_budget_variance(session: Session, year: str) -> BudgetVarianceRead:
     journals = list_journals_by_range(session, f"{year}01", f"{year}12")
     codes = {c.code_id: c for c in session.exec(select(CodeData)).all()}
     fx_cache: dict[tuple[str, str], float] = {}
-    actual_by_code: dict[str, float] = {}
+    net_by_code: dict[str, float] = defaultdict(float)
     months_with_data: set[int] = set()
     for j in journals:
         if _norm_type(j.action_main_type) not in EXPENSE_MAIN_TYPES:
             continue
-        amount = abs(journal_amount_twd(session, j, fx_cache))
-        actual_by_code[j.action_main] = actual_by_code.get(j.action_main, 0.0) + amount
+        net_by_code[j.action_main] += journal_amount_twd(session, j, fx_cache)  # signed
         vm = j.vesting_month or ""
         if len(vm) == 6:
             months_with_data.add(int(vm[4:6]))
@@ -535,6 +570,10 @@ def get_budget_variance(session: Session, year: str) -> BudgetVarianceRead:
             type_by_code[j.action_main] = (
                 row.code_type if row is not None else j.action_main_type
             )
+    # Floor each category's annual net: a reimbursed/mis-typed net inflow → 0.
+    actual_by_code: dict[str, float] = {
+        code: floor_expense(value) for code, value in net_by_code.items()
+    }
 
     rows: list[BudgetVarianceRow] = []
     for code in sorted(
@@ -732,14 +771,12 @@ def get_expense_insights(
         return row.code_type if row is not None else ""
 
     def expense_by_code(journals: list[Journal]) -> dict[str, float]:
-        out: dict[str, float] = {}
+        net: dict[str, float] = defaultdict(float)
         for j in journals:
             if _norm_type(j.action_main_type) not in EXPENSE_MAIN_TYPES:
                 continue
-            out[j.action_main] = out.get(j.action_main, 0.0) + abs(
-                journal_amount_twd(session, j, fx_cache)
-            )
-        return out
+            net[j.action_main] += journal_amount_twd(session, j, fx_cache)  # signed
+        return {code: floor_expense(value) for code, value in net.items()}
 
     current_journals = list_journals_by_range(session, f"{year}01", f"{year}12")
     prev_year = str(int(year) - 1)
@@ -767,11 +804,15 @@ def get_expense_insights(
             )
         )
 
-    expense_txns = [
-        (j, abs(journal_amount_twd(session, j, fx_cache)))
-        for j in current_journals
-        if _norm_type(j.action_main_type) in EXPENSE_MAIN_TYPES
-    ]
+    # Largest individual outflows only — a positive-spending row (income, a
+    # reimbursed 代買, or a mis-typed inflow) is not an expense, so exclude it.
+    expense_txns: list[tuple[Journal, float]] = []
+    for j in current_journals:
+        if _norm_type(j.action_main_type) not in EXPENSE_MAIN_TYPES:
+            continue
+        amount = journal_amount_twd(session, j, fx_cache)
+        if amount < 0:
+            expense_txns.append((j, -amount))
     expense_txns.sort(key=lambda pair: pair[1], reverse=True)
     largest = [
         LargeTxn(

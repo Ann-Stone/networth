@@ -30,9 +30,21 @@ from app.models.monthly_report.stock_net_value_history import StockNetValueHisto
 from app.models.settings.alarm import Alarm
 from app.models.settings.budget import Budget
 from app.models.settings.code_data import CodeData
+from app.services.expense_netting import (
+    category_net_by_bucket,
+    floor_expense,
+    floor_income,
+)
+from app.services.report_service import journal_amount_twd
 
-EXPENSE_TYPES = ("Floating", "Fixed")
 GIFT_THRESHOLD = 2_200_000
+EXPENSE_MAIN_TYPES = frozenset({"fixed", "floating"})
+INCOME_MAIN_TYPES = frozenset({"income", "passive"})
+
+
+def _norm_type(action_main_type: str | None) -> str:
+    """Lowercase/trim an action_main_type for case-insensitive comparison."""
+    return (action_main_type or "").strip().lower()
 
 
 # ---------- Period helpers ----------
@@ -66,18 +78,26 @@ def _iter_months(start: str, end: str) -> list[str]:
 def get_spending_summary(session: Session, period: str) -> SummaryRead:
     start, end = parse_summary_period(period)
     months = _iter_months(start, end)
-    rows = list(
+    journals = list(
         session.exec(
             select(Journal)
             .where(Journal.vesting_month >= start)
             .where(Journal.vesting_month <= end)
-            .where(Journal.action_main_type.in_(EXPENSE_TYPES))
         ).all()
     )
+    fx_cache: dict[tuple[str, str], float] = {}
+    # Net per (month, category) then floor at 0 per category, FX-converted — same
+    # rule as get_expenditure_trend, so a mis-typed inflow or a reimbursed 代買
+    # cannot inflate the month (and currencies are no longer mixed raw).
+    net, cat_type = category_net_by_bucket(
+        journals,
+        bucket_of=lambda j: j.vesting_month,
+        amount_of=lambda j: journal_amount_twd(session, j, fx_cache),
+    )
     sums = {m: 0.0 for m in months}
-    for j in rows:
-        if j.vesting_month in sums:
-            sums[j.vesting_month] += abs(j.spending)
+    for (month, cat), value in net.items():
+        if month in sums and _norm_type(cat_type[cat]) in EXPENSE_MAIN_TYPES:
+            sums[month] += floor_expense(value)
     return SummaryRead(
         type=SummaryType.spending,
         points=[SummaryPoint(period=m, value=round(sums[m], 2)) for m in months],
@@ -91,22 +111,31 @@ def get_freedom_ratio_summary(session: Session, period: str) -> SummaryRead:
         c.code_id
         for c in session.exec(select(CodeData).where(CodeData.code_type == "Fixed")).all()
     }
-    rows = list(
+    journals = list(
         session.exec(
             select(Journal)
             .where(Journal.vesting_month >= start)
             .where(Journal.vesting_month <= end)
         ).all()
     )
+    fx_cache: dict[tuple[str, str], float] = {}
+    # Net per (month, category) then floor by side, FX-converted — income via
+    # floor_income, fixed expenses via floor_expense — so a refund/clawback can't
+    # inflate either side through abs().
+    net, cat_type = category_net_by_bucket(
+        journals,
+        bucket_of=lambda j: j.vesting_month,
+        amount_of=lambda j: journal_amount_twd(session, j, fx_cache),
+    )
     income = {m: 0.0 for m in months}
     fixed = {m: 0.0 for m in months}
-    for j in rows:
-        if j.vesting_month not in income:
+    for (month, cat), value in net.items():
+        if month not in income:
             continue
-        if j.action_main_type in ("Income", "Passive"):
-            income[j.vesting_month] += abs(j.spending)
-        if j.action_main in fixed_codes:
-            fixed[j.vesting_month] += abs(j.spending)
+        if _norm_type(cat_type[cat]) in INCOME_MAIN_TYPES:
+            income[month] += floor_income(value)
+        if cat in fixed_codes:
+            fixed[month] += floor_expense(value)
     points: list[SummaryPoint] = []
     for m in months:
         ratio = (income[m] - fixed[m]) / income[m] if income[m] > 0 else 0.0
@@ -123,22 +152,31 @@ def get_freedom_ratio_summary(session: Session, period: str) -> SummaryRead:
 def get_work_freedom_ratio_summary(session: Session, period: str) -> SummaryRead:
     start, end = parse_summary_period(period)
     months = _iter_months(start, end)
-    rows = list(
+    journals = list(
         session.exec(
             select(Journal)
             .where(Journal.vesting_month >= start)
             .where(Journal.vesting_month <= end)
         ).all()
     )
+    fx_cache: dict[tuple[str, str], float] = {}
+    # Passive vs active (Income) cash-in, netted per category then floored so a
+    # clawback can't inflate either via abs().
+    net, cat_type = category_net_by_bucket(
+        journals,
+        bucket_of=lambda j: j.vesting_month,
+        amount_of=lambda j: journal_amount_twd(session, j, fx_cache),
+    )
     passive = {m: 0.0 for m in months}
     active = {m: 0.0 for m in months}
-    for j in rows:
-        if j.vesting_month not in passive:
+    for (month, cat), value in net.items():
+        if month not in passive:
             continue
-        if j.action_main_type == "Passive":
-            passive[j.vesting_month] += abs(j.spending)
-        elif j.action_main_type == "Income":
-            active[j.vesting_month] += abs(j.spending)
+        t = _norm_type(cat_type[cat])
+        if t == "passive":
+            passive[month] += floor_income(value)
+        elif t == "income":
+            active[month] += floor_income(value)
     points: list[SummaryPoint] = []
     for m in months:
         total = passive[m] + active[m]

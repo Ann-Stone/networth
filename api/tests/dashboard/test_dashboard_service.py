@@ -49,9 +49,9 @@ def test_parse_summary_period_valid_and_invalid() -> None:
 
 def test_get_spending_summary_golden(session: Session) -> None:
     session.add(_journal(vesting_month="202301", spending=-100.0))
-    session.add(_journal(vesting_month="202301", action_main_type="Fixed", spending=-50.0))
+    session.add(_journal(vesting_month="202301", action_main="F01", action_main_type="Fixed", spending=-50.0))
     session.add(_journal(vesting_month="202302", spending=-200.0))
-    session.add(_journal(vesting_month="202301", action_main_type="Income", spending=999.0))
+    session.add(_journal(vesting_month="202301", action_main="I01", action_main_type="Income", spending=999.0))
     session.commit()
 
     summary = get_spending_summary(session, "202301-202303")

@@ -453,12 +453,12 @@ def test_list_journals_by_range_is_inclusive(session: Session) -> None:
 
 def test_income_expense_report_monthly_golden(session: Session) -> None:
     # 202604: income 5000, fixed -200, floating -100 → expense 300, net 4700.
-    session.add(_expense_journal(action_main_type="Income", spending=5000.0, spend_date="20260401"))
-    session.add(_expense_journal(action_main_type="Fixed", spending=-200.0, spend_date="20260402"))
-    session.add(_expense_journal(action_main_type="Floating", spending=-100.0, spend_date="20260403"))
+    session.add(_expense_journal(action_main="I01", action_main_type="Income", spending=5000.0, spend_date="20260401"))
+    session.add(_expense_journal(action_main="F01", action_main_type="Fixed", spending=-200.0, spend_date="20260402"))
+    session.add(_expense_journal(action_main="FL01", action_main_type="Floating", spending=-100.0, spend_date="20260403"))
     # invest + transfer must be excluded from income/expense
-    session.add(_expense_journal(action_main_type="Invest", spending=-1000.0, spend_date="20260404"))
-    session.add(_expense_journal(action_main_type="Transfer", spending=-500.0, spend_date="20260405"))
+    session.add(_expense_journal(action_main="INV01", action_main_type="Invest", spending=-1000.0, spend_date="20260404"))
+    session.add(_expense_journal(action_main="TRF01", action_main_type="Transfer", spending=-500.0, spend_date="20260405"))
     session.commit()
 
     report = get_income_expense_report(session, "monthly", "202604")
@@ -486,8 +486,8 @@ def test_income_expense_savings_rate_guards_zero_income(session: Session) -> Non
 
 def test_income_expense_type_matching_is_case_insensitive(session: Session) -> None:
     # lowercase casing (monthly-domain / legacy imports) still classifies.
-    session.add(_expense_journal(action_main_type="income", spending=1000.0))
-    session.add(_expense_journal(action_main_type="floating", spending=-300.0))
+    session.add(_expense_journal(action_main="I01", action_main_type="income", spending=1000.0))
+    session.add(_expense_journal(action_main="FL01", action_main_type="floating", spending=-300.0))
     session.commit()
     pt = {p.period: p for p in get_income_expense_report(session, "monthly", "202604").points}["202604"]
     assert pt.income == 1000.0
