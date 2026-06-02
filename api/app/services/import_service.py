@@ -24,7 +24,11 @@ from app.models.dashboard.fx_rate import FXRate
 from app.models.dashboard.stock_price_history import StockPriceHistory
 from app.models.monthly_report.journal import Journal
 from app.models.settings.credit_card import CreditCard
-from app.models.utilities.imports import InvoiceImportError, InvoiceImportResult
+from app.models.utilities.imports import (
+    InvoiceImportError,
+    InvoiceImportMonth,
+    InvoiceImportResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -260,6 +264,8 @@ def import_invoices(content: str) -> InvoiceImportResult:
     failed = 0
     errors: list[InvoiceImportError] = []
     pending_items: dict[str, list[str]] = {}
+    month_imported: dict[str, int] = {}
+    month_skipped: dict[str, int] = {}
 
     with Session(engine) as session:
         cards = session.exec(select(CreditCard)).all()
@@ -299,6 +305,7 @@ def import_invoices(content: str) -> InvoiceImportResult:
                     raise ValueError("invoice_date missing")
                 if carrier_no in skip_list:
                     skipped += 1
+                    month_skipped[vesting_month] = month_skipped.get(vesting_month, 0) + 1
                     continue
                 existing = session.exec(
                     select(Journal).where(
@@ -308,6 +315,7 @@ def import_invoices(content: str) -> InvoiceImportResult:
                 ).first()
                 if existing is not None:
                     skipped += 1
+                    month_skipped[vesting_month] = month_skipped.get(vesting_month, 0) + 1
                     continue
 
                 spend_way = ""
@@ -342,12 +350,23 @@ def import_invoices(content: str) -> InvoiceImportResult:
                 )
                 session.add(journal)
                 imported += 1
+                month_imported[vesting_month] = month_imported.get(vesting_month, 0) + 1
             except Exception as e:  # noqa: BLE001
                 failed += 1
                 errors.append(InvoiceImportError(line=line_no, reason=str(e)))
                 _append_error_log(f"line {line_no}: {e}")
         session.commit()
 
+    all_months = sorted(set(month_imported) | set(month_skipped))
+    months = [
+        InvoiceImportMonth(
+            month=m,
+            imported=month_imported.get(m, 0),
+            skipped=month_skipped.get(m, 0),
+        )
+        for m in all_months
+    ]
+
     return InvoiceImportResult(
-        imported=imported, skipped=skipped, failed=failed, errors=errors
+        imported=imported, skipped=skipped, failed=failed, months=months, errors=errors
     )

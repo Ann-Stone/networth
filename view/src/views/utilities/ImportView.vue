@@ -85,10 +85,21 @@
             匯入發票
           </el-button>
         </div>
-        <p v-if="invoiceResult" class="text-xs text-on-surface-muted">
-          最近一次：匯入 {{ invoiceResult.imported }} 筆 · 略過
-          {{ invoiceResult.skipped }} 筆 · 失敗 {{ invoiceResult.failed }} 筆
-        </p>
+        <div v-if="invoiceResult" class="flex flex-col gap-1">
+          <p class="text-xs text-on-surface-muted">
+            最近一次：匯入 {{ invoiceResult.imported }} 筆 · 略過
+            {{ invoiceResult.skipped }} 筆 · 失敗 {{ invoiceResult.failed }} 筆
+          </p>
+          <ul
+            v-if="invoiceResult.months.length"
+            class="flex flex-col gap-0.5 text-xs text-on-surface-muted"
+          >
+            <li v-for="m in invoiceResult.months" :key="m.month">
+              {{ formatMonth(m.month) }}：匯入 {{ m.imported }} 筆<span v-if="m.skipped">
+                · 略過 {{ m.skipped }} 筆</span>
+            </li>
+          </ul>
+        </div>
         <p v-else class="text-xs text-on-surface-muted">
           僅接受 CSV 檔；選擇檔案後按「匯入發票」即可。
         </p>
@@ -120,6 +131,12 @@ const invoiceLoading = ref(false)
 const invoiceUploadRef = ref<UploadInstance>()
 const invoiceFile = ref<File | null>(null)
 const invoiceResult = ref<InvoiceImportResult | null>(null)
+
+// 202603 → 2026/03; leave anything unexpected untouched.
+function formatMonth(yyyymm: string): string {
+  if (yyyymm.length !== 6) return yyyymm
+  return `${yyyymm.slice(0, 4)}/${yyyymm.slice(4, 6)}`
+}
 
 async function handleStockPriceImport() {
   stockLoading.value = true

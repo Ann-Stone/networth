@@ -59,7 +59,13 @@ def test_invoice_import_accepts_upload_and_returns_result(
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == 1
-    assert body["data"] == {"imported": 2, "skipped": 1, "failed": 0, "errors": []}
+    assert body["data"] == {
+        "imported": 2,
+        "skipped": 1,
+        "failed": 0,
+        "months": [],
+        "errors": [],
+    }
     assert "INV-1" in captured["content"]
 
 

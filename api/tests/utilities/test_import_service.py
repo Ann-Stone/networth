@@ -253,10 +253,20 @@ def test_import_invoices_partial_success_and_dedup(
     assert result.failed == 1  # INV-2 bad amount
     assert any(e.line == 3 for e in result.errors)
 
+    # Per-month breakdown: INV-1 imported + INV-3 skip-list in 202601, INV-4 in
+    # 202602. INV-2 failed before vesting_month was derived, so it's omitted.
+    months = {m.month: m for m in result.months}
+    assert set(months) == {"202601", "202602"}
+    assert (months["202601"].imported, months["202601"].skipped) == (1, 1)
+    assert (months["202602"].imported, months["202602"].skipped) == (1, 0)
+
     # Re-run: previously-imported INV-1 + INV-4 now dedup → skipped goes up.
     result2 = svc.import_invoices(content)
     assert result2.imported == 0
     assert result2.skipped == 3  # INV-1 dedup + INV-4 dedup + SKIPME
+    months2 = {m.month: m for m in result2.months}
+    assert (months2["202601"].imported, months2["202601"].skipped) == (0, 2)
+    assert (months2["202602"].imported, months2["202602"].skipped) == (0, 1)
 
     journals = session.exec(select(Journal)).all()
     assert len(journals) == 2
@@ -282,6 +292,7 @@ def test_import_invoices_empty_content(
     assert result.imported == 0
     assert result.skipped == 0
     assert result.failed == 0
+    assert result.months == []
     assert result.errors == []
 
 

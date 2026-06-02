@@ -865,9 +865,16 @@ export interface InvoiceImportError {
   reason: string
 }
 
+export interface InvoiceImportMonth {
+  month: string
+  imported: number
+  skipped: number
+}
+
 export interface InvoiceImportResult {
   imported: number
   skipped: number
   failed: number
+  months: InvoiceImportMonth[]
   errors: InvoiceImportError[]
 }

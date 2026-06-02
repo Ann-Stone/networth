@@ -103,5 +103,14 @@ export const utilitiesHandlers = [
   // Import endpoints — return immediate stub success
   http.post('*/utilities/import/stock-prices', () => ok({ message: 'mock: stock-prices imported' })),
   http.post('*/utilities/import/fx-rates',     () => ok({ message: 'mock: fx-rates imported' })),
-  http.post('*/utilities/import/invoices',     () => ok({ imported: 3, skipped: 1, failed: 0, errors: [] })),
+  http.post('*/utilities/import/invoices',     () => ok({
+    imported: 3,
+    skipped: 1,
+    failed: 0,
+    months: [
+      { month: '202603', imported: 2, skipped: 1 },
+      { month: '202604', imported: 1, skipped: 0 },
+    ],
+    errors: [],
+  })),
 ]
