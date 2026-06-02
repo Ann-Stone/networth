@@ -98,7 +98,8 @@ data (array item):
 | --- | --- | --- | --- |
 | stock_code | string | yes | Ticker symbol |
 | stock_name | string | yes | Stock display name |
-| close_price | number | yes | Selected month-end close price |
+| close_price |  | no | Close price of the most recent in-month row, or null when the requested month has no price data (signals a fetch is needed). |
+| fetch_date |  | no | YYYYMMDD of the row the close_price came from, or null when the month has no price data. |
 
 Example:
 
@@ -108,6 +109,7 @@ Example:
   "data": [
     {
       "close_price": 181.8,
+      "fetch_date": "20260430",
       "stock_code": "AAPL",
       "stock_name": "Apple Inc."
     }

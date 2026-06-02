@@ -35,6 +35,7 @@ data (array item):
 | estate_type | string | yes | Estate type |
 | estate_address | string | yes | Physical address |
 | asset_id | string | yes | Asset category ID |
+| fx_code | string | no | Currency code (TWD; USD/JPY/... for overseas property) |
 | obtain_date | string | yes | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status | string | yes | Status |
@@ -53,6 +54,7 @@ Example:
       "estate_name": "Condo",
       "estate_status": "live",
       "estate_type": "residential",
+      "fx_code": "TWD",
       "loan_id": "LN-001",
       "memo": "Primary residence",
       "obtain_date": "20200101"
@@ -86,6 +88,7 @@ Body:
 | estate_type | string | yes | Estate type |
 | estate_address | string | yes | Physical address |
 | asset_id | string | yes | Asset category ID |
+| fx_code | string | no | Currency code (TWD; USD/JPY/... for overseas property) |
 | obtain_date | string | yes | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status | string (enum: 'idle', 'live', 'rent', 'sold') | yes | Status |
@@ -110,6 +113,7 @@ data:
 | estate_type | string | yes | Estate type |
 | estate_address | string | yes | Physical address |
 | asset_id | string | yes | Asset category ID |
+| fx_code | string | no | Currency code (TWD; USD/JPY/... for overseas property) |
 | obtain_date | string | yes | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status | string | yes | Status |
@@ -127,6 +131,7 @@ Example:
     "estate_name": "Condo",
     "estate_status": "live",
     "estate_type": "residential",
+    "fx_code": "TWD",
     "loan_id": "LN-001",
     "memo": "Primary residence",
     "obtain_date": "20200101"
@@ -203,6 +208,7 @@ Body:
 | estate_type |  | no | Estate type |
 | estate_address |  | no | Physical address |
 | asset_id |  | no | Asset category ID |
+| fx_code |  | no | Currency code (TWD; USD/JPY/... for overseas property) |
 | obtain_date |  | no | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status |  | no | Status |
@@ -227,6 +233,7 @@ data:
 | estate_type | string | yes | Estate type |
 | estate_address | string | yes | Physical address |
 | asset_id | string | yes | Asset category ID |
+| fx_code | string | no | Currency code (TWD; USD/JPY/... for overseas property) |
 | obtain_date | string | yes | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status | string | yes | Status |
@@ -244,6 +251,7 @@ Example:
     "estate_name": "Condo",
     "estate_status": "live",
     "estate_type": "residential",
+    "fx_code": "TWD",
     "loan_id": "LN-001",
     "memo": "Primary residence",
     "obtain_date": "20200101"

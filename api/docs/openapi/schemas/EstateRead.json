@@ -9,6 +9,7 @@
           "estate_name": "Condo",
           "estate_status": "live",
           "estate_type": "residential",
+          "fx_code": "TWD",
           "loan_id": "LN-001",
           "memo": "Primary residence",
           "obtain_date": "20200101"
@@ -60,6 +61,15 @@
               "residential"
             ],
             "title": "Estate Type",
+            "type": "string"
+          },
+          "fx_code": {
+            "default": "TWD",
+            "description": "Currency code (TWD; USD/JPY/... for overseas property)",
+            "examples": [
+              "TWD"
+            ],
+            "title": "Fx Code",
             "type": "string"
           },
           "loan_id": {

@@ -404,6 +404,55 @@ Example:
 | --- | --- | --- |
 | 500 | Unhandled server error — wrapped by global exception handler | `{"status": 0, "error": "RuntimeError: unexpected failure", "msg": "fail"}` |
 
+### GET /utilities/selections/stock-categories
+
+**List active stock categories as a single group**
+
+Return active (in_use='Y') stock allocation categories in one group labelled 'Stock_Category', ordered by category_index. Drives the allocation-category dropdown on the stock holding form.
+
+#### Response (200)
+
+Envelope:
+
+| name | type | required | description |
+| --- | --- | --- | --- |
+| status | integer | no | 1 = success, 0 = fail |
+| data |  | no | Response payload. Shape depends on the endpoint. |
+| msg | string | no | Human-readable status message |
+
+data (array item):
+
+| name | type | required | description |
+| --- | --- | --- | --- |
+| label | string | yes | Group label (e.g. account type) |
+| options | array<SelectionOption> | yes | Options that belong to this group |
+
+Example:
+
+```json
+{
+  "status": 1,
+  "data": [
+    {
+      "label": "BANK",
+      "options": [
+        {
+          "label": "Cash — NTD",
+          "value": "1"
+        }
+      ]
+    }
+  ],
+  "msg": "success"
+}
+```
+
+#### Errors
+
+| status | description | example |
+| --- | --- | --- |
+| 500 | Unhandled server error — wrapped by global exception handler | `{"status": 0, "error": "RuntimeError: unexpected failure", "msg": "fail"}` |
+
 ### GET /utilities/selections/stocks
 
 **List stock holdings grouped by asset_id**

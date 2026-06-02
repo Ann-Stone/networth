@@ -55,17 +55,9 @@ Example:
 
 ### POST /utilities/import/invoices
 
-**Import government invoice CSV**
+**Import an uploaded government invoice CSV**
 
-Kicks off a background task that parses the configured pipe-delimited invoice CSV and inserts deduplicated journal rows.
-
-#### Request
-
-Body:
-
-| name | type | required | description |
-| --- | --- | --- | --- |
-| period | string | yes | Target period in YYYYMM. Empty string falls back to today. |
+Parses an uploaded pipe-delimited invoice CSV and inserts deduplicated journal rows. Runs synchronously and returns the import counts.
 
 #### Response (200)
 
@@ -81,7 +73,11 @@ data:
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| message | string | yes | Human-readable confirmation that the import was scheduled |
+| imported | integer | yes | Number of journal rows successfully inserted |
+| skipped | integer | yes | Number of rows skipped (skip-list match or duplicate invoice) |
+| failed | integer | yes | Number of rows that raised an error during processing |
+| months | array<InvoiceImportMonth> | no | Per-month breakdown of imported/skipped counts, sorted by month |
+| errors | array<InvoiceImportError> | yes | Per-row error details for failed rows |
 
 Example:
 
@@ -89,7 +85,22 @@ Example:
 {
   "status": 1,
   "data": {
-    "message": "stock import started"
+    "errors": [
+      {
+        "line": 42,
+        "reason": "malformed amount column"
+      }
+    ],
+    "failed": 1,
+    "imported": 10,
+    "months": [
+      {
+        "imported": 12,
+        "month": "202603",
+        "skipped": 3
+      }
+    ],
+    "skipped": 3
   },
   "msg": "success"
 }

@@ -21,6 +21,21 @@
             ],
             "title": "Asset Id"
           },
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Allocation category id (references Stock_Category.category_id)",
+            "examples": [
+              "SC-002"
+            ],
+            "title": "Category Id"
+          },
           "expected_spend": {
             "anyOf": [
               {

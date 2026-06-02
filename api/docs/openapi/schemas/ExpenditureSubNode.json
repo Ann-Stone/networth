@@ -1,54 +1,54 @@
 {
   "components": {
     "schemas": {
-      "BalanceLine": {
+      "ExpenditureSubNode": {
         "example": {
-          "amount": 123456.78,
-          "currency": "TWD",
-          "name": "Cathay Bank",
-          "original_amount": 123456.78
+          "amount": 18000.0,
+          "code": "E0101",
+          "name": "外食",
+          "share": 12.5
         },
         "properties": {
           "amount": {
-            "description": "Amount in base currency",
+            "description": "Expense magnitude in base currency, positive",
             "examples": [
-              123456.78
+              18000.0
             ],
             "title": "Amount",
             "type": "number"
           },
-          "currency": {
-            "description": "Original currency",
+          "code": {
+            "description": "action_sub code_id ('' for the un-subcategorized remainder)",
             "examples": [
-              "TWD"
+              "E0101"
             ],
-            "title": "Currency",
+            "title": "Code",
             "type": "string"
           },
           "name": {
-            "description": "Entity name",
+            "description": "Subcategory display name (Code_Data.name)",
             "examples": [
-              "Cathay Bank"
+              "外食"
             ],
             "title": "Name",
             "type": "string"
           },
-          "original_amount": {
-            "description": "Amount in original currency (pre-FX); equals amount for base-currency entities",
+          "share": {
+            "description": "Percentage of grand total expense",
             "examples": [
-              4000.0
+              12.5
             ],
-            "title": "Original Amount",
+            "title": "Share",
             "type": "number"
           }
         },
         "required": [
+          "code",
           "name",
           "amount",
-          "original_amount",
-          "currency"
+          "share"
         ],
-        "title": "BalanceLine",
+        "title": "ExpenditureSubNode",
         "type": "object"
       }
     }

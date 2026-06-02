@@ -4,17 +4,40 @@
       "StockPriceMonthRead": {
         "example": {
           "close_price": 181.8,
+          "fetch_date": "20260430",
           "stock_code": "AAPL",
           "stock_name": "Apple Inc."
         },
         "properties": {
           "close_price": {
-            "description": "Selected month-end close price",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Close price of the most recent in-month row, or null when the requested month has no price data (signals a fetch is needed).",
             "examples": [
               181.8
             ],
-            "title": "Close Price",
-            "type": "number"
+            "title": "Close Price"
+          },
+          "fetch_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "YYYYMMDD of the row the close_price came from, or null when the month has no price data.",
+            "examples": [
+              "20260430"
+            ],
+            "title": "Fetch Date"
           },
           "stock_code": {
             "description": "Ticker symbol",
@@ -35,8 +58,7 @@
         },
         "required": [
           "stock_code",
-          "stock_name",
-          "close_price"
+          "stock_name"
         ],
         "title": "StockPriceMonthRead",
         "type": "object"

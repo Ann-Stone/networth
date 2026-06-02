@@ -1,20 +1,14 @@
-# Assets — Stocks
+# Settings — Stock Categories
 
 Generated from the live FastAPI OpenAPI spec by `uv run export-docs`. Do not edit by hand.
 
 ## Endpoints
 
-### GET /assets/stocks
+### GET /settings/stock-categories
 
-**List stock holdings**
+**List stock categories**
 
-Return stock holdings filtered by asset_id.
-
-#### Request
-
-| name | in | type | required | description |
-| --- | --- | --- | --- | --- |
-| asset_id | query | string | yes | Parent asset category id |
+List stock allocation categories ordered by category_index.
 
 #### Response (200)
 
@@ -30,12 +24,10 @@ data (array item):
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| stock_id | string | yes | Holding business ID |
-| stock_code | string | yes | Ticker symbol |
-| stock_name | string | yes | Stock display name |
-| asset_id | string | yes | Asset category ID |
-| expected_spend | number | yes | Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that) |
-| category_id |  | no | Allocation category id (references Stock_Category.category_id); null = unclassified |
+| category_id | string | yes | Category business ID |
+| name | string | yes | Display name |
+| in_use | string | yes | Active flag (Y/N) |
+| category_index | integer | yes | Dropdown order |
 
 Example:
 
@@ -44,12 +36,10 @@ Example:
   "status": 1,
   "data": [
     {
-      "asset_id": "AC-STK-001",
       "category_id": "SC-001",
-      "expected_spend": 10000.0,
-      "stock_code": "AAPL",
-      "stock_id": "STK-H-001",
-      "stock_name": "Apple Inc."
+      "category_index": 1,
+      "in_use": "Y",
+      "name": "成長型"
     }
   ],
   "msg": "success"
@@ -60,15 +50,14 @@ Example:
 
 | status | description | example |
 | --- | --- | --- |
-| 400 | Invalid query | `{"status": 0, "error": "Invalid query", "msg": "fail"}` |
 | 422 | Validation error — request payload failed Pydantic validation | `{"status": 0, "error": [{"type": "missing", "loc": ["body", "field_name"], "msg": "Field required", "input": {}}], "msg": "fail"}` |
 | 500 | Unhandled server error — wrapped by global exception handler | `{"status": 0, "error": "RuntimeError: unexpected failure", "msg": "fail"}` |
 
-### POST /assets/stocks
+### POST /settings/stock-categories
 
-**Create stock holding**
+**Create stock category**
 
-Create a new stock holding under an asset category.
+Create a stock category. The category_id is generated server-side (SC-NNN).
 
 #### Request
 
@@ -76,12 +65,9 @@ Body:
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| stock_id | string | yes | Holding business ID |
-| stock_code | string | yes | Ticker symbol |
-| stock_name | string | yes | Stock display name |
-| asset_id | string | yes | Asset category ID |
-| expected_spend | number | yes | Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that) |
-| category_id |  | no | Allocation category id (references Stock_Category.category_id); optional at creation |
+| name | string | yes | Display name |
+| in_use | string | no | Active flag (Y/N) |
+| category_index |  | no | Display order; server assigns max+1 when omitted |
 
 #### Response (200)
 
@@ -97,12 +83,10 @@ data:
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| stock_id | string | yes | Holding business ID |
-| stock_code | string | yes | Ticker symbol |
-| stock_name | string | yes | Stock display name |
-| asset_id | string | yes | Asset category ID |
-| expected_spend | number | yes | Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that) |
-| category_id |  | no | Allocation category id (references Stock_Category.category_id); null = unclassified |
+| category_id | string | yes | Category business ID |
+| name | string | yes | Display name |
+| in_use | string | yes | Active flag (Y/N) |
+| category_index | integer | yes | Dropdown order |
 
 Example:
 
@@ -110,12 +94,10 @@ Example:
 {
   "status": 1,
   "data": {
-    "asset_id": "AC-STK-001",
     "category_id": "SC-001",
-    "expected_spend": 10000.0,
-    "stock_code": "AAPL",
-    "stock_id": "STK-H-001",
-    "stock_name": "Apple Inc."
+    "category_index": 1,
+    "in_use": "Y",
+    "name": "成長型"
   },
   "msg": "success"
 }
@@ -125,21 +107,20 @@ Example:
 
 | status | description | example |
 | --- | --- | --- |
-| 409 | Duplicate stock_id | `{"status": 0, "error": "Duplicate stock_id", "msg": "fail"}` |
 | 422 | Validation error — request payload failed Pydantic validation | `{"status": 0, "error": [{"type": "missing", "loc": ["body", "field_name"], "msg": "Field required", "input": {}}], "msg": "fail"}` |
 | 500 | Unhandled server error — wrapped by global exception handler | `{"status": 0, "error": "RuntimeError: unexpected failure", "msg": "fail"}` |
 
-### DELETE /assets/stocks/{stock_id}
+### DELETE /settings/stock-categories/{category_id}
 
-**Delete stock holding**
+**Delete stock category**
 
-Delete a stock holding by id.
+Delete a stock category by id. Refused with 409 when any holding still references it — retire it with in_use='N' instead.
 
 #### Request
 
 | name | in | type | required | description |
 | --- | --- | --- | --- | --- |
-| stock_id | path | string | yes |  |
+| category_id | path | string | yes |  |
 
 #### Response (200)
 
@@ -165,31 +146,30 @@ Example:
 
 | status | description | example |
 | --- | --- | --- |
-| 404 | Stock not found | `{"status": 0, "error": "Stock 42 not found", "msg": "fail"}` |
+| 404 | Stock category not found | `{"status": 0, "error": "Stock category 42 not found", "msg": "fail"}` |
+| 409 | Category in use | `{"status": 0, "error": "Stock category SC-001 is in use by one or more holdings", "msg": "fail"}` |
 | 422 | Validation error — request payload failed Pydantic validation | `{"status": 0, "error": [{"type": "missing", "loc": ["body", "field_name"], "msg": "Field required", "input": {}}], "msg": "fail"}` |
 | 500 | Unhandled server error — wrapped by global exception handler | `{"status": 0, "error": "RuntimeError: unexpected failure", "msg": "fail"}` |
 
-### PUT /assets/stocks/{stock_id}
+### PUT /settings/stock-categories/{category_id}
 
-**Update stock holding**
+**Update stock category**
 
-Update a stock holding by id; any omitted field is left unchanged.
+Update a stock category by id. Set in_use='N' to retire it. Returns 404 if not found.
 
 #### Request
 
 | name | in | type | required | description |
 | --- | --- | --- | --- | --- |
-| stock_id | path | string | yes |  |
+| category_id | path | string | yes |  |
 
 Body:
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| stock_code |  | no | Ticker symbol |
-| stock_name |  | no | Stock display name |
-| asset_id |  | no | Asset category ID |
-| expected_spend |  | no | Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that) |
-| category_id |  | no | Allocation category id (references Stock_Category.category_id) |
+| name |  | no | Display name |
+| in_use |  | no | Active flag (Y/N); set 'N' to retire a category |
+| category_index |  | no | Dropdown order |
 
 #### Response (200)
 
@@ -205,12 +185,10 @@ data:
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| stock_id | string | yes | Holding business ID |
-| stock_code | string | yes | Ticker symbol |
-| stock_name | string | yes | Stock display name |
-| asset_id | string | yes | Asset category ID |
-| expected_spend | number | yes | Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that) |
-| category_id |  | no | Allocation category id (references Stock_Category.category_id); null = unclassified |
+| category_id | string | yes | Category business ID |
+| name | string | yes | Display name |
+| in_use | string | yes | Active flag (Y/N) |
+| category_index | integer | yes | Dropdown order |
 
 Example:
 
@@ -218,12 +196,10 @@ Example:
 {
   "status": 1,
   "data": {
-    "asset_id": "AC-STK-001",
     "category_id": "SC-001",
-    "expected_spend": 10000.0,
-    "stock_code": "AAPL",
-    "stock_id": "STK-H-001",
-    "stock_name": "Apple Inc."
+    "category_index": 1,
+    "in_use": "Y",
+    "name": "成長型"
   },
   "msg": "success"
 }
@@ -233,6 +209,6 @@ Example:
 
 | status | description | example |
 | --- | --- | --- |
-| 404 | Stock not found | `{"status": 0, "error": "Stock 42 not found", "msg": "fail"}` |
+| 404 | Stock category not found | `{"status": 0, "error": "Stock category 42 not found", "msg": "fail"}` |
 | 422 | Validation error — request payload failed Pydantic validation | `{"status": 0, "error": [{"type": "missing", "loc": ["body", "field_name"], "msg": "Field required", "input": {}}], "msg": "fail"}` |
 | 500 | Unhandled server error — wrapped by global exception handler | `{"status": 0, "error": "RuntimeError: unexpected failure", "msg": "fail"}` |

@@ -4,6 +4,7 @@
       "StockJournalCreate": {
         "example": {
           "asset_id": "AC-STK-001",
+          "category_id": "SC-001",
           "expected_spend": 10000.0,
           "stock_code": "AAPL",
           "stock_id": "STK-H-001",
@@ -17,6 +18,21 @@
             ],
             "title": "Asset Id",
             "type": "string"
+          },
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Allocation category id (references Stock_Category.category_id); optional at creation",
+            "examples": [
+              "SC-001"
+            ],
+            "title": "Category Id"
           },
           "expected_spend": {
             "description": "Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that)",

@@ -1,14 +1,14 @@
-# Reports — Balance
+# Reports — Stock Allocation
 
 Generated from the live FastAPI OpenAPI spec by `uv run export-docs`. Do not edit by hand.
 
 ## Endpoints
 
-### GET /reports/balance
+### GET /reports/stock-allocation
 
-**Get current balance sheet**
+**Get stock allocation by category**
 
-Aggregates latest snapshots per asset/liability entity, FX-converts to base currency, returns net worth.
+Returns the share (% + absolute) of stock value per allocation category (growth / bond / cash-equivalent / …), FX-converted to base currency. Holdings with no category fall into the '未分類' (unclassified) bucket.
 
 #### Response (200)
 
@@ -24,9 +24,8 @@ data:
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| assets | BalanceAssets | yes | Asset breakdown |
-| liabilities | BalanceLiabilities | yes | Liability breakdown |
-| net_worth | number | yes | Total assets minus total liabilities in base currency |
+| total | number | yes | Total stock value in base currency |
+| items | array<StockAllocationShare> | yes | Per-category share, sums to 100% within rounding |
 
 Example:
 
@@ -34,31 +33,26 @@ Example:
 {
   "status": 1,
   "data": {
-    "assets": {
-      "accounts": [
-        {
-          "amount": 123456.78,
-          "currency": "TWD",
-          "name": "Cathay Bank",
-          "original_amount": 123456.78
-        }
-      ],
-      "estates": [],
-      "insurances": [],
-      "stocks": []
-    },
-    "liabilities": {
-      "credit_cards": [],
-      "loans": [
-        {
-          "amount": -250000.0,
-          "currency": "TWD",
-          "name": "Mortgage",
-          "original_amount": -250000.0
-        }
-      ]
-    },
-    "net_worth": 987654.32
+    "items": [
+      {
+        "amount": 200000.0,
+        "category_id": "SC-001",
+        "category_name": "成長型",
+        "share": 55.0
+      },
+      {
+        "amount": 100000.0,
+        "category_id": "SC-002",
+        "category_name": "債券",
+        "share": 27.5
+      },
+      {
+        "amount": 63636.36,
+        "category_name": "未分類",
+        "share": 17.5
+      }
+    ],
+    "total": 363636.36
   },
   "msg": "success"
 }

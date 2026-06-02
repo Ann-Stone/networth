@@ -87,6 +87,21 @@
             ],
             "title": "Estate Type"
           },
+          "fx_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Currency code (TWD; USD/JPY/... for overseas property)",
+            "examples": [
+              "USD"
+            ],
+            "title": "Fx Code"
+          },
           "loan_id": {
             "anyOf": [
               {
