@@ -59,6 +59,11 @@ from app.models.reports.income_expense import (
     IncomeExpenseReportRead,
     IncomeExpenseSummary,
 )
+from app.models.reports.income_statement import (
+    IncomeStatementPoint,
+    IncomeStatementReportRead,
+    IncomeStatementSummary,
+)
 from app.models.settings.account import Account
 from app.models.settings.budget import Budget
 from app.models.settings.code_data import CodeData
@@ -83,6 +88,18 @@ EXPENSE_MAIN_TYPES = frozenset({"fixed", "floating"})
 INCOME_MAIN_TYPES = frozenset({"income", "passive"})
 INVEST_MAIN_TYPES = frozenset({"invest"})
 TRANSFER_MAIN_TYPES = frozenset({"transfer"})
+
+# Comprehensive income statement (綜合損益表) splits INCOME_MAIN_TYPES into active
+# (本業) vs passive (孳息) so dividends land in the investment section, not本業.
+ACTIVE_INCOME_TYPES = frozenset({"income"})
+PASSIVE_INCOME_TYPES = frozenset({"passive"})
+# Realized capital-gain sub-categories, matched by Code_Data.name (names survive
+# code_id re-imports; see view/src/constants/noteHints.ts). These journals are
+# usually typed ``invest`` (so excluded from income/passive anyway), but the
+# income-statement service excludes them by *code* before the income/expense
+# netting so a 資本利得 row can never be double-counted regardless of its type.
+# Confirm/extend against Code_Data for the live DB.
+REALIZED_GAIN_NAMES = frozenset({"資本利得", "期貨"})
 
 
 def _norm_type(action_main_type: str | None) -> str:
@@ -421,6 +438,199 @@ def get_income_expense_report(
             total_expense=total_expense,
             net=net_total,
             savings_rate=savings_rate,
+        ),
+    )
+
+
+def _unrealized_by_period(
+    session: Session,
+    type: Literal["monthly", "yearly"],
+    periods: list[str],
+) -> dict[str, float]:
+    """Per-period change in unrealized P&L: Δ of Σ (market value − cost) × fx_rate.
+
+    Sums every revaluable asset class from its monthly snapshot — stocks
+    (``price`` = close × qty), real estate (``market_value``) and insurance
+    (``surrender_value``) — each against its ``cost``. For each period we take the
+    latest snapshot per asset *as of* that period's anchor month (carrying forward
+    unsettled months) and report the change from the prior anchor, so an asset
+    held across the window contributes only its in-window value move, not its
+    whole accumulated gain. Estate/insurance only move the needle once a real
+    value is recorded — until then their snapshot value equals cost (Δ = 0).
+    """
+    # (snapshot model, attribute holding the market value) per asset class.
+    sources = [
+        (StockNetValueHistory, "price"),
+        (EstateNetValueHistory, "market_value"),
+        (InsuranceNetValueHistory, "surrender_value"),
+    ]
+    by_source = [
+        (list(session.exec(select(model)).all()), attr) for model, attr in sources
+    ]
+
+    def unrealized_as_of(anchor_month: str) -> float:
+        total = 0.0
+        for rows, attr in by_source:
+            eligible = [r for r in rows if r.vesting_month <= anchor_month]
+            latest = _latest_per_entity(eligible, key=lambda r: r.id)
+            total += sum((getattr(r, attr) - r.cost) * r.fx_rate for r in latest)
+        return total
+
+    if type == "monthly":
+        anchors = list(periods)
+        prev_anchor = _shift_month(periods[0], -1)
+    else:
+        anchors = [f"{y}12" for y in periods]
+        prev_anchor = f"{int(periods[0]) - 1}12"
+
+    out: dict[str, float] = {}
+    prev_u = unrealized_as_of(prev_anchor)
+    for p, anchor in zip(periods, anchors):
+        u = unrealized_as_of(anchor)
+        out[p] = u - prev_u
+        prev_u = u
+    return out
+
+
+def get_income_statement(
+    session: Session,
+    type: Literal["monthly", "yearly"],
+    vesting_month: str,
+) -> IncomeStatementReportRead:
+    """Comprehensive income statement (綜合損益表) — three sections per period.
+
+    一、本業損益 = active income (``income`` type only) − living expenses
+    (fixed + floating). 二、投資損益 = 孳息 (``passive``) + realized capital gains
+    (booked ``資本利得`` journals) + the period change in unrealized market value.
+    三、綜合損益 = operating_net + investment_net.
+
+    Income/expense are netted per category then floored at 0 per category (a
+    reimbursed 代買 / mis-typed inflow can neither inflate expense nor cancel a
+    category); ``passive`` is floored as income. Realized-gain journals are pulled
+    out *by Code_Data name before* the income/expense netting, so they can never
+    be double-counted no matter how 資本利得 is typed; realized gains stay signed
+    (a loss lowers the section). Per-period points floor within each period; the
+    summary nets each category across the whole window (cross-month 代買 offsets
+    resolve), so it can differ from the sum of the points.
+    """
+    periods, bucket_of, start_vm, end_vm = _period_window(type, vesting_month)
+    journals = list_journals_by_range(session, start_vm, end_vm)
+    fx_cache: dict[tuple[str, str], float] = {}
+
+    # Realized capital-gain journals, identified by Code_Data name (robust to
+    # whatever action_main_type they carry) and excluded from the income netting.
+    code_name = {c.code_id: c.name for c in session.exec(select(CodeData)).all()}
+    realized_codes = {
+        code_id for code_id, name in code_name.items() if name in REALIZED_GAIN_NAMES
+    }
+
+    def is_realized(j: Journal) -> bool:
+        return j.action_main in realized_codes or (
+            j.action_sub is not None and j.action_sub in realized_codes
+        )
+
+    operating_journals = [j for j in journals if not is_realized(j)]
+    realized_journals = [j for j in journals if is_realized(j)]
+
+    # ---- 本業 (active income) + 孳息 (passive) + 生活支出 ----
+    net, cat_type = category_net_by_bucket(
+        operating_journals,
+        bucket_of=lambda j: bucket_of(j.vesting_month),
+        amount_of=lambda j: journal_amount_twd(session, j, fx_cache),
+    )
+    active = {p: 0.0 for p in periods}
+    fixed = {p: 0.0 for p in periods}
+    floating = {p: 0.0 for p in periods}
+    dividend = {p: 0.0 for p in periods}
+    window_net: dict[str, float] = defaultdict(float)
+    for (bucket, cat), value in net.items():
+        window_net[cat] += value
+        if bucket not in active:
+            continue
+        t = _norm_type(cat_type[cat])
+        if t in ACTIVE_INCOME_TYPES:
+            active[bucket] += floor_income(value)
+        elif t in PASSIVE_INCOME_TYPES:
+            dividend[bucket] += floor_income(value)
+        elif t == "fixed":
+            fixed[bucket] += floor_expense(value)
+        elif t == "floating":
+            floating[bucket] += floor_expense(value)
+        # invest / transfer intentionally excluded
+
+    # ---- 已實現資本利得: signed sum per period (a loss lowers it) ----
+    realized = {p: 0.0 for p in periods}
+    for j in realized_journals:
+        b = bucket_of(j.vesting_month)
+        if b in realized:
+            realized[b] += journal_amount_twd(session, j, fx_cache)
+
+    # ---- 未實現市值變動 (stocks only) ----
+    unrealized = _unrealized_by_period(session, type, periods)
+
+    points: list[IncomeStatementPoint] = []
+    for p in periods:
+        ai = round(active[p], 2)
+        fx = round(fixed[p], 2)
+        fl = round(floating[p], 2)
+        op = round(ai - fx - fl, 2)
+        dv = round(dividend[p], 2)
+        rz = round(realized[p], 2)
+        ur = round(unrealized[p], 2)
+        inv = round(dv + rz + ur, 2)
+        points.append(
+            IncomeStatementPoint(
+                period=p,
+                active_income=ai,
+                fixed=fx,
+                floating=fl,
+                operating_net=op,
+                dividend=dv,
+                realized=rz,
+                unrealized=ur,
+                investment_net=inv,
+                comprehensive_net=round(op + inv, 2),
+            )
+        )
+
+    # ---- Summary: net each category across the whole window before flooring ----
+    s_active = s_fixed = s_floating = s_dividend = 0.0
+    for cat, value in window_net.items():
+        t = _norm_type(cat_type[cat])
+        if t in ACTIVE_INCOME_TYPES:
+            s_active += floor_income(value)
+        elif t in PASSIVE_INCOME_TYPES:
+            s_dividend += floor_income(value)
+        elif t == "fixed":
+            s_fixed += floor_expense(value)
+        elif t == "floating":
+            s_floating += floor_expense(value)
+    s_realized = sum(
+        journal_amount_twd(session, j, fx_cache) for j in realized_journals
+    )
+    s_unrealized = sum(unrealized.values())  # telescopes to U(last) − U(base)
+
+    s_active = round(s_active, 2)
+    s_fixed = round(s_fixed, 2)
+    s_floating = round(s_floating, 2)
+    s_operating = round(s_active - s_fixed - s_floating, 2)
+    s_dividend = round(s_dividend, 2)
+    s_realized = round(s_realized, 2)
+    s_unrealized = round(s_unrealized, 2)
+    s_investment = round(s_dividend + s_realized + s_unrealized, 2)
+    return IncomeStatementReportRead(
+        type=type,
+        points=points,
+        summary=IncomeStatementSummary(
+            active_income=s_active,
+            fixed=s_fixed,
+            floating=s_floating,
+            operating_net=s_operating,
+            dividend=s_dividend,
+            realized=s_realized,
+            unrealized=s_unrealized,
+            investment_net=s_investment,
+            comprehensive_net=round(s_operating + s_investment, 2),
         ),
     )
 

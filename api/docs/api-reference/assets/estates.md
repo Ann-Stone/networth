@@ -39,6 +39,7 @@ data (array item):
 | obtain_date | string | yes | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status | string | yes | Status |
+| region |  | no | House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國 |
 | memo |  | no | Free-form memo |
 
 Example:
@@ -57,7 +58,8 @@ Example:
       "fx_code": "TWD",
       "loan_id": "LN-001",
       "memo": "Primary residence",
-      "obtain_date": "20200101"
+      "obtain_date": "20200101",
+      "region": "臺北市"
     }
   ],
   "msg": "success"
@@ -92,6 +94,7 @@ Body:
 | obtain_date | string | yes | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status | string (enum: 'idle', 'live', 'rent', 'sold') | yes | Status |
+| region |  | no | House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國 |
 | memo |  | no | Free-form memo |
 
 #### Response (200)
@@ -117,6 +120,7 @@ data:
 | obtain_date | string | yes | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status | string | yes | Status |
+| region |  | no | House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國 |
 | memo |  | no | Free-form memo |
 
 Example:
@@ -134,7 +138,8 @@ Example:
     "fx_code": "TWD",
     "loan_id": "LN-001",
     "memo": "Primary residence",
-    "obtain_date": "20200101"
+    "obtain_date": "20200101",
+    "region": "臺北市"
   },
   "msg": "success"
 }
@@ -212,6 +217,7 @@ Body:
 | obtain_date |  | no | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status |  | no | Status |
+| region |  | no | House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國 |
 | memo |  | no | Free-form memo |
 
 #### Response (200)
@@ -237,6 +243,7 @@ data:
 | obtain_date | string | yes | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status | string | yes | Status |
+| region |  | no | House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國 |
 | memo |  | no | Free-form memo |
 
 Example:
@@ -254,7 +261,8 @@ Example:
     "fx_code": "TWD",
     "loan_id": "LN-001",
     "memo": "Primary residence",
-    "obtain_date": "20200101"
+    "obtain_date": "20200101",
+    "region": "臺北市"
   },
   "msg": "success"
 }

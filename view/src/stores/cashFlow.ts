@@ -2,14 +2,22 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import dayjs from 'dayjs'
 import {
+  getEstateValues,
+  getEstateValueSuggestions,
   getExpenditureBudget,
   getExpenditureRatio,
   getInvestRatio,
+  getInsuranceValues,
   getJournals,
   getLiability,
   getStockPrices,
+  refreshHousePriceIndex,
 } from '@/api/cashFlow'
 import type {
+  EstateValueMonth,
+  EstateValueSuggestion,
+  IndexRefreshResult,
+  InsuranceValueMonth,
   Journal,
   JournalExpenditureBudget,
   JournalExpenditureRatio,
@@ -102,6 +110,44 @@ export const useCashFlowStore = defineStore('cashFlow', () => {
     }
   }
 
+  // Insurance surrender values (解約金)
+  const insuranceValues = ref<InsuranceValueMonth[]>([])
+  const insuranceValuesLoading = ref(false)
+  async function fetchInsuranceValues(month?: string) {
+    const m = month ?? selectedMonth.value
+    insuranceValuesLoading.value = true
+    try {
+      insuranceValues.value = await getInsuranceValues(m)
+    } finally {
+      insuranceValuesLoading.value = false
+    }
+  }
+
+  // Estate market values (估值)
+  const estateValues = ref<EstateValueMonth[]>([])
+  const estateValuesLoading = ref(false)
+  async function fetchEstateValues(month?: string) {
+    const m = month ?? selectedMonth.value
+    estateValuesLoading.value = true
+    try {
+      estateValues.value = await getEstateValues(m)
+    } finally {
+      estateValuesLoading.value = false
+    }
+  }
+
+  // Index-based suggested market values (P3)
+  const estateSuggestions = ref<EstateValueSuggestion[]>([])
+  async function fetchEstateSuggestions(month?: string) {
+    const m = month ?? selectedMonth.value
+    estateSuggestions.value = await getEstateValueSuggestions(m)
+  }
+  async function refreshEstateIndex(): Promise<IndexRefreshResult> {
+    const res = await refreshHousePriceIndex()
+    await fetchEstateSuggestions()
+    return res
+  }
+
   return {
     selectedMonth,
     journals,
@@ -123,5 +169,14 @@ export const useCashFlowStore = defineStore('cashFlow', () => {
     stockPrices,
     stockPricesLoading,
     fetchStockPrices,
+    insuranceValues,
+    insuranceValuesLoading,
+    fetchInsuranceValues,
+    estateValues,
+    estateValuesLoading,
+    fetchEstateValues,
+    estateSuggestions,
+    fetchEstateSuggestions,
+    refreshEstateIndex,
   }
 })

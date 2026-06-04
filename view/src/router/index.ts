@@ -32,6 +32,12 @@ const router = createRouter({
           meta: { title: '資產負債表', breadcrumb: ['年報', '資產負債表'] },
         },
         {
+          path: 'year-report/income-statement',
+          name: 'IncomeStatement',
+          component: () => import('@/views/year-report/IncomeStatementView.vue'),
+          meta: { title: '損益表', breadcrumb: ['年報', '損益表'] },
+        },
+        {
           path: 'year-report/spending',
           name: 'Spending',
           component: () => import('@/views/year-report/SpendingView.vue'),

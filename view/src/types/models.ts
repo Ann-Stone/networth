@@ -345,6 +345,61 @@ export interface StockPriceEntry {
   fetch_date: string | null    // YYYYMMDD of the row close_price came from, else null
 }
 
+// Insurance surrender value (解約金) recorded per policy per month. surrender_value
+// is the latest recorded value on or before the month (carried forward); recorded
+// is true only when entered in this exact month.
+export interface InsuranceValueMonth {
+  insurance_id: string
+  insurance_name: string
+  surrender_value: number | null
+  vesting_month: string | null
+  recorded: boolean
+}
+
+export interface InsuranceValueCreate {
+  insurance_id: string
+  vesting_month: string         // YYYYMM
+  surrender_value: number
+  memo?: string | null
+}
+
+// Real-estate market value (估值) recorded per property per month. market_value
+// is the latest recorded value on or before the month (carried forward); recorded
+// is true only when entered in this exact month.
+export interface EstateValueMonth {
+  estate_id: string
+  estate_name: string
+  market_value: number | null
+  vesting_month: string | null
+  recorded: boolean
+}
+
+export interface EstateValueCreate {
+  estate_id: string
+  vesting_month: string         // YYYYMM
+  market_value: number
+  memo?: string | null
+}
+
+// Index-based suggested market value (P3): cost × (current index / obtain-quarter
+// index), from the 內政部 住宅價格指數 (market-based). Advisory — a recorded value
+// always overrides it. suggested_market_value is null when the index is missing.
+export interface EstateValueSuggestion {
+  estate_id: string
+  estate_name: string
+  cost: number
+  suggested_market_value: number | null
+  region: string
+  obtain_quarter: string | null
+  current_quarter: string | null
+}
+
+export interface IndexRefreshResult {
+  region: string
+  upserted: number
+  ok: boolean                   // false when the fetch failed and old data was kept
+}
+
 export type StockPriceRead = StockPriceEntry
 
 export interface StockPriceHistory {
@@ -451,6 +506,7 @@ export interface EstateAsset {
   obtain_date: string           // YYYYMMDD
   loan_id?: string | null
   estate_status: string         // 'idle' | 'live' | 'rent' | 'sold'
+  region?: string | null        // house-price-index 縣市; null → 全國
   memo?: string | null
 }
 
@@ -464,6 +520,7 @@ export interface EstateAssetCreate {
   obtain_date: string
   loan_id?: string | null
   estate_status: string
+  region?: string | null        // house-price-index 縣市; null → 全國
   memo?: string | null
 }
 
@@ -666,6 +723,41 @@ export interface IncomeExpenseReport {
   type: string                  // 'monthly' | 'yearly'
   points: IncomeExpensePoint[]
   summary: IncomeExpenseSummary
+}
+
+// Comprehensive income statement (綜合損益表): 本業 / 投資 / 綜合. Magnitudes
+// (active_income/fixed/floating/dividend) are positive; *_net and realized/
+// unrealized are signed (negative = loss). Distinct from IncomeExpense: active
+// income excludes passive (孳息), which moves into the investment section.
+export interface IncomeStatementPoint {
+  period: string                // YYYYMM or YYYY
+  active_income: number         // 本業收入 (income type only), positive
+  fixed: number                 // fixed-expense magnitude, positive
+  floating: number              // variable-expense magnitude, positive
+  operating_net: number         // active_income - fixed - floating (signed)
+  dividend: number              // 孳息 (passive income), positive
+  realized: number              // 已實現資本利得 (signed)
+  unrealized: number            // 未實現市值變動 (signed)
+  investment_net: number        // dividend + realized + unrealized (signed)
+  comprehensive_net: number     // operating_net + investment_net (signed)
+}
+
+export interface IncomeStatementSummary {
+  active_income: number
+  fixed: number
+  floating: number
+  operating_net: number
+  dividend: number
+  realized: number
+  unrealized: number
+  investment_net: number
+  comprehensive_net: number
+}
+
+export interface IncomeStatementReport {
+  type: string                  // 'monthly' | 'yearly'
+  points: IncomeStatementPoint[]
+  summary: IncomeStatementSummary
 }
 
 export interface ExpenditureSubNode {

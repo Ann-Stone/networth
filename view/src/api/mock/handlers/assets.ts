@@ -55,8 +55,8 @@ let stockJournalSeq = stockJournals.length
 // ─── Estates ─────────────────────────────────────────────────────────────────
 
 let estates: EstateAsset[] = [
-  { estate_id: 'EST_HOME',  estate_name: '主要住所',     estate_type: 'house',   estate_address: '台北市信義區', asset_id: 'EST', fx_code: 'TWD', obtain_date: '20200815', loan_id: 'LN_HOUSE', estate_status: 'live', memo: '自住' },
-  { estate_id: 'EST_INV',   estate_name: '投資宅 A',     estate_type: 'apartment', estate_address: '新北市板橋區', asset_id: 'EST', fx_code: 'TWD', obtain_date: '20221201', loan_id: null,       estate_status: 'rent', memo: '長期出租' },
+  { estate_id: 'EST_HOME',  estate_name: '主要住所',     estate_type: 'house',   estate_address: '台北市信義區', asset_id: 'EST', fx_code: 'TWD', obtain_date: '20200815', loan_id: 'LN_HOUSE', estate_status: 'live', region: '臺北市', memo: '自住' },
+  { estate_id: 'EST_INV',   estate_name: '投資宅 A',     estate_type: 'apartment', estate_address: '新北市板橋區', asset_id: 'EST', fx_code: 'TWD', obtain_date: '20221201', loan_id: null,       estate_status: 'rent', region: '新北市', memo: '長期出租' },
   { estate_id: 'EST_OLD',   estate_name: '舊宅（已售）',  estate_type: 'house',   estate_address: '桃園市',     asset_id: 'EST', fx_code: 'TWD', obtain_date: '20180501', loan_id: null,       estate_status: 'sold', memo: '2024 年出售' },
   { estate_id: 'EST_LAND',  estate_name: '空地',         estate_type: 'land',    estate_address: '宜蘭',       asset_id: 'EST', fx_code: 'TWD', obtain_date: '20210601', loan_id: null,       estate_status: 'idle', memo: null },
 ]
@@ -256,6 +256,7 @@ export const assetsHandlers = [
       obtain_date: body.obtain_date,
       loan_id: body.loan_id ?? null,
       estate_status: body.estate_status,
+      region: body.region ?? null,
       memo: body.memo ?? null,
     }
     estates.push(created)

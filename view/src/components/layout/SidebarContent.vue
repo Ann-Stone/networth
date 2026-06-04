@@ -114,6 +114,7 @@ const menuItems = [
     icon: Document,
     children: [
       { name: 'balanceSheet', label: '資產負債表', path: '/year-report/balance-sheet' },
+      { name: 'incomeStatement', label: '損益表', path: '/year-report/income-statement' },
       { name: 'spending', label: '年度支出', path: '/year-report/spending' },
       { name: 'assets', label: '資產概覽', path: '/year-report/assets' },
     ],

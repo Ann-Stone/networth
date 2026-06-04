@@ -8,6 +8,7 @@ import type {
   ExpenditureReport,
   ExpenseInsights,
   IncomeExpenseReport,
+  IncomeStatementReport,
   StockAllocationReport,
 } from '@/types/models'
 
@@ -27,6 +28,13 @@ export function getIncomeExpenseReport(
   params: { vesting_month: string },
 ): Promise<IncomeExpenseReport> {
   return request.get(`/reports/income-expense/${type}`, { params })
+}
+
+export function getIncomeStatement(
+  type: string,
+  params: { vesting_month: string },
+): Promise<IncomeStatementReport> {
+  return request.get(`/reports/income-statement/${type}`, { params })
 }
 
 export function getExpenditureComposition(

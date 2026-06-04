@@ -20,6 +20,7 @@ _ESTATE_EXAMPLE = {
     "loan_id": "LN-001",
     "estate_status": "live",
     "fx_code": "TWD",
+    "region": "臺北市",
     "memo": "Primary residence",
 }
 _ESTATE_JOURNAL_EXAMPLE = {
@@ -44,6 +45,7 @@ class Estate(SQLModel, table=True):
     obtain_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     loan_id: str | None = Field(default=None, description="Associated loan ID", schema_extra={"examples": ["LN-001"]})
     estate_status: str = Field(..., description="Status (idle / live / rent / sold)", schema_extra={"examples": ["live"]})
+    region: str | None = Field(default=None, description="House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國", schema_extra={"examples": ["臺北市"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Primary residence"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _ESTATE_EXAMPLE})
@@ -59,6 +61,7 @@ class EstateCreate(SQLModel):
     obtain_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     loan_id: str | None = Field(default=None, description="Associated loan ID", schema_extra={"examples": ["LN-001"]})
     estate_status: EstateStatus = Field(..., description="Status", schema_extra={"examples": ["live"]})
+    region: str | None = Field(default=None, description="House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國", schema_extra={"examples": ["臺北市"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Primary residence"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _ESTATE_EXAMPLE})
@@ -73,6 +76,7 @@ class EstateUpdate(SQLModel):
     obtain_date: str | None = Field(default=None, description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     loan_id: str | None = Field(default=None, description="Associated loan ID", schema_extra={"examples": ["LN-001"]})
     estate_status: EstateStatus | None = Field(default=None, description="Status", schema_extra={"examples": ["sold"]})
+    region: str | None = Field(default=None, description="House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國", schema_extra={"examples": ["臺北市"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Updated"]})
 
     model_config = ConfigDict(json_schema_extra={"example": {"estate_status": "sold"}})
@@ -88,6 +92,7 @@ class EstateRead(SQLModel):
     obtain_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20200101"]})
     loan_id: str | None = Field(default=None, description="Associated loan ID", schema_extra={"examples": ["LN-001"]})
     estate_status: str = Field(..., description="Status", schema_extra={"examples": ["hold"]})
+    region: str | None = Field(default=None, description="House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國", schema_extra={"examples": ["臺北市"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Primary residence"]})
 
     model_config = ConfigDict(json_schema_extra={"example": _ESTATE_EXAMPLE})

@@ -3,6 +3,12 @@ from app.models.dashboard.alarm_view import AlarmItem
 from app.models.dashboard.budget import BudgetLine, BudgetRead, BudgetType
 from app.models.dashboard.gift_view import GiftItem
 from app.models.dashboard.fx_rate import FXRate, FXRateCreate, FXRateRead, FXRateUpdate
+from app.models.dashboard.house_price_index import (
+    EstateValueSuggestion,
+    HousePriceIndex,
+    HousePriceIndexRead,
+    IndexRefreshResult,
+)
 from app.models.dashboard.stock_price_history import (
     StockPriceHistory,
     StockPriceHistoryCreate,
@@ -27,6 +33,10 @@ __all__ = [
     "FXRateCreate",
     "FXRateUpdate",
     "FXRateRead",
+    "EstateValueSuggestion",
+    "HousePriceIndex",
+    "HousePriceIndexRead",
+    "IndexRefreshResult",
     "StockPriceHistory",
     "StockPriceHistoryCreate",
     "StockPriceHistoryUpdate",

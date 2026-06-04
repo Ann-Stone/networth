@@ -7,6 +7,11 @@ import type {
   JournalListResponse,
   StockPriceEntry,
   StockPriceHistory,
+  InsuranceValueMonth,
+  InsuranceValueCreate,
+  EstateValueMonth,
+  EstateValueCreate,
+  EstateValueSuggestion,
 } from '@/types/models'
 
 const CURRENT_MONTH = '202605'
@@ -92,6 +97,58 @@ const stockHoldings = [
   { stock_code: '2330', stock_name: '台積電' },
   { stock_code: 'VOO',  stock_name: 'Vanguard S&P500' },
 ]
+
+const insurancePolicies = [
+  { insurance_id: 'INS-001', insurance_name: '富邦人壽終身壽險' },
+  { insurance_id: 'INS-002', insurance_name: '南山儲蓄險' },
+]
+
+// Recorded surrender values; INS-002 has an entry, INS-001 surfaces as "待補".
+let insuranceValueHistory: InsuranceValueCreate[] = [
+  { insurance_id: 'INS-002', vesting_month: '202604', surrender_value: 312000 },
+]
+
+// Mirror the backend: latest recorded value on or before the month (carried
+// forward); recorded is true only when entered in this exact month.
+function currentSurrenderValues(month: string): InsuranceValueMonth[] {
+  return insurancePolicies.map(({ insurance_id, insurance_name }) => {
+    const latest = insuranceValueHistory
+      .filter((v) => v.insurance_id === insurance_id && v.vesting_month <= month)
+      .sort((a, b) => b.vesting_month.localeCompare(a.vesting_month))[0]
+    return {
+      insurance_id,
+      insurance_name,
+      surrender_value: latest ? latest.surrender_value : null,
+      vesting_month: latest ? latest.vesting_month : null,
+      recorded: !!latest && latest.vesting_month === month,
+    }
+  })
+}
+
+const estateHoldings = [
+  { estate_id: 'EST-001', estate_name: '主要住所' },
+  { estate_id: 'EST-002', estate_name: '投資宅 A' },
+]
+
+// EST-001 has a recorded appraisal; EST-002 surfaces as "待補".
+let estateValueHistory: EstateValueCreate[] = [
+  { estate_id: 'EST-001', vesting_month: '202604', market_value: 13800000 },
+]
+
+function currentMarketValues(month: string): EstateValueMonth[] {
+  return estateHoldings.map(({ estate_id, estate_name }) => {
+    const latest = estateValueHistory
+      .filter((v) => v.estate_id === estate_id && v.vesting_month <= month)
+      .sort((a, b) => b.vesting_month.localeCompare(a.vesting_month))[0]
+    return {
+      estate_id,
+      estate_name,
+      market_value: latest ? latest.market_value : null,
+      vesting_month: latest ? latest.vesting_month : null,
+      recorded: !!latest && latest.vesting_month === month,
+    }
+  })
+}
 
 // Mirror the backend: pick the most recent history row strictly within the
 // requested month; emit null close_price / fetch_date when the month has none.
@@ -397,4 +454,40 @@ export const monthlyReportHandlers = [
     stockPriceHistory.push(body)
     return ok(body)
   }),
+
+  // Insurance surrender values (解約金)
+  http.get('*/monthly-report/insurance-values/:month', ({ params }) =>
+    ok(currentSurrenderValues(String(params.month))),
+  ),
+  http.post('*/monthly-report/insurance-values', async ({ request }) => {
+    const body = (await request.json()) as InsuranceValueCreate
+    insuranceValueHistory = insuranceValueHistory.filter(
+      (v) => !(v.insurance_id === body.insurance_id && v.vesting_month === body.vesting_month),
+    )
+    insuranceValueHistory.push(body)
+    return ok(body)
+  }),
+
+  // Estate market values (估值)
+  http.get('*/monthly-report/estate-values/:month', ({ params }) =>
+    ok(currentMarketValues(String(params.month))),
+  ),
+  http.post('*/monthly-report/estate-values', async ({ request }) => {
+    const body = (await request.json()) as EstateValueCreate
+    estateValueHistory = estateValueHistory.filter(
+      (v) => !(v.estate_id === body.estate_id && v.vesting_month === body.vesting_month),
+    )
+    estateValueHistory.push(body)
+    return ok(body)
+  }),
+  http.get('*/monthly-report/estate-values/:month/suggestions', () => {
+    const suggestions: EstateValueSuggestion[] = [
+      { estate_id: 'EST-001', estate_name: '主要住所', cost: 10000000, suggested_market_value: 13800000, region: '臺北市全市', obtain_quarter: '2020Q1', current_quarter: '2024Q1' },
+      { estate_id: 'EST-002', estate_name: '投資宅 A',  cost: 8000000,  suggested_market_value: 9600000,  region: '臺北市全市', obtain_quarter: '2021Q2', current_quarter: '2024Q1' },
+    ]
+    return ok(suggestions)
+  }),
+  http.post('*/monthly-report/estate-values/refresh-index', () =>
+    ok({ region: '臺北市全市', upserted: 48, ok: true }),
+  ),
 ]
