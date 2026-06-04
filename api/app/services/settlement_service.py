@@ -30,6 +30,8 @@ from app.models.monthly_report.settlement import SettlementResult
 from app.models.monthly_report.stock_net_value_history import StockNetValueHistory
 from app.models.settings.account import Account
 from app.models.settings.credit_card import CreditCard
+from app.services.estate_value_service import select_month_market_value
+from app.services.insurance_value_service import select_month_surrender_value
 from app.services.stock_service import select_month_close_price
 
 
@@ -122,9 +124,11 @@ def run_estate_step(session: Session, vesting_month: str) -> int:
             .where(EstateJournal.excute_date <= _month_end(vesting_month))
         ).all()
         cost = sum(r.excute_price for r in cost_rows)
-        # Market value defaults to cost when no explicit market entry exists
-        # (legacy convention — there is no separate market_value source table).
-        market_value = cost
+        # Prefer a user-recorded appraisal (估值) for the month; only fall back to
+        # cost when none has been entered. This is what lets the property show
+        # real appreciation instead of staying flat at purchase cost.
+        logged = select_month_market_value(session, estate.estate_id, vesting_month)
+        market_value = logged.market_value if logged is not None else cost
         # FX: estate carries its own currency (overseas property may be USD/JPY/...).
         fx_code = estate.fx_code or BASE_CURRENCY
         fx_rate = select_fx_rate_for_month(session, fx_code, vesting_month)
@@ -168,6 +172,12 @@ def run_insurance_step(session: Session, vesting_month: str) -> int:
                 surrender += r.excute_price
             elif r.insurance_excute_type == "claim":
                 surrender -= r.excute_price
+        # Prefer a user-recorded surrender value (解約金) for the month; only fall
+        # back to the net-premium estimate when none has been entered. This is
+        # what lets the policy show real cash-value growth instead of cost.
+        logged = select_month_surrender_value(session, policy.insurance_id, vesting_month)
+        if logged is not None:
+            surrender = logged.surrender_value
         # FX: premium account drives currency; default base.
         account = session.exec(
             select(Account).where(Account.account_id == policy.in_account)

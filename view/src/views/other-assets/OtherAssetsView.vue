@@ -670,6 +670,16 @@
             <el-option label="售出 (sold)" value="sold" />
           </el-select>
         </el-form-item>
+        <el-form-item label="地區">
+          <el-select
+            v-model="estateForm.region"
+            clearable
+            placeholder="預設全國（用於房價指數建議市值）"
+            style="width: 100%"
+          >
+            <el-option v-for="r in ESTATE_REGIONS" :key="r" :label="r" :value="r" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="關聯貸款">
           <el-input v-model="estateLoanIdProxy" placeholder="(可選) 例如 LN-001" />
         </el-form-item>
@@ -1363,6 +1373,10 @@ function estateStatusVariant(status: string): 'success' | 'info' | 'warning' | '
 
 const estateFormRef = ref<FormInstance>()
 
+// House-price-index regions (內政部 住宅價格指數 covers 全國 + 6 直轄市). Clearing
+// the select = 全國. Used to pick the index series for the suggested market value.
+const ESTATE_REGIONS = ['全國', '臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市']
+
 function emptyEstateForm(): EstateAssetCreate {
   return {
     estate_id: '',
@@ -1374,6 +1388,7 @@ function emptyEstateForm(): EstateAssetCreate {
     obtain_date: dayjs().format('YYYYMMDD'),
     loan_id: null,
     estate_status: 'live',
+    region: null,
     memo: null,
   }
 }
@@ -1409,6 +1424,7 @@ const {
     obtain_date: row.obtain_date,
     loan_id: row.loan_id ?? null,
     estate_status: row.estate_status,
+    region: row.region ?? null,
     memo: row.memo ?? null,
   }),
   getId: (row) => row.estate_id,
@@ -1423,6 +1439,7 @@ const {
       obtain_date: form.obtain_date,
       loan_id: form.loan_id ?? null,
       estate_status: form.estate_status,
+      region: form.region ?? null,
       memo: form.memo ?? null,
     }),
   remove: (id) => deleteEstate(id as string),

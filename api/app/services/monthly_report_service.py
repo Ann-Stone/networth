@@ -1,6 +1,7 @@
 """Monthly Report domain service functions (flat, session-as-parameter)."""
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import datetime
 
 from fastapi import HTTPException
@@ -37,6 +38,7 @@ from app.models.settings.account import Account
 from app.models.settings.budget import Budget
 from app.models.settings.code_data import CodeData
 from app.models.settings.credit_card import CreditCard
+from app.services.expense_netting import floor_expense, floor_income
 
 BASE_CURRENCY = "TWD"
 
@@ -49,6 +51,8 @@ BASE_CURRENCY = "TWD"
 # monthly domain does not import the higher-level reports domain).
 INVEST_MAIN_TYPES = frozenset({"invest"})
 TRANSFER_MAIN_TYPES = frozenset({"transfer"})
+EXPENSE_MAIN_TYPES = frozenset({"fixed", "floating"})
+INCOME_MAIN_TYPES = frozenset({"income", "passive"})
 
 
 def _norm_type(action_main_type: str | None) -> str:
@@ -125,7 +129,12 @@ def _account_by_spend_way(session: Session, spend_way: str) -> Account | None:
 
 
 def compute_gain_loss(session: Session, journals: list[Journal]) -> float:
-    """Sum journal spending across the month, converting non-base currencies via FXRate."""
+    """Signed sum of journal spending across the month, FX-converted to base.
+
+    This is genuine month P/L (net cash movement), so it intentionally stays
+    signed — unlike the expense reports, which net per category then floor at 0.
+    A category that nets to an inflow here legitimately raises the month's P/L.
+    """
     if not journals:
         return 0.0
     total = 0.0
@@ -496,22 +505,45 @@ def update_journal_with_estate_transaction(
 
 
 def compute_expenditure_ratio(session: Session, vesting_month: str) -> ExpenditureRatioResponse:
-    """Outer = sum spending grouped by action_main_type; inner = by action_sub_type.
+    """Outer pie grouped by action_main_type, inner by action_sub_type.
 
-    Excludes ``invest`` and ``transfer`` main-type rows (matched case-insensitively
-    so capitalized real data — "Invest"/"Transfer" — is excluded too).
+    Each category (action_main) and sub (action_sub) is netted then floored at 0
+    by side — income via ``floor_income``, everything else as an outflow via
+    ``floor_expense`` — so a mis-typed inflow or a reimbursed 代買 can't inflate
+    (or, via the old ``abs()``, flip) a slice. Invest/transfer rows are excluded.
     """
     journals = list_journals_by_month(session, vesting_month)
     excluded = INVEST_MAIN_TYPES | TRANSFER_MAIN_TYPES
-    outer: dict[str, float] = {}
-    inner: dict[str, float] = {}
+    main_net: dict[str, float] = defaultdict(float)
+    main_type: dict[str, str] = {}
+    sub_net: dict[str, float] = defaultdict(float)
+    sub_is_income: dict[str, bool] = {}
     for j in journals:
         if _norm_type(j.action_main_type) in excluded:
             continue
-        amount = abs(j.spending)
-        outer[j.action_main_type] = outer.get(j.action_main_type, 0.0) + amount
+        is_income = _norm_type(j.action_main_type) in INCOME_MAIN_TYPES
+        main_net[j.action_main] += j.spending
+        main_type.setdefault(j.action_main, j.action_main_type)
+        # The inner pie groups by action_sub_type and floors by the *main*
+        # category's side (a sub label like "salary" is not itself an income
+        # type, but its income parent makes its net inflow legitimate).
         if j.action_sub_type:
-            inner[j.action_sub_type] = inner.get(j.action_sub_type, 0.0) + amount
+            sub_net[j.action_sub_type] += j.spending
+            sub_is_income.setdefault(j.action_sub_type, is_income)
+
+    def floored(is_income: bool, net: float) -> float:
+        return floor_income(net) if is_income else floor_expense(net)
+
+    outer: dict[str, float] = defaultdict(float)
+    for cat, value in main_net.items():
+        amount = floored(_norm_type(main_type[cat]) in INCOME_MAIN_TYPES, value)
+        if amount > 0.005:
+            outer[main_type[cat]] += amount
+    inner: dict[str, float] = defaultdict(float)
+    for stype, value in sub_net.items():
+        amount = floored(sub_is_income[stype], value)
+        if amount > 0.005:
+            inner[stype] += amount
     return ExpenditureRatioResponse(
         outer=[ExpenditureRatioItem(name=k, value=round(v, 2)) for k, v in outer.items()],
         inner=[ExpenditureRatioItem(name=k, value=round(v, 2)) for k, v in inner.items()],
@@ -559,13 +591,22 @@ def compute_expenditure_budget(
         label_by_type.setdefault(key, b.code_type or key)
 
     journals = list_journals_by_month(session, vesting_month)
-    actual_by_type: dict[str, float] = {}
+    # Net per category first, then floor at 0 by side, then roll up to type — so a
+    # mis-typed inflow or a reimbursed 代買 cannot inflate a type's actual.
+    cat_net: dict[str, float] = defaultdict(float)
+    cat_type: dict[str, str] = {}
     for j in journals:
         if j.action_main in event_codes:
             continue
-        key = _norm_type(j.action_main_type)
-        actual_by_type[key] = actual_by_type.get(key, 0.0) + abs(j.spending)
-        label_by_type.setdefault(key, j.action_main_type or key)
+        cat_net[j.action_main] += j.spending
+        cat_type.setdefault(j.action_main, j.action_main_type)
+    actual_by_type: dict[str, float] = defaultdict(float)
+    for cat, value in cat_net.items():
+        raw_type = cat_type[cat]
+        key = _norm_type(raw_type)
+        amount = floor_income(value) if key in INCOME_MAIN_TYPES else floor_expense(value)
+        actual_by_type[key] += amount
+        label_by_type.setdefault(key, raw_type or key)
 
     rows: list[ExpenditureBudgetRow] = []
     for action_type in sorted(set(expected_by_type) | set(actual_by_type)):

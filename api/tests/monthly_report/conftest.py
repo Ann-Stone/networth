@@ -99,15 +99,17 @@ def analytics_fixture_session() -> Generator[Session, None, None]:
             base.update(ov)
             create_journal(session, JournalCreate(**base))
 
-        # Expenditure rows (excluded types are 'invest' / 'transfer')
+        # Expenditure rows (excluded types are 'invest' / 'transfer'). Each
+        # category has its OWN action_main code, as in real data — aggregation
+        # nets per category, so income must not share a code with expense.
         j(action_main_type="expense", action_sub_type="food", spending=-1000.0)
         j(action_main_type="expense", action_sub_type="utility", spending=-500.0)
-        j(action_main_type="income", action_sub_type="salary", spending=4000.0)
+        j(action_main="INC01", action_main_type="income", action_sub_type="salary", spending=4000.0)
         # Invest rows
-        j(action_main_type="invest", action_sub_type="stock", spending=-800.0)
-        j(action_main_type="invest", action_sub_type="bond", spending=-200.0)
+        j(action_main="INV01", action_main_type="invest", action_sub_type="stock", spending=-800.0)
+        j(action_main="INV01", action_main_type="invest", action_sub_type="bond", spending=-200.0)
         # Excluded for ratio
-        j(action_main_type="transfer", action_sub_type="self", spending=-300.0)
+        j(action_main="TRF01", action_main_type="transfer", action_sub_type="self", spending=-300.0)
         # Credit-card spend
         j(spend_way="CC-A", spend_way_type="credit_card", spending=-1000.0,
           action_main_type="expense", action_sub_type="food")

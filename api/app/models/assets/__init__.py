@@ -9,6 +9,12 @@ from app.models.assets.estate import (
     EstateRead,
     EstateUpdate,
 )
+from app.models.assets.estate_value_history import (
+    EstateValueCreate,
+    EstateValueHistory,
+    EstateValueMonthRead,
+    EstateValueRead,
+)
 from app.models.assets.insurance import (
     Insurance,
     InsuranceCreate,
@@ -18,6 +24,12 @@ from app.models.assets.insurance import (
     InsuranceJournalUpdate,
     InsuranceRead,
     InsuranceUpdate,
+)
+from app.models.assets.insurance_value_history import (
+    InsuranceValueCreate,
+    InsuranceValueHistory,
+    InsuranceValueMonthRead,
+    InsuranceValueRead,
 )
 from app.models.assets.loan import (
     Loan,
@@ -61,6 +73,10 @@ __all__ = [
     "EstateJournalUpdate",
     "EstateRead",
     "EstateUpdate",
+    "EstateValueCreate",
+    "EstateValueHistory",
+    "EstateValueMonthRead",
+    "EstateValueRead",
     "Insurance",
     "InsuranceCreate",
     "InsuranceJournal",
@@ -69,6 +85,10 @@ __all__ = [
     "InsuranceJournalUpdate",
     "InsuranceRead",
     "InsuranceUpdate",
+    "InsuranceValueCreate",
+    "InsuranceValueHistory",
+    "InsuranceValueMonthRead",
+    "InsuranceValueRead",
     "Loan",
     "LoanCreate",
     "LoanJournal",

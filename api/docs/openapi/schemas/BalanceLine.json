@@ -5,7 +5,8 @@
         "example": {
           "amount": 123456.78,
           "currency": "TWD",
-          "name": "Cathay Bank"
+          "name": "Cathay Bank",
+          "original_amount": 123456.78
         },
         "properties": {
           "amount": {
@@ -31,11 +32,20 @@
             ],
             "title": "Name",
             "type": "string"
+          },
+          "original_amount": {
+            "description": "Amount in original currency (pre-FX); equals amount for base-currency entities",
+            "examples": [
+              4000.0
+            ],
+            "title": "Original Amount",
+            "type": "number"
           }
         },
         "required": [
           "name",
           "amount",
+          "original_amount",
           "currency"
         ],
         "title": "BalanceLine",

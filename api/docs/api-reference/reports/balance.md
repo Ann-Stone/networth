@@ -39,7 +39,8 @@ Example:
         {
           "amount": 123456.78,
           "currency": "TWD",
-          "name": "Cathay Bank"
+          "name": "Cathay Bank",
+          "original_amount": 123456.78
         }
       ],
       "estates": [],
@@ -52,7 +53,8 @@ Example:
         {
           "amount": -250000.0,
           "currency": "TWD",
-          "name": "Mortgage"
+          "name": "Mortgage",
+          "original_amount": -250000.0
         }
       ]
     },

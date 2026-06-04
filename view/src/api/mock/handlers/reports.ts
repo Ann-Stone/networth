@@ -12,6 +12,8 @@ import type {
   ExpenseInsights,
   IncomeExpensePoint,
   IncomeExpenseReport,
+  IncomeStatementPoint,
+  IncomeStatementReport,
   LargeTxn,
   StockAllocationReport,
   YoYRow,
@@ -125,6 +127,66 @@ function incomeExpenseSeries(type: string, vestingMonth: string): IncomeExpenseR
   const net = total_income - total_expense
   const savings_rate = total_income ? net / total_income : 0
   return { type, points, summary: { total_income, total_expense, net, savings_rate } }
+}
+
+function incomeStatementSeries(type: string, vestingMonth: string): IncomeStatementReport {
+  const baseYear = Number(vestingMonth.slice(0, 4))
+  const points: IncomeStatementPoint[] = []
+  const make = (period: string, i: number, scale: number): IncomeStatementPoint => {
+    const active = Math.round((72000 + Math.sin(i) * 8000) * scale)
+    const fixed = Math.round(25000 * scale)
+    const floating = Math.round((15000 + Math.abs(Math.sin(i * 1.3)) * 9000) * scale)
+    const dividend = Math.round((1800 + Math.abs(Math.cos(i)) * 1500) * scale)
+    const realized = Math.round(Math.sin(i * 0.7) * 6000 * scale)
+    const unrealized = Math.round(Math.cos(i * 0.9) * 14000 * scale)
+    const operating_net = active - fixed - floating
+    const investment_net = dividend + realized + unrealized
+    return {
+      period,
+      active_income: active,
+      fixed,
+      floating,
+      operating_net,
+      dividend,
+      realized,
+      unrealized,
+      investment_net,
+      comprehensive_net: operating_net + investment_net,
+    }
+  }
+  if (type === 'yearly') {
+    for (let i = 2; i >= 0; i--) {
+      points.push(make(String(baseYear - i), i, 12))
+    }
+  } else {
+    let y = baseYear
+    let m = Number(vestingMonth.slice(4, 6))
+    for (let i = 0; i < 12; i++) {
+      points.unshift(make(`${y}${String(m).padStart(2, '0')}`, i, 1))
+      m -= 1
+      if (m === 0) {
+        m = 12
+        y -= 1
+      }
+    }
+  }
+  const sum = (k: keyof IncomeStatementPoint) =>
+    points.reduce((s, p) => s + (p[k] as number), 0)
+  return {
+    type,
+    points,
+    summary: {
+      active_income: sum('active_income'),
+      fixed: sum('fixed'),
+      floating: sum('floating'),
+      operating_net: sum('operating_net'),
+      dividend: sum('dividend'),
+      realized: sum('realized'),
+      unrealized: sum('unrealized'),
+      investment_net: sum('investment_net'),
+      comprehensive_net: sum('comprehensive_net'),
+    },
+  }
 }
 
 function expenditureComposition(): ExpenditureComposition {
@@ -288,6 +350,11 @@ export const reportsHandlers = [
     const url = new URL(request.url)
     const month = url.searchParams.get('vesting_month') ?? '202612'
     return ok(incomeExpenseSeries(String(params.type), month))
+  }),
+  http.get('*/reports/income-statement/:type', ({ params, request }) => {
+    const url = new URL(request.url)
+    const month = url.searchParams.get('vesting_month') ?? '202612'
+    return ok(incomeStatementSeries(String(params.type), month))
   }),
   http.get('*/reports/expenditure-composition/:type', () => ok(expenditureComposition())),
   http.get('*/reports/budget-variance/:year', ({ params }) =>

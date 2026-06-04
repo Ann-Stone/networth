@@ -20,6 +20,12 @@ import type {
   SettleResult,
   StockPriceEntry,
   StockPriceHistory,
+  InsuranceValueMonth,
+  InsuranceValueCreate,
+  EstateValueMonth,
+  EstateValueCreate,
+  EstateValueSuggestion,
+  IndexRefreshResult,
 } from '@/types/models'
 
 // ─── Journals ────────────────────────────────────────────────────────────────
@@ -116,4 +122,36 @@ export function uploadStockPrices(
   data: StockPriceHistory & { trigger_yfinance?: boolean },
 ): Promise<StockPriceHistory> {
   return request.post('/monthly-report/stock-prices', data)
+}
+
+// ─── Insurance surrender values (解約金) ──────────────────────────────────────
+
+export function getInsuranceValues(vestingMonth: string): Promise<InsuranceValueMonth[]> {
+  return request.get(`/monthly-report/insurance-values/${vestingMonth}`)
+}
+
+export function upsertInsuranceValue(
+  data: InsuranceValueCreate,
+): Promise<InsuranceValueCreate> {
+  return request.post('/monthly-report/insurance-values', data)
+}
+
+// ─── Estate market values (估值) ──────────────────────────────────────────────
+
+export function getEstateValues(vestingMonth: string): Promise<EstateValueMonth[]> {
+  return request.get(`/monthly-report/estate-values/${vestingMonth}`)
+}
+
+export function upsertEstateValue(data: EstateValueCreate): Promise<EstateValueCreate> {
+  return request.post('/monthly-report/estate-values', data)
+}
+
+export function getEstateValueSuggestions(
+  vestingMonth: string,
+): Promise<EstateValueSuggestion[]> {
+  return request.get(`/monthly-report/estate-values/${vestingMonth}/suggestions`)
+}
+
+export function refreshHousePriceIndex(): Promise<IndexRefreshResult> {
+  return request.post('/monthly-report/estate-values/refresh-index')
 }

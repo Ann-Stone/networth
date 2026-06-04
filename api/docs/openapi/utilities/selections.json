@@ -365,6 +365,44 @@
         ]
       }
     },
+    "/utilities/selections/stock-categories": {
+      "get": {
+        "description": "Return active (in_use='Y') stock allocation categories in one group labelled 'Stock_Category', ordered by category_index. Drives the allocation-category dropdown on the stock holding form.",
+        "operationId": "list_stock_category_selections_utilities_selections_stock_categories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_list_SelectionGroup__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "RuntimeError: unexpected failure",
+                  "msg": "fail",
+                  "status": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unhandled server error — wrapped by global exception handler"
+          }
+        },
+        "summary": "List active stock categories as a single group",
+        "tags": [
+          "utilities",
+          "utilities:selections"
+        ]
+      }
+    },
     "/utilities/selections/stocks": {
       "get": {
         "description": "Return every Stock_Journal row grouped by its parent asset_id; each option's label is '<stock_code> <stock_name>' for filterable dropdowns.",

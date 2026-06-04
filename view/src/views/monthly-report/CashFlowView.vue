@@ -12,6 +12,12 @@
         <el-button :icon="TrendCharts" @click="openStockPriceSnapshot">
           股價快照
         </el-button>
+        <el-button :icon="Wallet" @click="openInsuranceSnapshot">
+          解約金
+        </el-button>
+        <el-button :icon="House" @click="openEstateSnapshot">
+          房產估值
+        </el-button>
         <el-button type="warning" :loading="settling" @click="confirmSettle">
           執行月結
         </el-button>
@@ -234,6 +240,151 @@
       </el-form>
     </FormDialog>
 
+    <el-dialog v-model="insuranceSnapshotVisible" title="保單解約金" width="640px">
+      <p class="text-on-surface-variant/70 text-sm mb-3">
+        登錄各保單當月解約金（解約金表為契約已知值）。月結後會用此值取代「已繳保費」估算，反映保單實際增值。
+      </p>
+      <el-skeleton v-if="store.insuranceValuesLoading" :rows="3" animated />
+      <EmptyState
+        v-else-if="store.insuranceValues.length === 0"
+        message="尚無保單"
+      />
+      <el-table v-else :data="store.insuranceValues" border>
+        <el-table-column prop="insurance_name" label="保單" min-width="200" />
+        <el-table-column label="解約金" width="200" align="right">
+          <template #default="{ row }">
+            <MoneyDisplay
+              v-if="row.surrender_value !== null"
+              :amount="row.surrender_value"
+              size="sm"
+            />
+            <span v-else class="text-on-surface-variant/40">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="狀態" width="120" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.recorded" type="success" size="small" effect="plain">本月登錄</el-tag>
+            <el-tag v-else type="warning" size="small" effect="plain">待補</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="120" align="center">
+          <template #default="{ row }">
+            <el-button size="small" link :icon="Edit" @click="openInsuranceValueDialog(row)">
+              登錄
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
+
+    <FormDialog
+      v-model="insuranceValueDialogVisible"
+      title="登錄解約金"
+      :loading="insuranceValueSubmitting"
+      width="480px"
+      @submit="submitInsuranceValue"
+    >
+      <el-form ref="insuranceValueFormRef" :model="insuranceValueForm" :rules="insuranceValueRules" label-width="120px">
+        <el-form-item label="保單">
+          <span>{{ insuranceValueForm.insurance_name }}</span>
+        </el-form-item>
+        <el-form-item label="月份">
+          <span>{{ store.selectedMonth }}</span>
+        </el-form-item>
+        <el-form-item label="解約金" prop="surrender_value">
+          <el-input-number
+            v-model="insuranceValueForm.surrender_value"
+            :precision="2"
+            :min="0"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+    </FormDialog>
+
+    <el-dialog v-model="estateSnapshotVisible" title="房產估值" width="780px">
+      <div class="flex items-start justify-between gap-3 mb-3">
+        <p class="text-on-surface-variant/70 text-sm">
+          登錄各房產當月市值（來源：實價登錄同社區成交或銀行估價）。月結後會用此值取代購入成本。「建議市值」由內政部住宅價格指數（交易型、貼市值）推估＝成本×指數漲幅，可一鍵帶入後再修改；登錄值永遠優先。
+        </p>
+        <el-button
+          size="small"
+          :icon="Refresh"
+          :loading="refreshingIndex"
+          @click="refreshIndex"
+        >
+          更新指數
+        </el-button>
+      </div>
+      <el-skeleton v-if="store.estateValuesLoading" :rows="3" animated />
+      <EmptyState v-else-if="store.estateValues.length === 0" message="尚無房產" />
+      <el-table v-else :data="store.estateValues" border>
+        <el-table-column prop="estate_name" label="房產" min-width="150" />
+        <el-table-column label="市值" width="150" align="right">
+          <template #default="{ row }">
+            <MoneyDisplay
+              v-if="row.market_value !== null"
+              :amount="row.market_value"
+              size="sm"
+            />
+            <span v-else class="text-on-surface-variant/40">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="建議市值" width="190" align="right">
+          <template #default="{ row }">
+            <div
+              v-if="suggestedValueFor(row.estate_id) != null"
+              class="flex items-center justify-end gap-2"
+            >
+              <MoneyDisplay :amount="suggestedValueFor(row.estate_id) as number" size="sm" />
+              <el-button size="small" link type="primary" @click="applySuggestion(row)">
+                帶入
+              </el-button>
+            </div>
+            <span v-else class="text-on-surface-variant/40">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="狀態" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.recorded" type="success" size="small" effect="plain">本月登錄</el-tag>
+            <el-tag v-else type="warning" size="small" effect="plain">待補</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="90" align="center">
+          <template #default="{ row }">
+            <el-button size="small" link :icon="Edit" @click="openEstateValueDialog(row)">
+              登錄
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
+
+    <FormDialog
+      v-model="estateValueDialogVisible"
+      title="登錄房產市值"
+      :loading="estateValueSubmitting"
+      width="480px"
+      @submit="submitEstateValue"
+    >
+      <el-form ref="estateValueFormRef" :model="estateValueForm" :rules="estateValueRules" label-width="120px">
+        <el-form-item label="房產">
+          <span>{{ estateValueForm.estate_name }}</span>
+        </el-form-item>
+        <el-form-item label="月份">
+          <span>{{ store.selectedMonth }}</span>
+        </el-form-item>
+        <el-form-item label="市值" prop="market_value">
+          <el-input-number
+            v-model="estateValueForm.market_value"
+            :precision="2"
+            :min="0"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+    </FormDialog>
+
     <FormDialog
       v-model="journalDialogVisible"
       :title="formMode === 'create' ? '新增日記帳' : '編輯日記帳'"
@@ -419,7 +570,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import dayjs from 'dayjs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Plus, Edit, Delete, TrendCharts } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, TrendCharts, Wallet, House, Refresh } from '@element-plus/icons-vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -449,6 +600,8 @@ import {
   deleteJournal,
   settleMonth,
   uploadStockPrices,
+  upsertInsuranceValue,
+  upsertEstateValue,
 } from '@/api/cashFlow'
 import {
   getAccountSelections,
@@ -1246,12 +1399,161 @@ watch(
   () => store.selectedMonth,
   () => {
     void store.fetchStockPrices()
+    void store.fetchInsuranceValues()
+    void store.fetchEstateValues()
   },
 )
+
+// ─── Insurance surrender values (解約金) ─────────────────────────────────────
+const insuranceSnapshotVisible = ref(false)
+const insuranceValueDialogVisible = ref(false)
+const insuranceValueSubmitting = ref(false)
+const insuranceValueFormRef = ref<FormInstance>()
+
+interface InsuranceValueFormState {
+  insurance_id: string
+  insurance_name: string
+  surrender_value: number
+}
+
+const insuranceValueForm = ref<InsuranceValueFormState>({
+  insurance_id: '',
+  insurance_name: '',
+  surrender_value: 0,
+})
+
+const insuranceValueRules: FormRules = {
+  surrender_value: [{ required: true, message: '請輸入解約金', trigger: 'blur' }],
+}
+
+function openInsuranceSnapshot() {
+  insuranceSnapshotVisible.value = true
+  void store.fetchInsuranceValues()
+}
+
+function openInsuranceValueDialog(row: {
+  insurance_id: string
+  insurance_name: string
+  surrender_value: number | null
+}) {
+  insuranceValueForm.value = {
+    insurance_id: row.insurance_id,
+    insurance_name: row.insurance_name,
+    surrender_value: row.surrender_value ?? 0,
+  }
+  insuranceValueDialogVisible.value = true
+}
+
+async function submitInsuranceValue() {
+  if (!insuranceValueFormRef.value) return
+  const valid = await insuranceValueFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  insuranceValueSubmitting.value = true
+  try {
+    await upsertInsuranceValue({
+      insurance_id: insuranceValueForm.value.insurance_id,
+      vesting_month: store.selectedMonth,
+      surrender_value: insuranceValueForm.value.surrender_value,
+    })
+    ElMessage.success('解約金已登錄')
+    insuranceValueDialogVisible.value = false
+    await store.fetchInsuranceValues()
+  } finally {
+    insuranceValueSubmitting.value = false
+  }
+}
+
+// ─── Estate market values (房產估值) ─────────────────────────────────────────
+const estateSnapshotVisible = ref(false)
+const estateValueDialogVisible = ref(false)
+const estateValueSubmitting = ref(false)
+const estateValueFormRef = ref<FormInstance>()
+
+interface EstateValueFormState {
+  estate_id: string
+  estate_name: string
+  market_value: number
+}
+
+const estateValueForm = ref<EstateValueFormState>({
+  estate_id: '',
+  estate_name: '',
+  market_value: 0,
+})
+
+const estateValueRules: FormRules = {
+  market_value: [{ required: true, message: '請輸入市值', trigger: 'blur' }],
+}
+
+const refreshingIndex = ref(false)
+
+function openEstateSnapshot() {
+  estateSnapshotVisible.value = true
+  void store.fetchEstateValues()
+  void store.fetchEstateSuggestions()
+}
+
+function suggestedValueFor(estateId: string): number | null {
+  const s = store.estateSuggestions.find((x) => x.estate_id === estateId)
+  return s ? s.suggested_market_value : null
+}
+
+function applySuggestion(row: {
+  estate_id: string
+  estate_name: string
+  market_value: number | null
+}) {
+  openEstateValueDialog({ ...row, market_value: suggestedValueFor(row.estate_id) ?? row.market_value })
+}
+
+async function refreshIndex() {
+  refreshingIndex.value = true
+  try {
+    const res = await store.refreshEstateIndex()
+    if (res.ok) ElMessage.success(`指數已更新（${res.upserted} 季）`)
+    else ElMessage.warning('指數更新失敗，沿用既有資料')
+  } finally {
+    refreshingIndex.value = false
+  }
+}
+
+function openEstateValueDialog(row: {
+  estate_id: string
+  estate_name: string
+  market_value: number | null
+}) {
+  estateValueForm.value = {
+    estate_id: row.estate_id,
+    estate_name: row.estate_name,
+    market_value: row.market_value ?? 0,
+  }
+  estateValueDialogVisible.value = true
+}
+
+async function submitEstateValue() {
+  if (!estateValueFormRef.value) return
+  const valid = await estateValueFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  estateValueSubmitting.value = true
+  try {
+    await upsertEstateValue({
+      estate_id: estateValueForm.value.estate_id,
+      vesting_month: store.selectedMonth,
+      market_value: estateValueForm.value.market_value,
+    })
+    ElMessage.success('房產市值已登錄')
+    estateValueDialogVisible.value = false
+    await store.fetchEstateValues()
+  } finally {
+    estateValueSubmitting.value = false
+  }
+}
 
 onMounted(() => {
   store.fetchJournals()
   store.fetchStockPrices()
+  store.fetchInsuranceValues()
+  store.fetchEstateValues()
   void loadSpendWaySelections()
   void loadCodeTree()
   void loadChartTab(activeChartTab.value)

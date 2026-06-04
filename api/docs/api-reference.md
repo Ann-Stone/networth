@@ -23,6 +23,7 @@ Frontend tickets that touch a single resource (`/settings/accounts`, `/assets/st
 | `codes` | [api-reference/settings/codes.md](api-reference/settings/codes.md) | [openapi/settings/codes.json](openapi/settings/codes.json) | 4 |
 | `codes-tree` | [api-reference/settings/codes-tree.md](api-reference/settings/codes-tree.md) | [openapi/settings/codes-tree.json](openapi/settings/codes-tree.json) | 2 |
 | `credit-cards` | [api-reference/settings/credit-cards.md](api-reference/settings/credit-cards.md) | [openapi/settings/credit-cards.json](openapi/settings/credit-cards.json) | 4 |
+| `stock-categories` | [api-reference/settings/stock-categories.md](api-reference/settings/stock-categories.md) | [openapi/settings/stock-categories.json](openapi/settings/stock-categories.json) | 4 |
 | `sub-codes` | [api-reference/settings/sub-codes.md](api-reference/settings/sub-codes.md) | [openapi/settings/sub-codes.json](openapi/settings/sub-codes.json) | 3 |
 
 ### Monthly Report
@@ -30,6 +31,8 @@ Frontend tickets that touch a single resource (`/settings/accounts`, `/assets/st
 | Sub-router | Markdown | OpenAPI slice | Endpoints |
 | --- | --- | --- | --- |
 | `balance` | [api-reference/monthly-report/balance.md](api-reference/monthly-report/balance.md) | [openapi/monthly-report/balance.json](openapi/monthly-report/balance.json) | 1 |
+| `estate-values` | [api-reference/monthly-report/estate-values.md](api-reference/monthly-report/estate-values.md) | [openapi/monthly-report/estate-values.json](openapi/monthly-report/estate-values.json) | 4 |
+| `insurance-values` | [api-reference/monthly-report/insurance-values.md](api-reference/monthly-report/insurance-values.md) | [openapi/monthly-report/insurance-values.json](openapi/monthly-report/insurance-values.json) | 2 |
 | `journals` | [api-reference/monthly-report/journals.md](api-reference/monthly-report/journals.md) | [openapi/monthly-report/journals.json](openapi/monthly-report/journals.json) | 4 |
 | `journals-analytics` | [api-reference/monthly-report/journals-analytics.md](api-reference/monthly-report/journals-analytics.md) | [openapi/monthly-report/journals-analytics.json](openapi/monthly-report/journals-analytics.json) | 4 |
 | `journals-transactions` | [api-reference/monthly-report/journals-transactions.md](api-reference/monthly-report/journals-transactions.md) | [openapi/monthly-report/journals-transactions.json](openapi/monthly-report/journals-transactions.json) | 6 |
@@ -56,7 +59,14 @@ Frontend tickets that touch a single resource (`/settings/accounts`, `/assets/st
 | --- | --- | --- | --- |
 | `assets` | [api-reference/reports/assets.md](api-reference/reports/assets.md) | [openapi/reports/assets.json](openapi/reports/assets.json) | 1 |
 | `balance` | [api-reference/reports/balance.md](api-reference/reports/balance.md) | [openapi/reports/balance.json](openapi/reports/balance.json) | 1 |
+| `budget-variance` | [api-reference/reports/budget-variance.md](api-reference/reports/budget-variance.md) | [openapi/reports/budget-variance.json](openapi/reports/budget-variance.json) | 1 |
+| `cash-flow` | [api-reference/reports/cash-flow.md](api-reference/reports/cash-flow.md) | [openapi/reports/cash-flow.json](openapi/reports/cash-flow.json) | 1 |
 | `expenditure` | [api-reference/reports/expenditure.md](api-reference/reports/expenditure.md) | [openapi/reports/expenditure.json](openapi/reports/expenditure.json) | 1 |
+| `expenditure-composition` | [api-reference/reports/expenditure-composition.md](api-reference/reports/expenditure-composition.md) | [openapi/reports/expenditure-composition.json](openapi/reports/expenditure-composition.json) | 1 |
+| `expense-insights` | [api-reference/reports/expense-insights.md](api-reference/reports/expense-insights.md) | [openapi/reports/expense-insights.json](openapi/reports/expense-insights.json) | 1 |
+| `income-expense` | [api-reference/reports/income-expense.md](api-reference/reports/income-expense.md) | [openapi/reports/income-expense.json](openapi/reports/income-expense.json) | 1 |
+| `income-statement` | [api-reference/reports/income-statement.md](api-reference/reports/income-statement.md) | [openapi/reports/income-statement.json](openapi/reports/income-statement.json) | 1 |
+| `stock-allocation` | [api-reference/reports/stock-allocation.md](api-reference/reports/stock-allocation.md) | [openapi/reports/stock-allocation.json](openapi/reports/stock-allocation.json) | 1 |
 
 ### Dashboard
 
@@ -73,7 +83,7 @@ Frontend tickets that touch a single resource (`/settings/accounts`, `/assets/st
 | Sub-router | Markdown | OpenAPI slice | Endpoints |
 | --- | --- | --- | --- |
 | `import` | [api-reference/utilities/import.md](api-reference/utilities/import.md) | [openapi/utilities/import.json](openapi/utilities/import.json) | 3 |
-| `selections` | [api-reference/utilities/selections.md](api-reference/utilities/selections.md) | [openapi/utilities/selections.json](openapi/utilities/selections.json) | 9 |
+| `selections` | [api-reference/utilities/selections.md](api-reference/utilities/selections.md) | [openapi/utilities/selections.json](openapi/utilities/selections.json) | 10 |
 
 ### Health
 

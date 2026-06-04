@@ -8,7 +8,8 @@
             {
               "amount": -250000.0,
               "currency": "TWD",
-              "name": "Mortgage"
+              "name": "Mortgage",
+              "original_amount": -250000.0
             }
           ]
         },

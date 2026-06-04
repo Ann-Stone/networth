@@ -9,9 +9,11 @@
           "estate_name": "Condo",
           "estate_status": "live",
           "estate_type": "residential",
+          "fx_code": "TWD",
           "loan_id": "LN-001",
           "memo": "Primary residence",
-          "obtain_date": "20200101"
+          "obtain_date": "20200101",
+          "region": "臺北市"
         },
         "properties": {
           "asset_id": {
@@ -68,6 +70,15 @@
             "title": "Estate Type",
             "type": "string"
           },
+          "fx_code": {
+            "default": "TWD",
+            "description": "Currency code (TWD; USD/JPY/... for overseas property)",
+            "examples": [
+              "TWD"
+            ],
+            "title": "Fx Code",
+            "type": "string"
+          },
           "loan_id": {
             "anyOf": [
               {
@@ -105,6 +116,21 @@
             ],
             "title": "Obtain Date",
             "type": "string"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國",
+            "examples": [
+              "臺北市"
+            ],
+            "title": "Region"
           }
         },
         "required": [

@@ -24,8 +24,8 @@ def _journal(**overrides) -> Journal:
 
 
 def test_income_expense_monthly_happy(client: TestClient, session: Session) -> None:
-    session.add(_journal(action_main_type="Income", spending=5000.0))
-    session.add(_journal(action_main_type="Fixed", spending=-200.0))
+    session.add(_journal(action_main="I01", action_main_type="Income", spending=5000.0))
+    session.add(_journal(action_main="F01", action_main_type="Fixed", spending=-200.0))
     session.commit()
 
     r = client.get("/reports/income-expense/monthly?vesting_month=202604")

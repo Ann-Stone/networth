@@ -35,6 +35,7 @@ data (array item):
 | stock_name | string | yes | Stock display name |
 | asset_id | string | yes | Asset category ID |
 | expected_spend | number | yes | Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that) |
+| category_id |  | no | Allocation category id (references Stock_Category.category_id); null = unclassified |
 
 Example:
 
@@ -44,6 +45,7 @@ Example:
   "data": [
     {
       "asset_id": "AC-STK-001",
+      "category_id": "SC-001",
       "expected_spend": 10000.0,
       "stock_code": "AAPL",
       "stock_id": "STK-H-001",
@@ -79,6 +81,7 @@ Body:
 | stock_name | string | yes | Stock display name |
 | asset_id | string | yes | Asset category ID |
 | expected_spend | number | yes | Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that) |
+| category_id |  | no | Allocation category id (references Stock_Category.category_id); optional at creation |
 
 #### Response (200)
 
@@ -99,6 +102,7 @@ data:
 | stock_name | string | yes | Stock display name |
 | asset_id | string | yes | Asset category ID |
 | expected_spend | number | yes | Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that) |
+| category_id |  | no | Allocation category id (references Stock_Category.category_id); null = unclassified |
 
 Example:
 
@@ -107,6 +111,7 @@ Example:
   "status": 1,
   "data": {
     "asset_id": "AC-STK-001",
+    "category_id": "SC-001",
     "expected_spend": 10000.0,
     "stock_code": "AAPL",
     "stock_id": "STK-H-001",
@@ -184,6 +189,7 @@ Body:
 | stock_name |  | no | Stock display name |
 | asset_id |  | no | Asset category ID |
 | expected_spend |  | no | Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that) |
+| category_id |  | no | Allocation category id (references Stock_Category.category_id) |
 
 #### Response (200)
 
@@ -204,6 +210,7 @@ data:
 | stock_name | string | yes | Stock display name |
 | asset_id | string | yes | Asset category ID |
 | expected_spend | number | yes | Planned investment amount for this holding entry (one-shot purchase budget; not a recurring premium — see Insurance.expected_spend for that) |
+| category_id |  | no | Allocation category id (references Stock_Category.category_id); null = unclassified |
 
 Example:
 
@@ -212,6 +219,7 @@ Example:
   "status": 1,
   "data": {
     "asset_id": "AC-STK-001",
+    "category_id": "SC-001",
     "expected_spend": 10000.0,
     "stock_code": "AAPL",
     "stock_id": "STK-H-001",

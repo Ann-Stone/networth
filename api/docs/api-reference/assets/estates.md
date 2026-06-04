@@ -35,9 +35,11 @@ data (array item):
 | estate_type | string | yes | Estate type |
 | estate_address | string | yes | Physical address |
 | asset_id | string | yes | Asset category ID |
+| fx_code | string | no | Currency code (TWD; USD/JPY/... for overseas property) |
 | obtain_date | string | yes | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status | string | yes | Status |
+| region |  | no | House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國 |
 | memo |  | no | Free-form memo |
 
 Example:
@@ -53,9 +55,11 @@ Example:
       "estate_name": "Condo",
       "estate_status": "live",
       "estate_type": "residential",
+      "fx_code": "TWD",
       "loan_id": "LN-001",
       "memo": "Primary residence",
-      "obtain_date": "20200101"
+      "obtain_date": "20200101",
+      "region": "臺北市"
     }
   ],
   "msg": "success"
@@ -86,9 +90,11 @@ Body:
 | estate_type | string | yes | Estate type |
 | estate_address | string | yes | Physical address |
 | asset_id | string | yes | Asset category ID |
+| fx_code | string | no | Currency code (TWD; USD/JPY/... for overseas property) |
 | obtain_date | string | yes | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status | string (enum: 'idle', 'live', 'rent', 'sold') | yes | Status |
+| region |  | no | House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國 |
 | memo |  | no | Free-form memo |
 
 #### Response (200)
@@ -110,9 +116,11 @@ data:
 | estate_type | string | yes | Estate type |
 | estate_address | string | yes | Physical address |
 | asset_id | string | yes | Asset category ID |
+| fx_code | string | no | Currency code (TWD; USD/JPY/... for overseas property) |
 | obtain_date | string | yes | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status | string | yes | Status |
+| region |  | no | House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國 |
 | memo |  | no | Free-form memo |
 
 Example:
@@ -127,9 +135,11 @@ Example:
     "estate_name": "Condo",
     "estate_status": "live",
     "estate_type": "residential",
+    "fx_code": "TWD",
     "loan_id": "LN-001",
     "memo": "Primary residence",
-    "obtain_date": "20200101"
+    "obtain_date": "20200101",
+    "region": "臺北市"
   },
   "msg": "success"
 }
@@ -203,9 +213,11 @@ Body:
 | estate_type |  | no | Estate type |
 | estate_address |  | no | Physical address |
 | asset_id |  | no | Asset category ID |
+| fx_code |  | no | Currency code (TWD; USD/JPY/... for overseas property) |
 | obtain_date |  | no | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status |  | no | Status |
+| region |  | no | House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國 |
 | memo |  | no | Free-form memo |
 
 #### Response (200)
@@ -227,9 +239,11 @@ data:
 | estate_type | string | yes | Estate type |
 | estate_address | string | yes | Physical address |
 | asset_id | string | yes | Asset category ID |
+| fx_code | string | no | Currency code (TWD; USD/JPY/... for overseas property) |
 | obtain_date | string | yes | YYYYMMDD |
 | loan_id |  | no | Associated loan ID |
 | estate_status | string | yes | Status |
+| region |  | no | House-price-index 縣市 (全國/臺北市/新北市/桃園市/臺中市/臺南市/高雄市); null → 全國 |
 | memo |  | no | Free-form memo |
 
 Example:
@@ -244,9 +258,11 @@ Example:
     "estate_name": "Condo",
     "estate_status": "live",
     "estate_type": "residential",
+    "fx_code": "TWD",
     "loan_id": "LN-001",
     "memo": "Primary residence",
-    "obtain_date": "20200101"
+    "obtain_date": "20200101",
+    "region": "臺北市"
   },
   "msg": "success"
 }

@@ -9,6 +9,7 @@ import {
   getExpenditureReport,
   getExpenseInsights,
   getIncomeExpenseReport,
+  getIncomeStatement,
   getStockAllocation,
 } from '@/api/yearReport'
 import type {
@@ -20,6 +21,7 @@ import type {
   ExpenditureReport,
   ExpenseInsights,
   IncomeExpenseReport,
+  IncomeStatementReport,
   StockAllocationReport,
 } from '@/types/models'
 
@@ -72,6 +74,23 @@ export const useYearReportStore = defineStore('yearReport', () => {
       })
     } finally {
       incomeExpenseLoading.value = false
+    }
+  }
+
+  // Comprehensive income statement (本業/投資/綜合損益) — same anchor convention.
+  const incomeStatementReport = ref<IncomeStatementReport | null>(null)
+  const incomeStatementLoading = ref(false)
+  async function fetchIncomeStatement(type: string, year?: number) {
+    if (year != null) selectedYear.value = year
+    const anchorYear = year ?? selectedYear.value
+    const vestingMonth = `${anchorYear}12`
+    incomeStatementLoading.value = true
+    try {
+      incomeStatementReport.value = await getIncomeStatement(type, {
+        vesting_month: vestingMonth,
+      })
+    } finally {
+      incomeStatementLoading.value = false
     }
   }
 
@@ -171,6 +190,9 @@ export const useYearReportStore = defineStore('yearReport', () => {
     incomeExpenseReport,
     incomeExpenseLoading,
     fetchIncomeExpenseReport,
+    incomeStatementReport,
+    incomeStatementLoading,
+    fetchIncomeStatement,
     compositionReport,
     compositionLoading,
     fetchExpenditureComposition,

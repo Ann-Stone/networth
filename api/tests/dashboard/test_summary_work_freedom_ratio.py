@@ -30,8 +30,8 @@ def _journal(**kw) -> Journal:
 
 def test_work_freedom_ratio_happy_path_mixed(session: Session) -> None:
     """passive=3000, active=7000 → 0.3 (between 0 and 1)."""
-    session.add(_journal(vesting_month="202301", action_main_type="Income", spending=7000.0))
-    session.add(_journal(vesting_month="202301", action_main_type="Passive", spending=3000.0))
+    session.add(_journal(vesting_month="202301", action_main="I01", action_main_type="Income", spending=7000.0))
+    session.add(_journal(vesting_month="202301", action_main="P01", action_main_type="Passive", spending=3000.0))
     session.commit()
 
     summary = get_work_freedom_ratio_summary(session, "202301-202301")
@@ -74,13 +74,13 @@ def test_work_freedom_ratio_zero_everything(session: Session) -> None:
 
 def test_work_freedom_ratio_breakdown_matches_per_month_sums(session: Session) -> None:
     """Per-month breakdown keys equal the raw sums for that month."""
-    session.add(_journal(vesting_month="202301", action_main_type="Income", spending=1000.0))
-    session.add(_journal(vesting_month="202301", action_main_type="Passive", spending=500.0))
-    session.add(_journal(vesting_month="202302", action_main_type="Income", spending=2000.0))
-    session.add(_journal(vesting_month="202302", action_main_type="Passive", spending=2000.0))
+    session.add(_journal(vesting_month="202301", action_main="I01", action_main_type="Income", spending=1000.0))
+    session.add(_journal(vesting_month="202301", action_main="P01", action_main_type="Passive", spending=500.0))
+    session.add(_journal(vesting_month="202302", action_main="I01", action_main_type="Income", spending=2000.0))
+    session.add(_journal(vesting_month="202302", action_main="P01", action_main_type="Passive", spending=2000.0))
     # Floating / Fixed rows must not pollute either bucket.
-    session.add(_journal(vesting_month="202301", action_main_type="Floating", spending=-300.0))
-    session.add(_journal(vesting_month="202302", action_main_type="Fixed", spending=-800.0))
+    session.add(_journal(vesting_month="202301", action_main="FL01", action_main_type="Floating", spending=-300.0))
+    session.add(_journal(vesting_month="202302", action_main="F01", action_main_type="Fixed", spending=-800.0))
     session.commit()
 
     summary = get_work_freedom_ratio_summary(session, "202301-202302")

@@ -80,24 +80,24 @@
     },
     "/utilities/import/invoices": {
       "post": {
-        "description": "Kicks off a background task that parses the configured pipe-delimited invoice CSV and inserts deduplicated journal rows.",
+        "description": "Parses an uploaded pipe-delimited invoice CSV and inserts deduplicated journal rows. Runs synchronously and returns the import counts.",
         "operationId": "trigger_invoice_import_utilities_import_invoices_post",
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/ImportRequest"
+                "$ref": "#/components/schemas/Body_trigger_invoice_import_utilities_import_invoices_post"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "202": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse_ImportAcceptedResponse_"
+                  "$ref": "#/components/schemas/ApiResponse_InvoiceImportResult_"
                 }
               }
             },
@@ -144,7 +144,7 @@
             "description": "Unhandled server error — wrapped by global exception handler"
           }
         },
-        "summary": "Import government invoice CSV",
+        "summary": "Import an uploaded government invoice CSV",
         "tags": [
           "utilities",
           "utilities:imports"
@@ -227,8 +227,13 @@
   },
   "x-schema-files": [
     "schemas/ApiResponse_ImportAcceptedResponse_.json",
+    "schemas/ApiResponse_InvoiceImportResult_.json",
+    "schemas/Body_trigger_invoice_import_utilities_import_invoices_post.json",
     "schemas/ImportAcceptedResponse.json",
-    "schemas/ImportRequest.json"
+    "schemas/ImportRequest.json",
+    "schemas/InvoiceImportError.json",
+    "schemas/InvoiceImportMonth.json",
+    "schemas/InvoiceImportResult.json"
   ],
   "x-shared-file": "_shared.json"
 }

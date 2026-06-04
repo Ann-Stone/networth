@@ -10,6 +10,7 @@ from app.routers.reports.expenditure_composition import (
 )
 from app.routers.reports.expense_insights import router as expense_insights_router
 from app.routers.reports.income_expense import router as income_expense_router
+from app.routers.reports.income_statement import router as income_statement_router
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 router.include_router(balance_router)
@@ -19,4 +20,5 @@ router.include_router(expenditure_router)
 router.include_router(expenditure_composition_router)
 router.include_router(expense_insights_router)
 router.include_router(income_expense_router)
+router.include_router(income_statement_router)
 router.include_router(assets_router)

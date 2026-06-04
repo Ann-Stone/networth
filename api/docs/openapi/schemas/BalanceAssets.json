@@ -7,7 +7,8 @@
             {
               "amount": 123456.78,
               "currency": "TWD",
-              "name": "Cathay Bank"
+              "name": "Cathay Bank",
+              "original_amount": 123456.78
             }
           ],
           "estates": [],
