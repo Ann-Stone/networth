@@ -31,8 +31,9 @@ data:
 
 | name | type | required | description |
 | --- | --- | --- | --- |
-| activities | array<CashFlowActivity> | yes | [operating, investing, financing] in order |
-| net_change | number | yes | Sum of the three activities' net flows (overall change in cash) |
+| type | string (enum: 'monthly', 'yearly') | yes | Aggregation granularity |
+| points | array<CashFlowPoint> | yes | Per-period cash-flow series, oldest first |
+| summary | CashFlowSummary | yes | Window-level activity breakdown + overall net change |
 
 Example:
 
@@ -40,24 +41,36 @@ Example:
 {
   "status": 1,
   "data": {
-    "activities": [
+    "points": [
       {
-        "items": [
-          {
-            "amount": 960000.0,
-            "label": "收入"
-          },
-          {
-            "amount": -516000.0,
-            "label": "生活支出"
-          }
-        ],
-        "key": "operating",
-        "label": "生活",
-        "net": 444000.0
+        "financing": -7000.0,
+        "investing": -15000.0,
+        "net_change": 15000.0,
+        "operating": 37000.0,
+        "period": "202403"
       }
     ],
-    "net_change": 123000.0
+    "summary": {
+      "activities": [
+        {
+          "items": [
+            {
+              "amount": 960000.0,
+              "label": "收入"
+            },
+            {
+              "amount": -516000.0,
+              "label": "生活支出"
+            }
+          ],
+          "key": "operating",
+          "label": "生活",
+          "net": 444000.0
+        }
+      ],
+      "net_change": 123000.0
+    },
+    "type": "monthly"
   },
   "msg": "success"
 }

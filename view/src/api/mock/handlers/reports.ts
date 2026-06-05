@@ -6,6 +6,7 @@ import type {
   BudgetVariance,
   BudgetVarianceRow,
   CashFlow,
+  CashFlowPoint,
   ExpenditureCategoryNode,
   ExpenditureComposition,
   ExpenditureReport,
@@ -258,41 +259,81 @@ function budgetVariance(year: string): BudgetVariance {
   }
 }
 
-function cashFlow(): CashFlow {
-  const income = 867291
-  const living = -456000
-  const interest = -38000
-  const investNet = -180000
-  const borrow = 0
-  const principal = -84000
-  const operating = income + living + interest
-  const financing = borrow + principal
+function cashFlowSeries(type: string, vestingMonth: string): CashFlow {
+  const baseYear = Number(vestingMonth.slice(0, 4))
+  const points: CashFlowPoint[] = []
+  let sIncome = 0
+  let sLiving = 0
+  let sInterest = 0
+  let sInvesting = 0
+  let sPrincipal = 0
+  const make = (period: string, i: number, scale: number): CashFlowPoint => {
+    const income = Math.round((72000 + Math.sin(i) * 8000) * scale)
+    const living = -Math.round((40000 + Math.abs(Math.sin(i * 1.3)) * 9000) * scale)
+    const interest = -Math.round(3000 * scale)
+    const investing = Math.round(Math.sin(i * 0.7) * 15000 * scale)
+    const principal = -Math.round(7000 * scale)
+    sIncome += income
+    sLiving += living
+    sInterest += interest
+    sInvesting += investing
+    sPrincipal += principal
+    const operating = income + living + interest
+    return {
+      period,
+      operating,
+      investing,
+      financing: principal,
+      net_change: operating + investing + principal,
+    }
+  }
+  if (type === 'yearly') {
+    for (let i = 2; i >= 0; i--) {
+      points.push(make(String(baseYear - i), i, 12))
+    }
+  } else {
+    let y = baseYear
+    let m = Number(vestingMonth.slice(4, 6))
+    for (let i = 0; i < 12; i++) {
+      points.unshift(make(`${y}${String(m).padStart(2, '0')}`, i, 1))
+      m -= 1
+      if (m === 0) {
+        m = 12
+        y -= 1
+      }
+    }
+  }
+  const operatingNet = sIncome + sLiving + sInterest
   return {
-    activities: [
-      {
-        key: 'operating',
-        label: '生活',
-        net: operating,
-        items: [
-          { label: '收入', amount: income },
-          { label: '生活支出', amount: living },
-          { label: '貸款利息', amount: interest },
-        ],
-      },
-      {
-        key: 'investing',
-        label: '投資',
-        net: investNet,
-        items: [{ label: '投資淨額', amount: investNet }],
-      },
-      {
-        key: 'financing',
-        label: '債務',
-        net: financing,
-        items: [{ label: '償還本金', amount: principal }],
-      },
-    ],
-    net_change: operating + investNet + financing,
+    type,
+    points,
+    summary: {
+      activities: [
+        {
+          key: 'operating',
+          label: '生活',
+          net: operatingNet,
+          items: [
+            { label: '收入', amount: sIncome },
+            { label: '生活支出', amount: sLiving },
+            { label: '貸款利息', amount: sInterest },
+          ],
+        },
+        {
+          key: 'investing',
+          label: '投資',
+          net: sInvesting,
+          items: [{ label: '投資淨額', amount: sInvesting }],
+        },
+        {
+          key: 'financing',
+          label: '債務',
+          net: sPrincipal,
+          items: [{ label: '償還本金', amount: sPrincipal }],
+        },
+      ],
+      net_change: operatingNet + sInvesting + sPrincipal,
+    },
   }
 }
 
@@ -360,7 +401,11 @@ export const reportsHandlers = [
   http.get('*/reports/budget-variance/:year', ({ params }) =>
     ok(budgetVariance(String(params.year))),
   ),
-  http.get('*/reports/cash-flow/:type', () => ok(cashFlow())),
+  http.get('*/reports/cash-flow/:type', ({ params, request }) => {
+    const url = new URL(request.url)
+    const month = url.searchParams.get('vesting_month') ?? '202612'
+    return ok(cashFlowSeries(String(params.type), month))
+  }),
   http.get('*/reports/expense-insights/:year', ({ params }) =>
     ok(expenseInsights(String(params.year))),
   ),

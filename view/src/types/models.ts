@@ -820,9 +820,23 @@ export interface CashFlowActivity {
   items: CashFlowItem[]
 }
 
-export interface CashFlow {
+export interface CashFlowPoint {
+  period: string                // YYYYMM or YYYY
+  operating: number             // 生活 net (income - living - loan interest), signed
+  investing: number             // 投資 net (buy negative, sell positive), signed
+  financing: number             // 債務 net (new borrowing - principal repayment), signed
+  net_change: number            // operating + investing + financing, signed
+}
+
+export interface CashFlowSummary {
   activities: CashFlowActivity[]
   net_change: number
+}
+
+export interface CashFlow {
+  type: string                  // 'monthly' | 'yearly'
+  points: CashFlowPoint[]
+  summary: CashFlowSummary
 }
 
 export interface YoYRow {

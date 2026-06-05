@@ -16,7 +16,9 @@ from app.models.reports.budget_variance import (
 from app.models.reports.cash_flow import (
     CashFlowActivity,
     CashFlowItem,
+    CashFlowPoint,
     CashFlowRead,
+    CashFlowSummary,
 )
 from app.models.reports.expense_insights import (
     ExpenseInsightsRead,
@@ -74,7 +76,7 @@ def test_budget_variance_schema_example() -> None:
 
 
 def test_cash_flow_schema_example() -> None:
-    for cls in (CashFlowItem, CashFlowActivity, CashFlowRead):
+    for cls in (CashFlowItem, CashFlowActivity, CashFlowPoint, CashFlowSummary, CashFlowRead):
         _has_example_and_field_docs(cls)
 
 

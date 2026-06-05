@@ -212,7 +212,7 @@
         <template v-else>
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <MetricCard
-              v-for="act in cashFlow.activities"
+              v-for="act in cashFlow.summary.activities"
               :key="act.key"
               :label="act.label"
               :amount="act.net"
@@ -221,8 +221,8 @@
             />
             <MetricCard
               label="淨現金變化"
-              :amount="cashFlow.net_change"
-              :tone="cashFlow.net_change < 0 ? 'rose' : 'primary'"
+              :amount="cashFlow.summary.net_change"
+              :tone="cashFlow.summary.net_change < 0 ? 'rose' : 'primary'"
             />
           </div>
           <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
@@ -424,7 +424,7 @@ function usageStatus(rate: number): 'exception' | 'warning' | undefined {
 const cashFlow = computed(() => store.cashFlowReport)
 
 const waterfallItems = computed(() =>
-  (store.cashFlowReport?.activities ?? []).map((a) => ({ name: a.label, value: a.net })),
+  (store.cashFlowReport?.summary.activities ?? []).map((a) => ({ name: a.label, value: a.net })),
 )
 
 function cfTooltip(act: CashFlowActivity): string {

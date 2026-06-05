@@ -22,7 +22,7 @@ const router = createRouter({
           path: 'monthly-report/cash-flow',
           name: 'CashFlow',
           component: () => import('@/views/monthly-report/CashFlowView.vue'),
-          meta: { title: '月度現金流', breadcrumb: ['月報', '現金流'] },
+          meta: { title: '月度帳務', breadcrumb: ['月報', '月度帳務'] },
         },
         // Year Report
         {
@@ -36,6 +36,12 @@ const router = createRouter({
           name: 'IncomeStatement',
           component: () => import('@/views/year-report/IncomeStatementView.vue'),
           meta: { title: '損益表', breadcrumb: ['年報', '損益表'] },
+        },
+        {
+          path: 'year-report/cash-flow-statement',
+          name: 'CashFlowStatement',
+          component: () => import('@/views/year-report/CashFlowStatementView.vue'),
+          meta: { title: '現金流量表', breadcrumb: ['年報', '現金流量表'] },
         },
         {
           path: 'year-report/spending',

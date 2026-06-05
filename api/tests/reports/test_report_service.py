@@ -608,12 +608,19 @@ def test_cash_flow_golden(session: Session) -> None:
     session.commit()
 
     cf = get_cash_flow(session, "monthly", "202612")
-    assert [a.key for a in cf.activities] == ["operating", "investing", "financing"]
-    acts = {a.key: a for a in cf.activities}
+    assert cf.type == "monthly"
+    assert [a.key for a in cf.summary.activities] == ["operating", "investing", "financing"]
+    acts = {a.key: a for a in cf.summary.activities}
     assert acts["operating"].net == 3200.0  # 5000 - 1000 - 500 - 300
     assert acts["investing"].net == -800.0
     assert acts["financing"].net == -2000.0
-    assert cf.net_change == 400.0
+    assert cf.summary.net_change == 400.0
+    # Per-period: 202603 holds income/expense/interest/principal; 202604 the buy.
+    pt = {p.period: p for p in cf.points}
+    assert pt["202603"].operating == 3200.0
+    assert pt["202603"].financing == -2000.0
+    assert pt["202604"].investing == -800.0
+    assert round(sum(p.net_change for p in cf.points), 2) == cf.summary.net_change
 
 
 def test_cash_flow_excludes_transfer_and_handles_borrowing(session: Session) -> None:
@@ -623,9 +630,9 @@ def test_cash_flow_excludes_transfer_and_handles_borrowing(session: Session) -> 
     session.commit()
 
     cf = get_cash_flow(session, "monthly", "202612")
-    fin = {a.key: a for a in cf.activities}["financing"]
+    fin = {a.key: a for a in cf.summary.activities}["financing"]
     assert fin.net == 96000.0  # 100000 borrowed − 4000 repaid
-    assert cf.net_change == 96000.0  # transfer contributes nothing
+    assert cf.summary.net_change == 96000.0  # transfer contributes nothing
 
 
 # ---------- Ticket 5: YoY + largest transactions ----------

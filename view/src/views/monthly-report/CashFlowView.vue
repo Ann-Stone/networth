@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-8">
-    <PageHeader title="月度現金流" :subtitle="store.selectedMonth">
+    <PageHeader title="月度帳務" :subtitle="store.selectedMonth">
       <template #actions>
         <el-date-picker
           v-model="selectedMonthDate"

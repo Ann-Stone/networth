@@ -102,7 +102,9 @@
     "schemas/ApiResponse_CashFlowRead_.json",
     "schemas/CashFlowActivity.json",
     "schemas/CashFlowItem.json",
-    "schemas/CashFlowRead.json"
+    "schemas/CashFlowPoint.json",
+    "schemas/CashFlowRead.json",
+    "schemas/CashFlowSummary.json"
   ],
   "x-shared-file": "_shared.json"
 }

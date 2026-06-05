@@ -41,7 +41,9 @@ from app.models.reports.budget_variance import (
 from app.models.reports.cash_flow import (
     CashFlowActivity,
     CashFlowItem,
+    CashFlowPoint,
     CashFlowRead,
+    CashFlowSummary,
 )
 from app.models.reports.expense_insights import (
     ExpenseInsightsRead,
@@ -859,7 +861,7 @@ def get_cash_flow(
     type: Literal["monthly", "yearly"],
     vesting_month: str,
 ) -> CashFlowRead:
-    """Personal cash-flow statement split into 生活 / 投資 / 債務.
+    """Personal cash-flow statement split into 生活 / 投資 / 債務, per period.
 
     - 生活 (operating): income (+) − living expenses (Fixed/Floating, −) − loan
       interest/fee (from LoanJournal, −).
@@ -872,59 +874,92 @@ def get_cash_flow(
     outflow — settlement is a balance snapshot, not re-counted. Loan servicing is
     sourced solely from LoanJournal (it is not duplicated as main-Journal rows),
     so interest and principal are never double-counted. All amounts FX-converted.
+
+    Returns a per-period series (``points``) plus a window ``summary``. Cash flow
+    is a pure signed sum — no floor / cross-month netting — so each period is
+    independent and the summary equals the sum of the points.
     """
-    _, _, start_vm, end_vm = _period_window(type, vesting_month)
+    periods, bucket_of, start_vm, end_vm = _period_window(type, vesting_month)
     journals = list_journals_by_range(session, start_vm, end_vm)
     fx_cache: dict[tuple[str, str], float] = {}
 
-    income = 0.0
-    living = 0.0  # signed (negative)
-    investing = 0.0  # signed
+    income = {p: 0.0 for p in periods}
+    living = {p: 0.0 for p in periods}  # signed (negative)
+    investing = {p: 0.0 for p in periods}  # signed
     for j in journals:
+        b = bucket_of(j.vesting_month)
+        if b not in income:
+            continue
         t = _norm_type(j.action_main_type)
         amount = journal_amount_twd(session, j, fx_cache)
         if t in INCOME_MAIN_TYPES:
-            income += amount
+            income[b] += amount
         elif t in EXPENSE_MAIN_TYPES:
-            living += amount
+            living[b] += amount
         elif t in INVEST_MAIN_TYPES:
-            investing += amount
+            investing[b] += amount
         # transfer excluded
 
     loan_by_id = {loan.loan_id: loan for loan in session.exec(select(Loan)).all()}
-    loan_interest = 0.0
-    principal = 0.0
-    increment = 0.0
+    loan_interest = {p: 0.0 for p in periods}
+    principal = {p: 0.0 for p in periods}
+    increment = {p: 0.0 for p in periods}
     for lr in session.exec(select(LoanJournal)).all():
         month = (lr.excute_date or "")[:6]
         if not (start_vm <= month <= end_vm):
             continue
+        b = bucket_of(month)
+        if b not in loan_interest:
+            continue
         magnitude = _loanjournal_amount_twd(session, lr, loan_by_id, fx_cache)
         et = (lr.loan_excute_type or "").strip().lower()
         if et in {"interest", "fee"}:
-            loan_interest += magnitude
+            loan_interest[b] += magnitude
         elif et == "principal":
-            principal += magnitude
+            principal[b] += magnitude
         elif et == "increment":
-            increment += magnitude
+            increment[b] += magnitude
 
-    operating_net = round(income + living - loan_interest, 2)
-    investing_net = round(investing, 2)
-    financing_net = round(increment - principal, 2)
+    points: list[CashFlowPoint] = []
+    for p in periods:
+        op = round(income[p] + living[p] - loan_interest[p], 2)
+        inv = round(investing[p], 2)
+        fin = round(increment[p] - principal[p], 2)
+        points.append(
+            CashFlowPoint(
+                period=p,
+                operating=op,
+                investing=inv,
+                financing=fin,
+                net_change=round(op + inv + fin, 2),
+            )
+        )
+
+    # ---- Window summary: net each component across the whole window ----
+    s_income = round(sum(income.values()), 2)
+    s_living = round(sum(living.values()), 2)
+    s_investing = round(sum(investing.values()), 2)
+    s_interest = round(sum(loan_interest.values()), 2)
+    s_principal = round(sum(principal.values()), 2)
+    s_increment = round(sum(increment.values()), 2)
+
+    operating_net = round(s_income + s_living - s_interest, 2)
+    investing_net = s_investing
+    financing_net = round(s_increment - s_principal, 2)
     net_change = round(operating_net + investing_net + financing_net, 2)
 
     operating_items = [
-        CashFlowItem(label="收入", amount=round(income, 2)),
-        CashFlowItem(label="生活支出", amount=round(living, 2)),
+        CashFlowItem(label="收入", amount=s_income),
+        CashFlowItem(label="生活支出", amount=s_living),
     ]
-    if loan_interest:
-        operating_items.append(CashFlowItem(label="貸款利息", amount=round(-loan_interest, 2)))
+    if s_interest:
+        operating_items.append(CashFlowItem(label="貸款利息", amount=round(-s_interest, 2)))
 
     financing_items: list[CashFlowItem] = []
-    if increment:
-        financing_items.append(CashFlowItem(label="新增借款", amount=round(increment, 2)))
-    if principal:
-        financing_items.append(CashFlowItem(label="償還本金", amount=round(-principal, 2)))
+    if s_increment:
+        financing_items.append(CashFlowItem(label="新增借款", amount=s_increment))
+    if s_principal:
+        financing_items.append(CashFlowItem(label="償還本金", amount=round(-s_principal, 2)))
 
     activities = [
         CashFlowActivity(
@@ -934,13 +969,14 @@ def get_cash_flow(
             key="investing",
             label="投資",
             net=investing_net,
-            items=[CashFlowItem(label="投資淨額", amount=round(investing, 2))],
+            items=[CashFlowItem(label="投資淨額", amount=s_investing)],
         ),
         CashFlowActivity(
             key="financing", label="債務", net=financing_net, items=financing_items
         ),
     ]
-    return CashFlowRead(activities=activities, net_change=net_change)
+    summary = CashFlowSummary(activities=activities, net_change=net_change)
+    return CashFlowRead(type=type, points=points, summary=summary)
 
 
 def _pay_way_name(session: Session, journal: Journal) -> str:

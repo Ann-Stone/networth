@@ -104,7 +104,7 @@ const menuItems = [
     label: '月報',
     icon: TrendCharts,
     children: [
-      { name: 'cashFlow', label: '現金流', path: '/monthly-report/cash-flow' },
+      { name: 'cashFlow', label: '月度帳務', path: '/monthly-report/cash-flow' },
     ],
   },
   {
@@ -115,6 +115,7 @@ const menuItems = [
     children: [
       { name: 'balanceSheet', label: '資產負債表', path: '/year-report/balance-sheet' },
       { name: 'incomeStatement', label: '損益表', path: '/year-report/income-statement' },
+      { name: 'cashFlowStatement', label: '現金流量表', path: '/year-report/cash-flow-statement' },
       { name: 'spending', label: '年度支出', path: '/year-report/spending' },
       { name: 'assets', label: '資產概覽', path: '/year-report/assets' },
     ],
