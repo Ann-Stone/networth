@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
@@ -5,7 +6,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.config import settings
 from app.database import create_db_and_tables
+from app.services.import_service import startup_catch_up
 from app.routers.assets import router as assets_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.health import router as health_router
@@ -18,8 +21,14 @@ from app.schemas.response import ApiError
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Create database tables on startup."""
+    """Create database tables, then fire the month-end backfill in the background."""
     create_db_and_tables()
+    if settings.enable_startup_catch_up:
+        # Run off the event loop so slow FX/stock fetches never block startup.
+        # Keep a reference so the task is not garbage-collected mid-flight.
+        app.state.catch_up_task = asyncio.create_task(
+            asyncio.to_thread(startup_catch_up)
+        )
     yield
 
 

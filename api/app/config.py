@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     debug: bool = True
     port: int = 9528
     database_url: str = "sqlite:///~/.networth/networth.db"
+    # Run the FX/stock month-end backfill on startup (disabled in tests).
+    enable_startup_catch_up: bool = True
 
     invoice_card_no: str = ""
     invoice_password: str = ""

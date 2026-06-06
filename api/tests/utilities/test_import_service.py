@@ -1,6 +1,7 @@
 """Service-layer tests for import_service."""
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -56,6 +57,17 @@ def test_yfinance_ticker_heuristic() -> None:
     assert svc._yfinance_ticker("AAPL") == "AAPL"
 
 
+def test_period_to_range_spans_month() -> None:
+    # end is the first of the next month (yfinance treats end as exclusive).
+    assert svc._period_to_range("202601") == ("2026-01-01", "2026-02-01")
+    assert svc._period_to_range("202612") == ("2026-12-01", "2027-01-01")
+
+
+def test_last_completed_month_is_six_digit_yyyymm() -> None:
+    out = svc._last_completed_month()
+    assert len(out) == 6 and out.isdigit()
+
+
 # ---------- Stock price import ----------
 
 
@@ -92,6 +104,21 @@ def _patch_yfinance(monkeypatch, frame):
             return frame
 
     monkeypatch.setitem(__import__("sys").modules, "yfinance", _Yf)
+
+
+def _patch_yfinance_capture(monkeypatch, frame) -> dict:
+    """Like :func:`_patch_yfinance` but records the last ``download()`` call args."""
+    calls: dict = {}
+
+    class _Yf:
+        @staticmethod
+        def download(*args, **kwargs):
+            calls["args"] = args
+            calls["kwargs"] = kwargs
+            return frame
+
+    monkeypatch.setitem(__import__("sys").modules, "yfinance", _Yf)
+    return calls
 
 
 def test_import_stock_prices_upserts_and_skips_duplicates(
@@ -138,6 +165,63 @@ def test_import_stock_prices_upserts_and_skips_duplicates(
     ).all()
     assert len(rows) == 1
     assert rows[0].close_price == 112.0
+
+
+def test_import_stock_prices_fetches_month_history(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A period fetches that month's range; the last bar is stored at month-end."""
+    session.add(
+        StockJournal(
+            stock_id="STK1", stock_code="AAPL", stock_name="Apple",
+            asset_id="AS1", expected_spend=0.0,
+        )
+    )
+    session.commit()
+
+    frame = _FakeFrame([{"Open": 90.0, "High": 95.0, "Low": 88.0, "Close": 93.0}])
+    calls = _patch_yfinance_capture(monkeypatch, frame)
+    monkeypatch.setattr(svc, "engine", session.get_bind())
+
+    svc.import_stock_prices("202601")
+
+    # Historical window, not period="1d".
+    assert calls["kwargs"].get("start") == "2026-01-01"
+    assert calls["kwargs"].get("end") == "2026-02-01"
+    assert "period" not in calls["kwargs"]
+
+    row = session.exec(
+        select(StockPriceHistory).where(StockPriceHistory.stock_code == "AAPL")
+    ).first()
+    assert row is not None
+    assert row.fetch_date == "20260131"
+    assert row.close_price == 93.0
+
+
+def test_import_stock_prices_empty_period_uses_latest(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    session.add(
+        StockJournal(
+            stock_id="STK1", stock_code="AAPL", stock_name="Apple",
+            asset_id="AS1", expected_spend=0.0,
+        )
+    )
+    session.commit()
+
+    frame = _FakeFrame([{"Open": 1.0, "High": 1.0, "Low": 1.0, "Close": 7.0}])
+    calls = _patch_yfinance_capture(monkeypatch, frame)
+    monkeypatch.setattr(svc, "engine", session.get_bind())
+
+    svc.import_stock_prices("")
+
+    assert calls["kwargs"].get("period") == "1d"
+    assert "start" not in calls["kwargs"]
+    row = session.exec(
+        select(StockPriceHistory).where(StockPriceHistory.stock_code == "AAPL")
+    ).first()
+    assert row is not None
+    assert row.fetch_date == svc._period_to_last_day("")
 
 
 # ---------- FX rate import ----------
@@ -195,6 +279,39 @@ def test_import_fx_rates_idempotent(
     assert len(rows) == 2
 
 
+def test_import_fx_rates_current_month_uses_today(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Importing the ongoing month stores today's real date, not a fake month-end."""
+    today = date.today()
+    payload = {"SubInfo": [{"DataValue4": "USD", "DataValue2": "31.50"}]}
+    import httpx
+
+    monkeypatch.setattr(httpx, "Client", lambda **kw: _FakeClient(payload))
+    monkeypatch.setattr(svc, "engine", session.get_bind())
+
+    svc.import_fx_rates(today.strftime("%Y%m"))
+    rows = session.exec(select(FXRate)).all()
+    assert len(rows) == 1
+    assert rows[0].import_date == today.strftime("%Y%m%d")
+
+
+def test_import_fx_rates_past_month_clamps_to_month_end(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A past period still clamps to that month-end (Sinopac has no history)."""
+    payload = {"SubInfo": [{"DataValue4": "USD", "DataValue2": "30.00"}]}
+    import httpx
+
+    monkeypatch.setattr(httpx, "Client", lambda **kw: _FakeClient(payload))
+    monkeypatch.setattr(svc, "engine", session.get_bind())
+
+    svc.import_fx_rates("202001")  # safely in the past relative to any test run
+    rows = session.exec(select(FXRate)).all()
+    assert len(rows) == 1
+    assert rows[0].import_date == "20200131"
+
+
 def test_fx_upsert_is_idempotent(session: Session) -> None:
     svc._upsert_fx(session, "20260131", "USD", 31.5)
     session.commit()
@@ -203,6 +320,195 @@ def test_fx_upsert_is_idempotent(session: Session) -> None:
     rows = session.exec(select(FXRate)).all()
     assert len(rows) == 1
     assert rows[0].buy_rate == 31.6
+
+
+# ---------- Startup catch-up ----------
+
+
+def test_catch_up_fx_stores_today_then_skips(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    payload = {"SubInfo": [{"DataValue4": "USD", "DataValue2": "31.50"}]}
+    import httpx
+
+    monkeypatch.setattr(httpx, "Client", lambda **kw: _FakeClient(payload))
+    monkeypatch.setattr(svc, "engine", session.get_bind())
+
+    svc._catch_up_fx()
+
+    today = date.today().strftime("%Y%m%d")
+    rows = session.exec(select(FXRate)).all()
+    assert len(rows) == 1
+    assert rows[0].import_date == today  # true date, not a month-end relabel
+    assert rows[0].buy_rate == 31.5
+
+    # Second run the same day: today's row already exists → no fetch.
+    calls = {"n": 0}
+    real = svc._fetch_and_store_fx
+
+    def _spy(import_date: str) -> None:
+        calls["n"] += 1
+        real(import_date)
+
+    monkeypatch.setattr(svc, "_fetch_and_store_fx", _spy)
+    svc._catch_up_fx()
+    assert calls["n"] == 0
+    assert len(session.exec(select(FXRate)).all()) == 1
+
+
+def test_catch_up_stock_only_fetches_missing(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    period = svc._last_completed_month()
+    fetch_date = svc._period_to_last_day(period)
+    for code in ("AAPL", "MSFT"):
+        session.add(
+            StockJournal(
+                stock_id=f"STK-{code}", stock_code=code, stock_name=code,
+                asset_id="AS1", expected_spend=0.0,
+            )
+        )
+    # AAPL already has last month's row → it must be left untouched.
+    session.add(
+        StockPriceHistory(
+            stock_code="AAPL", fetch_date=fetch_date,
+            open_price=10.0, highest_price=10.0, lowest_price=10.0, close_price=10.0,
+        )
+    )
+    session.commit()
+
+    frame = _FakeFrame([{"Open": 50.0, "High": 50.0, "Low": 50.0, "Close": 50.0}])
+    _patch_yfinance_capture(monkeypatch, frame)
+    monkeypatch.setattr(svc, "engine", session.get_bind())
+
+    svc._catch_up_stock()
+    session.expire_all()
+
+    aapl = session.exec(
+        select(StockPriceHistory).where(
+            StockPriceHistory.stock_code == "AAPL",
+            StockPriceHistory.fetch_date == fetch_date,
+        )
+    ).first()
+    assert aapl is not None and aapl.close_price == 10.0  # untouched
+
+    msft = session.exec(
+        select(StockPriceHistory).where(
+            StockPriceHistory.stock_code == "MSFT",
+            StockPriceHistory.fetch_date == fetch_date,
+        )
+    ).first()
+    assert msft is not None and msft.close_price == 50.0  # freshly fetched
+
+
+def test_startup_catch_up_runs_steps_in_order(monkeypatch: pytest.MonkeyPatch) -> None:
+    ran: list[str] = []
+    monkeypatch.setattr(svc, "_catch_up_fx", lambda: ran.append("fx"))
+    monkeypatch.setattr(svc, "_catch_up_fx_history", lambda: ran.append("fx_history"))
+    monkeypatch.setattr(svc, "_catch_up_stock", lambda: ran.append("stock"))
+    svc.startup_catch_up()
+    assert ran == ["fx", "fx_history", "stock"]
+
+
+def test_startup_catch_up_never_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _boom() -> None:
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr(svc, "_catch_up_fx", _boom)
+    monkeypatch.setattr(svc, "_catch_up_fx_history", _boom)
+    monkeypatch.setattr(svc, "_catch_up_stock", _boom)
+    svc.startup_catch_up()  # must swallow all three and not propagate
+
+
+# ---------- Bank of Taiwan historical FX backfill ----------
+
+
+class _FakeCsvResponse:
+    def __init__(self, text: str):
+        self._text = text
+
+    @property
+    def text(self) -> str:
+        return self._text
+
+    def raise_for_status(self) -> None:
+        pass
+
+
+class _FakeCsvClient:
+    def __init__(self, text: str):
+        self._text = text
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def get(self, url):
+        return _FakeCsvResponse(self._text)
+
+
+def test_fetch_bot_spot_buy_picks_nearest_on_or_before_month_end(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Newest-first rows; spot-buy (即期買入) is column index 4.
+    csv_text = (
+        "\r\n".join(
+            [
+                "資料日期,幣別,匯率,現金,即期",       # header → skipped (col0 not a date)
+                "20260502,USD,本行買入,31.00,31.50",   # after 2026-04-30 → skipped
+                "20260430,USD,本行買入,31.10,31.61",   # month-end → picked
+                "20260429,USD,本行買入,31.12,31.63",
+            ]
+        )
+        + "\r\n"
+    )
+    import httpx
+
+    monkeypatch.setattr(httpx, "Client", lambda **kw: _FakeCsvClient(csv_text))
+    assert svc._fetch_bot_spot_buy_at_month_end("USD", "202604") == ("20260430", 31.61)
+
+
+def test_fetch_bot_spot_buy_none_when_all_after_month_end(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    csv_text = "資料日期,幣別,匯率,現金,即期\r\n20260502,USD,本行買入,31.0,31.5\r\n"
+    import httpx
+
+    monkeypatch.setattr(httpx, "Client", lambda **kw: _FakeCsvClient(csv_text))
+    assert svc._fetch_bot_spot_buy_at_month_end("USD", "202604") is None
+
+
+def test_catch_up_fx_history_backfills_only_missing(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    period = svc._last_completed_month()
+    month_end = svc._period_to_last_day(period)
+    # USD: only an old prior-month row → MISSING inside `period`.
+    # JPY: a row inside `period` → PRESENT, must be left to Sinopac.
+    session.add(FXRate(import_date="20200131", code="USD", buy_rate=30.0))
+    session.add(FXRate(import_date=f"{period}10", code="JPY", buy_rate=0.21))
+    session.commit()
+    monkeypatch.setattr(svc, "engine", session.get_bind())
+
+    calls: list[tuple[str, str]] = []
+
+    def _fake_bot(ccy: str, per: str):
+        calls.append((ccy, per))
+        return svc._period_to_last_day(per), 31.9
+
+    monkeypatch.setattr(svc, "_fetch_bot_spot_buy_at_month_end", _fake_bot)
+
+    svc._catch_up_fx_history()
+    session.expire_all()
+
+    # USD backfilled at BOT's returned month-end date; JPY untouched (no call).
+    usd = session.exec(
+        select(FXRate).where(FXRate.code == "USD", FXRate.import_date == month_end)
+    ).first()
+    assert usd is not None and usd.buy_rate == 31.9
+    assert calls == [("USD", period)]
 
 
 # ---------- Invoice CSV import ----------
