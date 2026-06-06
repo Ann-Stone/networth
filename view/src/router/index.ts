@@ -22,38 +22,38 @@ const router = createRouter({
           path: 'monthly-report/cash-flow',
           name: 'CashFlow',
           component: () => import('@/views/monthly-report/CashFlowView.vue'),
-          meta: { title: '月度帳務', breadcrumb: ['月報', '月度帳務'] },
+          meta: { title: '月度帳務', breadcrumb: ['月度帳務'] },
         },
         // Year Report
         {
           path: 'year-report/balance-sheet',
           name: 'BalanceSheet',
           component: () => import('@/views/year-report/BalanceSheetView.vue'),
-          meta: { title: '資產負債表', breadcrumb: ['年報', '資產負債表'] },
+          meta: { title: '資產負債表', breadcrumb: ['財務報表', '資產負債表'] },
         },
         {
           path: 'year-report/income-statement',
           name: 'IncomeStatement',
           component: () => import('@/views/year-report/IncomeStatementView.vue'),
-          meta: { title: '損益表', breadcrumb: ['年報', '損益表'] },
+          meta: { title: '損益表', breadcrumb: ['財務報表', '損益表'] },
         },
         {
           path: 'year-report/cash-flow-statement',
           name: 'CashFlowStatement',
           component: () => import('@/views/year-report/CashFlowStatementView.vue'),
-          meta: { title: '現金流量表', breadcrumb: ['年報', '現金流量表'] },
+          meta: { title: '現金流量表', breadcrumb: ['財務報表', '現金流量表'] },
         },
         {
           path: 'year-report/spending',
           name: 'Spending',
           component: () => import('@/views/year-report/SpendingView.vue'),
-          meta: { title: '年度支出', breadcrumb: ['年報', '年度支出'] },
+          meta: { title: '年度支出', breadcrumb: ['財務報表', '年度支出'] },
         },
         {
           path: 'year-report/assets',
           name: 'Assets',
           component: () => import('@/views/year-report/AssetView.vue'),
-          meta: { title: '資產概覽', breadcrumb: ['年報', '資產概覽'] },
+          meta: { title: '資產概覽', breadcrumb: ['財務報表', '資產概覽'] },
         },
         // Other Assets & Liabilities
         {

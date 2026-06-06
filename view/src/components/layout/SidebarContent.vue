@@ -77,7 +77,7 @@ import { useAppStore } from '@/stores/app'
 import SidebarNavButton from './SidebarNavButton.vue'
 import {
   Odometer,
-  TrendCharts,
+  Notebook,
   Document,
   Coin,
   Setting,
@@ -88,7 +88,7 @@ defineProps<{ collapsed: boolean }>()
 
 const route = useRoute()
 const appStore = useAppStore()
-const openGroups = ref<Set<string>>(new Set(['monthlyReport', 'yearReport', 'setting', 'utilities']))
+const openGroups = ref<Set<string>>(new Set(['reports', 'setting', 'utilities']))
 
 const menuItems = [
   {
@@ -99,18 +99,23 @@ const menuItems = [
     icon: Odometer,
   },
   {
-    type: 'group',
-    name: 'monthlyReport',
-    label: '月報',
-    icon: TrendCharts,
-    children: [
-      { name: 'cashFlow', label: '月度帳務', path: '/monthly-report/cash-flow' },
-    ],
+    type: 'link',
+    name: 'cashFlow',
+    label: '月度帳務',
+    path: '/monthly-report/cash-flow',
+    icon: Notebook,
+  },
+  {
+    type: 'link',
+    name: 'otherAssets',
+    label: '資產管理',
+    path: '/other-assets',
+    icon: Coin,
   },
   {
     type: 'group',
-    name: 'yearReport',
-    label: '年報',
+    name: 'reports',
+    label: '財務報表',
     icon: Document,
     children: [
       { name: 'balanceSheet', label: '資產負債表', path: '/year-report/balance-sheet' },
@@ -119,13 +124,6 @@ const menuItems = [
       { name: 'spending', label: '年度支出', path: '/year-report/spending' },
       { name: 'assets', label: '資產概覽', path: '/year-report/assets' },
     ],
-  },
-  {
-    type: 'link',
-    name: 'otherAssets',
-    label: '資產管理',
-    path: '/other-assets',
-    icon: Coin,
   },
   {
     type: 'group',
