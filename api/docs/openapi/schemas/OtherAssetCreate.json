@@ -7,8 +7,7 @@
           "asset_index": 1,
           "asset_name": "US equities",
           "asset_type": "stock",
-          "in_use": "Y",
-          "vesting_nation": "US"
+          "in_use": "Y"
         },
         "properties": {
           "asset_id": {
@@ -57,21 +56,12 @@
             ],
             "title": "In Use",
             "type": "string"
-          },
-          "vesting_nation": {
-            "description": "Vesting country code",
-            "examples": [
-              "US"
-            ],
-            "title": "Vesting Nation",
-            "type": "string"
           }
         },
         "required": [
           "asset_id",
           "asset_name",
           "asset_type",
-          "vesting_nation",
           "in_use"
         ],
         "title": "OtherAssetCreate",

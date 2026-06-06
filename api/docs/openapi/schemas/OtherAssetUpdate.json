@@ -65,21 +65,6 @@
               "N"
             ],
             "title": "In Use"
-          },
-          "vesting_nation": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Vesting country code",
-            "examples": [
-              "US"
-            ],
-            "title": "Vesting Nation"
           }
         },
         "title": "OtherAssetUpdate",

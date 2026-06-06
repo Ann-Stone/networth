@@ -14,7 +14,7 @@ def test_other_asset_fields() -> None:
     assert OtherAsset.__tablename__ == "Other_Asset"
     assert table.c.asset_id.primary_key is True
 
-    expected = {"asset_id", "asset_name", "asset_type", "vesting_nation", "in_use", "asset_index"}
+    expected = {"asset_id", "asset_name", "asset_type", "in_use", "asset_index"}
     assert set(table.c.keys()) == expected
 
     for cls in (OtherAsset, OtherAssetCreate, OtherAssetUpdate, OtherAssetRead):

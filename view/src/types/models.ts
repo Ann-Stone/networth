@@ -650,7 +650,6 @@ export interface OtherAsset {
   asset_id: string
   asset_name: string
   asset_type: string
-  vesting_nation: string
   in_use: string                // Y/N
   asset_index: number
 }
@@ -659,7 +658,6 @@ export interface OtherAssetCreate {
   asset_id: string
   asset_name: string
   asset_type: string
-  vesting_nation: string
   in_use: string
   asset_index?: number
 }

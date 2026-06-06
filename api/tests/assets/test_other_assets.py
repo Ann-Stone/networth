@@ -26,7 +26,6 @@ def _payload(asset_id: str = "AC-STK-001", asset_type: str = "stock", asset_inde
         asset_id=asset_id,
         asset_name="US equities",
         asset_type=asset_type,
-        vesting_nation="US",
         in_use="Y",
         asset_index=asset_index,
     )
