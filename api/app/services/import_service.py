@@ -80,6 +80,24 @@ def _period_to_last_day(period: str) -> str:
     return last.strftime("%Y%m%d")
 
 
+def _period_to_range(period: str) -> tuple[str, str]:
+    """Return (start, end) ISO dates spanning the YYYYMM month.
+
+    ``end`` is the first day of the *next* month; yfinance treats ``end`` as
+    exclusive, so the window covers exactly the requested month. Callers fetch
+    the window and take the last trading day = the month's real closing bar.
+    """
+    first = datetime.strptime(period, "%Y%m")
+    nxt = (first.replace(day=28) + timedelta(days=4)).replace(day=1)
+    return first.strftime("%Y-%m-%d"), nxt.strftime("%Y-%m-%d")
+
+
+def _last_completed_month() -> str:
+    """Return YYYYMM of the most recently completed month, relative to today."""
+    first_of_this = date.today().replace(day=1)
+    return (first_of_this - timedelta(days=1)).strftime("%Y%m")
+
+
 def _yfinance_ticker(stock_code: str) -> str:
     """Heuristic: digits-only codes are TW listed → append .TW; others as-is.
 
@@ -92,8 +110,16 @@ def _yfinance_ticker(stock_code: str) -> str:
 # ---------- Stock price import ----------
 
 
-def _fetch_one_stock_price(session: Session, stock_code: str, fetch_date: str) -> bool:
-    """Fetch + upsert a single ticker. Return True if a row was inserted/updated."""
+def _fetch_one_stock_price(
+    session: Session, stock_code: str, fetch_date: str, period: str = ""
+) -> bool:
+    """Fetch + upsert a single ticker. Return True if a row was inserted/updated.
+
+    With a ``period`` (YYYYMM) the month's historical bars are fetched and the
+    last trading day's OHLC is used, so a past month is backfilled with its real
+    month-end close rather than today's price. An empty ``period`` keeps the
+    legacy "latest trading day" behavior.
+    """
     try:
         import yfinance as yf  # imported lazily to keep test startup fast
     except ImportError:  # pragma: no cover
@@ -101,10 +127,13 @@ def _fetch_one_stock_price(session: Session, stock_code: str, fetch_date: str) -
         return False
 
     ticker = _yfinance_ticker(stock_code)
-    delay = 1.0
     for attempt in range(3):
         try:
-            data = yf.download(ticker, period="1d", progress=False)
+            if period:
+                start_iso, end_iso = _period_to_range(period)
+                data = yf.download(ticker, start=start_iso, end=end_iso, progress=False)
+            else:
+                data = yf.download(ticker, period="1d", progress=False)
             break
         except Exception as e:  # noqa: BLE001 — third-party flake
             msg = str(e)
@@ -165,7 +194,7 @@ def import_stock_prices(period: str) -> None:
         )
         for i, stock_code in enumerate(sorted(codes), start=1):
             try:
-                _fetch_one_stock_price(session, stock_code, fetch_date)
+                _fetch_one_stock_price(session, stock_code, fetch_date, period)
             except Exception as e:  # noqa: BLE001
                 logger.error("Unexpected stock import error for %s: %s", stock_code, e)
             if i % 10 == 0:
@@ -194,9 +223,8 @@ def _upsert_fx(session: Session, import_date: str, code: str, buy_rate: float) -
         session.add(FXRate(import_date=import_date, code=code, buy_rate=buy_rate))
 
 
-def import_fx_rates(period: str) -> None:
-    """Background worker: fetch FX rates from Sinopac and upsert into FXRate."""
-    import_date = _period_to_last_day(period)
+def _fetch_and_store_fx(import_date: str) -> None:
+    """Fetch current Sinopac rates and upsert them all under ``import_date``."""
     try:
         import httpx
 
@@ -221,6 +249,181 @@ def import_fx_rates(period: str) -> None:
                 continue
             _upsert_fx(session, import_date, code, buy_rate)
         session.commit()
+
+
+def import_fx_rates(period: str) -> None:
+    """Background worker (manual path): store the current Sinopac quote.
+
+    Sinopac only serves *today's* rate, so today's real date is the only honest
+    label. For the ongoing month (today <= month-end) we store today; a past
+    ``period`` is clamped to that month-end so it can still seed that month's
+    settlement as a rough proxy. Empty ``period`` also stores today. Accurate
+    backfill of a *past* month needs a historical source (Sinopac has none).
+    """
+    today = date.today().strftime("%Y%m%d")
+    import_date = today if not period else min(today, _period_to_last_day(period))
+    _fetch_and_store_fx(import_date)
+
+
+# ---------- Startup auto catch-up ----------
+
+
+def _has_stock_month_row(session: Session, stock_code: str, period: str) -> bool:
+    """True if ``stock_code`` already has a price row within the YYYYMM month."""
+    row = session.exec(
+        select(StockPriceHistory).where(
+            StockPriceHistory.stock_code == stock_code,
+            StockPriceHistory.fetch_date >= f"{period}01",
+            StockPriceHistory.fetch_date <= f"{period}31",
+        )
+    ).first()
+    return row is not None
+
+
+def _catch_up_fx() -> None:
+    """Record today's FX rate at its true date, at most once per calendar day.
+
+    Settlement's ``select_fx_rate_for_month`` (latest import_date <= month-end)
+    then uses the most recent real rate on or before month-end — no look-ahead,
+    no fabricated month-end quote.
+    """
+    today = date.today().strftime("%Y%m%d")
+    with Session(engine) as session:
+        already = session.exec(
+            select(FXRate).where(FXRate.import_date == today)
+        ).first()
+    if already is not None:
+        return
+    _fetch_and_store_fx(today)
+
+
+def _bot_fx_csv_url(ccy: str, span: str = "L6M") -> str:
+    """Bank of Taiwan per-currency historical daily-rate CSV (last 6 months)."""
+    return f"https://rate.bot.com.tw/xrt/flcsv/0/{span}/{ccy}"
+
+
+def _fetch_bot_spot_buy_at_month_end(ccy: str, period: str) -> tuple[str, float] | None:
+    """Return (YYYYMMDD, 即期買入) for BOT's latest business day on/before month-end.
+
+    Bank of Taiwan publishes daily board rates; we take the spot-buy (即期買入)
+    column — the rate for converting the currency back to TWD, same spirit as
+    Sinopac's REMIT buy. Returns ``None`` when the CSV can't be fetched, the
+    month-end predates the ~6-month window, or the currency has no spot quote.
+
+    CSV columns (newest row first): 0=資料日期(YYYYMMDD) 1=幣別 2="本行買入"
+    3=現金買入 4=即期買入 ... so the first row whose date is <= month-end wins.
+    """
+    month_end = _period_to_last_day(period)
+    try:
+        import httpx
+
+        with httpx.Client(timeout=30.0) as cli:
+            resp = cli.get(_bot_fx_csv_url(ccy))
+            resp.raise_for_status()
+            text = resp.text  # header row (incl. any UTF-8 BOM) is skipped below
+    except Exception as e:  # noqa: BLE001
+        logger.error("BOT FX fetch failed for %s: %s", ccy, e)
+        return None
+
+    for row in csv.reader(io.StringIO(text)):
+        if len(row) < 5:
+            continue
+        day = row[0].strip()
+        if not (day.isdigit() and len(day) == 8) or day > month_end:
+            continue
+        try:
+            spot_buy = float(row[4])
+        except (TypeError, ValueError):
+            continue
+        if spot_buy > 0:
+            return day, spot_buy
+    return None
+
+
+def _catch_up_fx_history() -> None:
+    """Backfill a fully-missed month's month-end rate from Bank of Taiwan.
+
+    Sinopac stays primary: only currencies with NO rate at all inside the last
+    completed month (i.e. the app was never opened that month) are backfilled,
+    using BOT's spot-buy on/before month-end stored at its real date. Months the
+    user did capture via Sinopac are left untouched.
+    """
+    period = _last_completed_month()
+    month_end = _period_to_last_day(period)
+    with Session(engine) as session:
+        all_codes = {
+            r.code
+            for r in session.exec(select(FXRate)).all()
+            if r.code and r.code != "TWD"
+        }
+        present = {
+            r.code
+            for r in session.exec(
+                select(FXRate).where(
+                    FXRate.import_date >= f"{period}01",
+                    FXRate.import_date <= month_end,
+                )
+            ).all()
+        }
+    for ccy in sorted(all_codes - present):
+        result = _fetch_bot_spot_buy_at_month_end(ccy, period)
+        if result is None:
+            continue
+        bot_date, rate = result
+        with Session(engine) as session:
+            _upsert_fx(session, bot_date, ccy, rate)
+            session.commit()
+
+
+def _catch_up_stock() -> None:
+    """Backfill the last completed month's close for any holding still missing it.
+
+    The per-ticker missing-guard makes this idempotent and storm-safe: a partial
+    run (e.g. some tickers 429'd) only re-fetches the ones still absent on the
+    next launch.
+    """
+    period = _last_completed_month()
+    fetch_date = _period_to_last_day(period)
+    with Session(engine) as session:
+        codes = sorted(
+            {row.stock_code for row in session.exec(select(StockJournal)).all()}
+        )
+        pending = [c for c in codes if not _has_stock_month_row(session, c, period)]
+        for i, stock_code in enumerate(pending, start=1):
+            try:
+                _fetch_one_stock_price(session, stock_code, fetch_date, period)
+            except Exception as e:  # noqa: BLE001
+                logger.error("Catch-up stock error for %s: %s", stock_code, e)
+            if i % 10 == 0:
+                time.sleep(3)
+
+
+def startup_catch_up() -> None:
+    """Best-effort month-end backfill, run in the background on app startup.
+
+    Never raises. Three guarded steps, each idempotent so repeated launches do no
+    redundant work:
+      1. FX — log today's Sinopac rate at its true date (<= once/day).
+      2. FX history — for a *fully missed* last month, backfill its month-end
+         spot-buy from Bank of Taiwan (Sinopac stays primary; only empty months).
+      3. Stock — fetch the last completed month's close for any holding missing
+         it (<= once per month per ticker).
+    This frees the user from manual monthly backfill; stock is always exact, and
+    FX is exact at month-end whenever a month was either captured live or filled
+    from BOT history.
+    """
+    try:
+        _catch_up_fx()
+    except Exception as e:  # noqa: BLE001
+        logger.error("FX catch-up failed: %s", e)
+    try:
+        _catch_up_fx_history()
+    except Exception as e:  # noqa: BLE001
+        logger.error("FX history catch-up failed: %s", e)
+    try:
+        _catch_up_stock()
+    except Exception as e:  # noqa: BLE001
+        logger.error("Stock catch-up failed: %s", e)
 
 
 # ---------- Invoice CSV import ----------

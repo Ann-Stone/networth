@@ -9,8 +9,20 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
 import app.models  # noqa: F401  registers every table on SQLModel.metadata
+from app.config import settings
 from app.database import get_session
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def _disable_startup_catch_up(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep the app lifespan from firing real FX/stock network calls in tests.
+
+    The ``client`` fixture enters ``TestClient(app)`` as a context manager, which
+    runs the lifespan; without this the startup catch-up would hit Sinopac and
+    yfinance for real on every client-using test.
+    """
+    monkeypatch.setattr(settings, "enable_startup_catch_up", False)
 
 
 @pytest.fixture
