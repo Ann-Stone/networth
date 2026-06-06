@@ -871,7 +871,6 @@ def seed_other_assets(session: Session) -> list[OtherAsset]:
             asset_id="OA-STK-01",
             asset_name="US Equities Bucket",
             asset_type="stock",
-            vesting_nation="US",
             in_use="Y",
             asset_index=1,
         ),
@@ -879,7 +878,6 @@ def seed_other_assets(session: Session) -> list[OtherAsset]:
             asset_id="OA-INS-01",
             asset_name="Insurance Bucket",
             asset_type="insurance",
-            vesting_nation="TW",
             in_use="Y",
             asset_index=2,
         ),
@@ -887,7 +885,6 @@ def seed_other_assets(session: Session) -> list[OtherAsset]:
             asset_id="OA-EST-01",
             asset_name="Real Estate Bucket",
             asset_type="estate",
-            vesting_nation="TW",
             in_use="Y",
             asset_index=3,
         ),
@@ -895,7 +892,6 @@ def seed_other_assets(session: Session) -> list[OtherAsset]:
             asset_id="OA-LOAN-01",
             asset_name="Loan Bucket",
             asset_type="loan",
-            vesting_nation="TW",
             in_use="Y",
             asset_index=4,
         ),
@@ -904,16 +900,15 @@ def seed_other_assets(session: Session) -> list[OtherAsset]:
         session.add(r)
     session.commit()
     auto_specs = [
-        ("OA-OTH-01", "Misc Other Asset", "other", "TW"),
-        ("OA-CASH-01", "Cash-equivalents", "cash", "TW"),
+        ("OA-OTH-01", "Misc Other Asset", "other"),
+        ("OA-CASH-01", "Cash-equivalents", "cash"),
     ]
     auto_rows: list[OtherAsset] = []
-    for asset_id, name, asset_type, nation in auto_specs:
+    for asset_id, name, asset_type in auto_specs:
         payload = OtherAssetCreate(
             asset_id=asset_id,
             asset_name=name,
             asset_type=asset_type,
-            vesting_nation=nation,
             in_use="Y",
             asset_index=None,
         )

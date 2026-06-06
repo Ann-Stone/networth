@@ -512,7 +512,6 @@
             <el-table-column prop="asset_id" label="ID" width="160" />
             <el-table-column prop="asset_name" label="名稱" min-width="200" />
             <el-table-column prop="asset_type" label="類型" width="140" />
-            <el-table-column prop="vesting_nation" label="歸屬地" width="120" />
             <el-table-column label="啟用" width="90">
               <template #default="{ row }">
                 <StatusBadge :value="row.in_use" />
@@ -822,9 +821,6 @@
             <el-option label="貸款 (loan)" value="loan" />
             <el-option label="其他 (other)" value="other" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="歸屬地" prop="vesting_nation">
-          <el-input v-model="otherAssetForm.vesting_nation" placeholder="例如 TW / US" />
         </el-form-item>
         <el-form-item label="啟用" prop="in_use">
           <el-radio-group v-model="otherAssetForm.in_use">
@@ -2002,7 +1998,6 @@ function emptyOtherAssetForm(): OtherAssetCreate {
     asset_id: '',
     asset_name: '',
     asset_type: 'stock',
-    vesting_nation: '',
     in_use: 'Y',
     asset_index: undefined,
   }
@@ -2012,7 +2007,6 @@ const otherAssetFormRules: FormRules = {
   asset_id: [{ required: true, message: '請輸入 ID', trigger: 'blur' }],
   asset_name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
   asset_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
-  vesting_nation: [{ required: true, message: '請輸入歸屬地', trigger: 'blur' }],
   in_use: [{ required: true, message: '請選擇啟用狀態', trigger: 'change' }],
 }
 
@@ -2032,7 +2026,6 @@ const {
     asset_id: row.asset_id,
     asset_name: row.asset_name,
     asset_type: row.asset_type,
-    vesting_nation: row.vesting_nation,
     in_use: row.in_use,
     asset_index: row.asset_index,
   }),

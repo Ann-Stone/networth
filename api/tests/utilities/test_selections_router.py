@@ -100,7 +100,6 @@ def test_other_asset_type_selection_distinct(
             asset_id="AC-STK-001",
             asset_name="US equities",
             asset_type="stock",
-            vesting_nation="US",
             in_use="Y",
             asset_index=1,
         )
@@ -110,7 +109,6 @@ def test_other_asset_type_selection_distinct(
             asset_id="AC-STK-002",
             asset_name="TW equities",
             asset_type="stock",
-            vesting_nation="TW",
             in_use="Y",
             asset_index=2,
         )
@@ -120,7 +118,6 @@ def test_other_asset_type_selection_distinct(
             asset_id="AC-INS-001",
             asset_name="Term life",
             asset_type="insurance",
-            vesting_nation="TW",
             in_use="Y",
             asset_index=3,
         )
@@ -130,7 +127,6 @@ def test_other_asset_type_selection_distinct(
             asset_id="AC-EST-IGN",
             asset_name="Old land",
             asset_type="estate",
-            vesting_nation="TW",
             in_use="N",  # filtered out
             asset_index=4,
         )

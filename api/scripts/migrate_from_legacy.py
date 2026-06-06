@@ -488,7 +488,6 @@ def migrate_other_assets(src: sqlite3.Connection, session: Session) -> int:
             asset_id=_str(row["asset_id"]),
             asset_name=row["asset_name"],
             asset_type=row["asset_type"],
-            vesting_nation=row["vesting_nation"] if row["vesting_nation"] is not None else "",
             in_use=row["in_use"],
             asset_index=_opt_int(row["asset_index"]) or 0,
         ))

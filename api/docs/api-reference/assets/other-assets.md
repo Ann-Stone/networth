@@ -27,7 +27,6 @@ data (array item):
 | asset_id | string | yes | Asset category business ID |
 | asset_name | string | yes | Display name |
 | asset_type | string | yes | Asset category type |
-| vesting_nation | string | yes | Vesting country code |
 | in_use | string | yes | Active flag |
 | asset_index | integer | yes | Dropdown order |
 
@@ -42,8 +41,7 @@ Example:
       "asset_index": 1,
       "asset_name": "US equities",
       "asset_type": "stock",
-      "in_use": "Y",
-      "vesting_nation": "US"
+      "in_use": "Y"
     }
   ],
   "msg": "success"
@@ -72,7 +70,6 @@ Body:
 | asset_id | string | yes | Asset category business ID |
 | asset_name | string | yes | Display name |
 | asset_type | string | yes | Asset category type |
-| vesting_nation | string | yes | Vesting country code |
 | in_use | string | yes | Active flag |
 | asset_index |  | no | Display order; server assigns max+1 if omitted |
 
@@ -93,7 +90,6 @@ data:
 | asset_id | string | yes | Asset category business ID |
 | asset_name | string | yes | Display name |
 | asset_type | string | yes | Asset category type |
-| vesting_nation | string | yes | Vesting country code |
 | in_use | string | yes | Active flag |
 | asset_index | integer | yes | Dropdown order |
 
@@ -107,8 +103,7 @@ Example:
     "asset_index": 1,
     "asset_name": "US equities",
     "asset_type": "stock",
-    "in_use": "Y",
-    "vesting_nation": "US"
+    "in_use": "Y"
   },
   "msg": "success"
 }
@@ -223,7 +218,6 @@ Body:
 | --- | --- | --- | --- |
 | asset_name |  | no | Display name |
 | asset_type |  | no | Asset category type |
-| vesting_nation |  | no | Vesting country code |
 | in_use |  | no | Active flag |
 | asset_index |  | no | Dropdown order |
 
@@ -244,7 +238,6 @@ data:
 | asset_id | string | yes | Asset category business ID |
 | asset_name | string | yes | Display name |
 | asset_type | string | yes | Asset category type |
-| vesting_nation | string | yes | Vesting country code |
 | in_use | string | yes | Active flag |
 | asset_index | integer | yes | Dropdown order |
 
@@ -258,8 +251,7 @@ Example:
     "asset_index": 1,
     "asset_name": "US equities",
     "asset_type": "stock",
-    "in_use": "Y",
-    "vesting_nation": "US"
+    "in_use": "Y"
   },
   "msg": "success"
 }

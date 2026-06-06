@@ -21,7 +21,6 @@ def test_assets_models_roundtrip(session: Session) -> None:
         asset_id="AC-STK-001",
         asset_name="US equities",
         asset_type="stock",
-        vesting_nation="US",
         in_use="Y",
         asset_index=1,
     )

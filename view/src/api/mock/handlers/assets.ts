@@ -109,13 +109,13 @@ let loanJournalSeq = loanJournals.length
 // ─── Other assets ────────────────────────────────────────────────────────────
 
 let otherAssets: OtherAsset[] = [
-  { asset_id: 'CASH',    asset_name: '現金',     asset_type: 'cash',     vesting_nation: 'TWN', in_use: 'Y', asset_index: 1 },
-  { asset_id: 'STK',     asset_name: '台股',     asset_type: 'stock',    vesting_nation: 'TWN', in_use: 'Y', asset_index: 2 },
-  { asset_id: 'STK_US',  asset_name: '美股',     asset_type: 'stock',    vesting_nation: 'USA', in_use: 'Y', asset_index: 3 },
-  { asset_id: 'EST',     asset_name: '不動產',   asset_type: 'estate',   vesting_nation: 'TWN', in_use: 'Y', asset_index: 4 },
-  { asset_id: 'INS',     asset_name: '保單',     asset_type: 'insurance', vesting_nation: 'TWN', in_use: 'Y', asset_index: 5 },
-  { asset_id: 'CRYPTO',  asset_name: '加密貨幣', asset_type: 'crypto',   vesting_nation: 'GLOBAL', in_use: 'Y', asset_index: 6 },
-  { asset_id: 'OLD_BOND', asset_name: '舊債券（停用）', asset_type: 'bond', vesting_nation: 'TWN', in_use: 'N', asset_index: 7 },
+  { asset_id: 'CASH',    asset_name: '現金',     asset_type: 'cash',     in_use: 'Y', asset_index: 1 },
+  { asset_id: 'STK',     asset_name: '台股',     asset_type: 'stock',    in_use: 'Y', asset_index: 2 },
+  { asset_id: 'STK_US',  asset_name: '美股',     asset_type: 'stock',    in_use: 'Y', asset_index: 3 },
+  { asset_id: 'EST',     asset_name: '不動產',   asset_type: 'estate',   in_use: 'Y', asset_index: 4 },
+  { asset_id: 'INS',     asset_name: '保單',     asset_type: 'insurance', in_use: 'Y', asset_index: 5 },
+  { asset_id: 'CRYPTO',  asset_name: '加密貨幣', asset_type: 'crypto',   in_use: 'Y', asset_index: 6 },
+  { asset_id: 'OLD_BOND', asset_name: '舊債券（停用）', asset_type: 'bond', in_use: 'N', asset_index: 7 },
 ]
 
 // ─── Loan selection ──────────────────────────────────────────────────────────
@@ -422,7 +422,6 @@ export const assetsHandlers = [
       asset_id: body.asset_id,
       asset_name: body.asset_name,
       asset_type: body.asset_type,
-      vesting_nation: body.vesting_nation,
       in_use: body.in_use,
       asset_index: body.asset_index ?? Math.max(0, ...otherAssets.map((a) => a.asset_index)) + 1,
     }
