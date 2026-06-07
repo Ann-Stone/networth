@@ -10,6 +10,7 @@ vi.mock('vue-echarts', () => ({
 }))
 
 import AssetTrendChart from '@/components/charts/AssetTrendChart.vue'
+import { testI18n } from '@/test/i18n'
 import type { DashboardSummaryPoint } from '@/types/models'
 
 function makePoints(): DashboardSummaryPoint[] {
@@ -38,7 +39,7 @@ describe('AssetTrendChart', () => {
   it('renders with 12-point fixture and emits chartOption with 7 series', () => {
     const wrapper = mount(AssetTrendChart, {
       props: { points: makePoints() },
-      global: { stubs: { 'v-chart': true } },
+      global: { stubs: { 'v-chart': true }, plugins: [testI18n()] },
     })
     const option = (wrapper.vm as unknown as { option: { series: unknown[] } }).option
     expect(option.series).toHaveLength(7)
@@ -47,7 +48,7 @@ describe('AssetTrendChart', () => {
   it('places net-worth as the last series, no stack, type=line', () => {
     const wrapper = mount(AssetTrendChart, {
       props: { points: makePoints() },
-      global: { stubs: { 'v-chart': true } },
+      global: { stubs: { 'v-chart': true }, plugins: [testI18n()] },
     })
     const series = (
       wrapper.vm as unknown as {
@@ -65,7 +66,7 @@ describe('AssetTrendChart', () => {
   it('renders empty axis when given zero points (no crash)', () => {
     const wrapper = mount(AssetTrendChart, {
       props: { points: [] },
-      global: { stubs: { 'v-chart': true } },
+      global: { stubs: { 'v-chart': true }, plugins: [testI18n()] },
     })
     const option = (
       wrapper.vm as unknown as {

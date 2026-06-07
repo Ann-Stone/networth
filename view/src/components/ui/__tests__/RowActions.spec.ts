@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import RowActions from '@/components/ui/RowActions.vue'
+import { testI18n } from '@/test/i18n'
 
 // Element Plus is not globally registered in the test env (see src/test/setup.ts),
 // so stub el-button with a plain <button> that forwards clicks.
@@ -17,7 +18,7 @@ const stubs = {
 
 describe('RowActions', () => {
   it('emits edit / delete when the two buttons are clicked', async () => {
-    const wrapper = mount(RowActions, { global: { stubs } })
+    const wrapper = mount(RowActions, { global: { stubs, plugins: [testI18n()] } })
     const buttons = wrapper.findAll('button')
     expect(buttons).toHaveLength(2)
     await buttons[0]!.trigger('click')
@@ -27,7 +28,7 @@ describe('RowActions', () => {
   })
 
   it('renders default 編輯 / 刪除 labels', () => {
-    const wrapper = mount(RowActions, { global: { stubs } })
+    const wrapper = mount(RowActions, { global: { stubs, plugins: [testI18n()] } })
     expect(wrapper.text()).toContain('編輯')
     expect(wrapper.text()).toContain('刪除')
   })
@@ -35,7 +36,7 @@ describe('RowActions', () => {
   it('honours custom editText / deleteText', () => {
     const wrapper = mount(RowActions, {
       props: { editText: '修改', deleteText: '移除' },
-      global: { stubs },
+      global: { stubs, plugins: [testI18n()] },
     })
     expect(wrapper.text()).toContain('修改')
     expect(wrapper.text()).toContain('移除')
@@ -44,7 +45,7 @@ describe('RowActions', () => {
   it('renders link-style buttons for the link variant', () => {
     const wrapper = mount(RowActions, {
       props: { variant: 'link' },
-      global: { stubs },
+      global: { stubs, plugins: [testI18n()] },
     })
     const buttons = wrapper.findAll('button')
     expect(buttons).toHaveLength(2)
@@ -54,7 +55,7 @@ describe('RowActions', () => {
   it('renders the default slot after the action pair', () => {
     const wrapper = mount(RowActions, {
       slots: { default: '<span class="extra">明細</span>' },
-      global: { stubs },
+      global: { stubs, plugins: [testI18n()] },
     })
     expect(wrapper.find('.extra').exists()).toBe(true)
   })

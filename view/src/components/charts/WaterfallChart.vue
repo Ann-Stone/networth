@@ -10,6 +10,7 @@ import { BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import { useAppStore } from '@/stores/app'
+import { useMoney } from '@/composables/useMoney'
 
 use([CanvasRenderer, BarChart, GridComponent, TooltipComponent])
 
@@ -24,10 +25,12 @@ const props = withDefaults(
     totalLabel?: string
     height?: string
   }>(),
-  { totalLabel: '淨變化', height: '320px' },
+  { height: '320px' },
 )
 
 const appStore = useAppStore()
+const { t } = useI18n()
+const { format: formatMoney } = useMoney()
 
 const UP = '#34d399' // inflow
 const DOWN = '#fb7185' // outflow
@@ -49,7 +52,7 @@ const option = computed(() => {
     signed.push(it.value)
     cum = end
   }
-  cats.push(props.totalLabel)
+  cats.push(props.totalLabel ?? t('chart.netChange'))
   placeholder.push(Math.min(0, cum))
   bars.push({ value: Math.abs(cum), itemStyle: { color: TOTAL } })
   signed.push(cum)
@@ -62,7 +65,7 @@ const option = computed(() => {
         const idx = params[0]!.dataIndex
         const v = signed[idx]!
         const sign = v >= 0 ? '+' : '−'
-        return `${cats[idx]}<br/>${sign}${Math.abs(v).toLocaleString('en-US')}`
+        return `${cats[idx]}<br/>${sign}${formatMoney(Math.abs(v))}`
       },
     },
     grid: { left: 40, right: 20, top: 20, bottom: 30, containLabel: true },

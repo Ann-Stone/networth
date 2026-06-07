@@ -1,13 +1,13 @@
 <template>
   <div class="flex flex-col gap-6">
-    <PageHeader title="選單設定" subtitle="管理帳戶、分類與信用卡" />
+    <PageHeader :title="t('settingMenu.title')" :subtitle="t('settingMenu.subtitle')" />
 
     <el-tabs v-model="activeTab" class="settings-tabs">
-      <el-tab-pane label="帳戶" name="accounts">
-        <DataListCard title="帳戶清單">
+      <el-tab-pane :label="t('settingMenu.tabAccounts')" name="accounts">
+        <DataListCard :title="t('settingMenu.accountListTitle')">
           <template #menu>
             <el-button type="primary" :icon="PlusIcon" @click="openCreateAccount">
-              新增帳戶
+              {{ t('settingMenu.addAccount') }}
             </el-button>
           </template>
 
@@ -17,23 +17,23 @@
               v-loading="store.accountsLoading"
               row-key="id"
               stripe
-              empty-text="尚無帳戶"
+              :empty-text="t('settingMenu.noAccounts')"
             >
-              <el-table-column prop="account_id" label="帳戶 ID" min-width="140" />
-              <el-table-column prop="name" label="名稱" min-width="160" />
-              <el-table-column prop="account_type" label="類型" min-width="100" />
-              <el-table-column prop="fx_code" label="幣別" width="80" />
-              <el-table-column label="啟用" width="80">
+              <el-table-column prop="account_id" :label="t('settingMenu.accountId')" min-width="140" />
+              <el-table-column prop="name" :label="t('common.name')" min-width="160" />
+              <el-table-column prop="account_type" :label="t('common.type')" min-width="100" />
+              <el-table-column prop="fx_code" :label="t('settingMenu.fxCode')" width="80" />
+              <el-table-column :label="t('common.enable')" width="80">
                 <template #default="{ row }">
                   <StatusBadge :value="row.in_use" />
                 </template>
               </el-table-column>
-              <el-table-column prop="discount" label="折扣" width="80" />
-              <el-table-column prop="owner" label="持有人" min-width="120">
+              <el-table-column prop="discount" :label="t('settingMenu.discount')" width="80" />
+              <el-table-column prop="owner" :label="t('settingMenu.owner')" min-width="120">
                 <template #default="{ row }">{{ row.owner ?? '—' }}</template>
               </el-table-column>
-              <el-table-column prop="account_index" label="排序" width="80" />
-              <el-table-column label="操作" width="160" fixed="right">
+              <el-table-column prop="account_index" :label="t('settingMenu.sortIndex')" width="80" />
+              <el-table-column :label="t('common.actions')" width="160" fixed="right">
                 <template #default="{ row }">
                   <RowActions variant="link" @edit="openEditAccount(row)" @delete="handleDeleteAccount(row)" />
                 </template>
@@ -43,11 +43,11 @@
         </DataListCard>
       </el-tab-pane>
 
-      <el-tab-pane label="分類" name="codes">
-        <DataListCard title="主分類 / 子分類">
+      <el-tab-pane :label="t('settingMenu.tabCodes')" name="codes">
+        <DataListCard :title="t('settingMenu.codeListTitle')">
           <template #menu>
             <el-button type="primary" :icon="PlusIcon" @click="openCreateCode">
-              新增主分類
+              {{ t('settingMenu.addMainCode') }}
             </el-button>
           </template>
 
@@ -57,30 +57,30 @@
               v-loading="store.codesLoading"
               row-key="code_id"
               stripe
-              empty-text="尚無主分類"
+              :empty-text="t('settingMenu.noMainCodes')"
             >
               <el-table-column type="expand">
                 <template #default="{ row }">
                   <div class="px-6 py-4 flex flex-col gap-3">
                     <SectionHeader
-                      :title="`${row.code_id} 子分類`"
-                      action-text="新增子分類"
+                      :title="t('settingMenu.subCodesOf', { id: row.code_id })"
+                      :action-text="t('settingMenu.addSubCode')"
                       @action="openCreateSubCode(row)"
                     />
                     <el-table
                       :data="row.sub_codes ?? []"
-                      empty-text="尚無子分類"
+                      :empty-text="t('settingMenu.noSubCodes')"
                       size="small"
                     >
-                      <el-table-column prop="code_id" label="子分類 ID" min-width="120" />
-                      <el-table-column prop="name" label="名稱" min-width="160" />
-                      <el-table-column label="啟用" width="80">
+                      <el-table-column prop="code_id" :label="t('settingMenu.subCodeId')" min-width="120" />
+                      <el-table-column prop="name" :label="t('common.name')" min-width="160" />
+                      <el-table-column :label="t('common.enable')" width="80">
                         <template #default="{ row: sub }">
                           <StatusBadge :value="sub.in_use" />
                         </template>
                       </el-table-column>
-                      <el-table-column prop="code_index" label="排序" width="80" />
-                      <el-table-column label="操作" width="160" fixed="right">
+                      <el-table-column prop="code_index" :label="t('settingMenu.sortIndex')" width="80" />
+                      <el-table-column :label="t('common.actions')" width="160" fixed="right">
                         <template #default="{ row: sub }">
                           <RowActions
                             variant="link"
@@ -93,22 +93,22 @@
                   </div>
                 </template>
               </el-table-column>
-              <el-table-column prop="code_id" label="分類 ID" min-width="120" />
-              <el-table-column prop="name" label="名稱" min-width="160" />
-              <el-table-column prop="code_type" label="類型" min-width="110" />
-              <el-table-column label="年度事件" width="100">
+              <el-table-column prop="code_id" :label="t('settingMenu.codeId')" min-width="120" />
+              <el-table-column prop="name" :label="t('common.name')" min-width="160" />
+              <el-table-column prop="code_type" :label="t('common.type')" min-width="110" />
+              <el-table-column :label="t('settingMenu.annualEvent')" width="100">
                 <template #default="{ row }">
-                  <el-tag v-if="row.is_annual_event" size="small" type="warning">事件</el-tag>
+                  <el-tag v-if="row.is_annual_event" size="small" type="warning">{{ t('settingMenu.eventTag') }}</el-tag>
                   <span v-else class="text-on-surface-muted">—</span>
                 </template>
               </el-table-column>
-              <el-table-column label="啟用" width="80">
+              <el-table-column :label="t('common.enable')" width="80">
                 <template #default="{ row }">
                   <StatusBadge :value="row.in_use" />
                 </template>
               </el-table-column>
-              <el-table-column prop="code_index" label="排序" width="80" />
-              <el-table-column label="操作" width="160" fixed="right">
+              <el-table-column prop="code_index" :label="t('settingMenu.sortIndex')" width="80" />
+              <el-table-column :label="t('common.actions')" width="160" fixed="right">
                 <template #default="{ row }">
                   <RowActions variant="link" @edit="openEditCode(row)" @delete="handleDeleteCode(row)" />
                 </template>
@@ -118,11 +118,11 @@
         </DataListCard>
       </el-tab-pane>
 
-      <el-tab-pane label="信用卡" name="credit-cards">
-        <DataListCard title="信用卡清單">
+      <el-tab-pane :label="t('settingMenu.tabCreditCards')" name="credit-cards">
+        <DataListCard :title="t('settingMenu.creditCardListTitle')">
           <template #menu>
             <el-button type="primary" :icon="PlusIcon" @click="openCreateCreditCard">
-              新增信用卡
+              {{ t('settingMenu.addCreditCard') }}
             </el-button>
           </template>
 
@@ -132,30 +132,30 @@
               v-loading="store.creditCardsLoading"
               row-key="credit_card_id"
               stripe
-              empty-text="尚無信用卡"
+              :empty-text="t('settingMenu.noCreditCards')"
             >
-              <el-table-column prop="credit_card_id" label="卡片 ID" min-width="140" />
-              <el-table-column prop="card_name" label="卡名" min-width="160" />
-              <el-table-column prop="card_no" label="卡號" min-width="160">
+              <el-table-column prop="credit_card_id" :label="t('settingMenu.cardId')" min-width="140" />
+              <el-table-column prop="card_name" :label="t('settingMenu.cardName')" min-width="160" />
+              <el-table-column prop="card_no" :label="t('settingMenu.cardNo')" min-width="160">
                 <template #default="{ row }">{{ row.card_no ?? '—' }}</template>
               </el-table-column>
-              <el-table-column prop="last_day" label="結帳日" width="90">
+              <el-table-column prop="last_day" :label="t('settingMenu.lastDay')" width="90">
                 <template #default="{ row }">{{ row.last_day ?? '—' }}</template>
               </el-table-column>
-              <el-table-column prop="charge_day" label="扣款日" width="90">
+              <el-table-column prop="charge_day" :label="t('settingMenu.chargeDay')" width="90">
                 <template #default="{ row }">{{ row.charge_day ?? '—' }}</template>
               </el-table-column>
-              <el-table-column prop="limit_date" label="繳費日" width="90">
+              <el-table-column prop="limit_date" :label="t('settingMenu.limitDate')" width="90">
                 <template #default="{ row }">{{ row.limit_date ?? '—' }}</template>
               </el-table-column>
-              <el-table-column prop="fx_code" label="幣別" width="80" />
-              <el-table-column label="啟用" width="80">
+              <el-table-column prop="fx_code" :label="t('settingMenu.fxCode')" width="80" />
+              <el-table-column :label="t('common.enable')" width="80">
                 <template #default="{ row }">
                   <StatusBadge :value="row.in_use" />
                 </template>
               </el-table-column>
-              <el-table-column prop="credit_card_index" label="排序" width="80" />
-              <el-table-column label="操作" width="160" fixed="right">
+              <el-table-column prop="credit_card_index" :label="t('settingMenu.sortIndex')" width="80" />
+              <el-table-column :label="t('common.actions')" width="160" fixed="right">
                 <template #default="{ row }">
                   <RowActions variant="link" @edit="openEditCreditCard(row)" @delete="handleDeleteCreditCard(row)" />
                 </template>
@@ -165,11 +165,11 @@
         </DataListCard>
       </el-tab-pane>
 
-      <el-tab-pane label="股票分類" name="stock-categories">
-        <DataListCard title="股票分類">
+      <el-tab-pane :label="t('settingMenu.tabStockCategories')" name="stock-categories">
+        <DataListCard :title="t('settingMenu.stockCategoryListTitle')">
           <template #menu>
             <el-button type="primary" :icon="PlusIcon" @click="openCreateStockCategory">
-              新增分類
+              {{ t('settingMenu.addStockCategory') }}
             </el-button>
           </template>
 
@@ -179,17 +179,17 @@
               v-loading="store.stockCategoriesLoading"
               row-key="category_id"
               stripe
-              empty-text="尚無股票分類"
+              :empty-text="t('settingMenu.noStockCategories')"
             >
-              <el-table-column prop="category_index" label="排序" width="80" align="right" />
-              <el-table-column prop="category_id" label="分類 ID" min-width="120" />
-              <el-table-column prop="name" label="名稱" min-width="200" />
-              <el-table-column label="啟用" width="80">
+              <el-table-column prop="category_index" :label="t('settingMenu.sortIndex')" width="80" align="right" />
+              <el-table-column prop="category_id" :label="t('settingMenu.categoryId')" min-width="120" />
+              <el-table-column prop="name" :label="t('common.name')" min-width="200" />
+              <el-table-column :label="t('common.enable')" width="80">
                 <template #default="{ row }">
                   <StatusBadge :value="row.in_use" />
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="160" fixed="right">
+              <el-table-column :label="t('common.actions')" width="160" fixed="right">
                 <template #default="{ row }">
                   <RowActions variant="link" @edit="openEditStockCategory(row)" @delete="handleDeleteStockCategory(row)" />
                 </template>
@@ -202,7 +202,7 @@
 
     <FormDialog
       v-model="creditCardDialogVisible"
-      :title="creditCardFormMode === 'create' ? '新增信用卡' : '編輯信用卡'"
+      :title="creditCardFormMode === 'create' ? t('settingMenu.createCreditCard') : t('settingMenu.editCreditCard')"
       :loading="creditCardSubmitting"
       width="540px"
       @submit="submitCreditCard"
@@ -213,20 +213,20 @@
         :rules="creditCardFormRules"
         label-width="100px"
       >
-        <el-form-item label="卡片 ID" prop="credit_card_id">
+        <el-form-item :label="t('settingMenu.cardId')" prop="credit_card_id">
           <el-input
             v-model="creditCardForm.credit_card_id"
             :disabled="creditCardFormMode === 'edit'"
-            placeholder="如 CC-VISA-01"
+            :placeholder="t('settingMenu.phCardId')"
           />
         </el-form-item>
-        <el-form-item label="卡名" prop="card_name">
+        <el-form-item :label="t('settingMenu.cardName')" prop="card_name">
           <el-input v-model="creditCardForm.card_name" />
         </el-form-item>
-        <el-form-item label="卡號">
-          <el-input v-model="cardNoModel" placeholder="如 4111-XXXX-XXXX-1111" />
+        <el-form-item :label="t('settingMenu.cardNo')">
+          <el-input v-model="cardNoModel" :placeholder="t('settingMenu.phCardNo')" />
         </el-form-item>
-        <el-form-item label="結帳日">
+        <el-form-item :label="t('settingMenu.lastDay')">
           <el-input-number
             v-model="lastDayModel"
             :min="1"
@@ -236,7 +236,7 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="扣款日">
+        <el-form-item :label="t('settingMenu.chargeDay')">
           <el-input-number
             v-model="chargeDayModel"
             :min="1"
@@ -246,7 +246,7 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="繳費日">
+        <el-form-item :label="t('settingMenu.limitDate')">
           <el-input-number
             v-model="limitDateModel"
             :min="1"
@@ -256,19 +256,19 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="回饋方式">
-          <el-input v-model="feedbackWayModel" placeholder="如 cashback / mileage" />
+        <el-form-item :label="t('settingMenu.feedbackWay')">
+          <el-input v-model="feedbackWayModel" :placeholder="t('settingMenu.phFeedbackWay')" />
         </el-form-item>
-        <el-form-item label="幣別" prop="fx_code">
+        <el-form-item :label="t('settingMenu.fxCode')" prop="fx_code">
           <el-input v-model="creditCardForm.fx_code" />
         </el-form-item>
-        <el-form-item label="啟用">
+        <el-form-item :label="t('common.enable')">
           <el-radio-group v-model="creditCardForm.in_use">
-            <el-radio value="Y">啟用</el-radio>
-            <el-radio value="N">停用</el-radio>
+            <el-radio value="Y">{{ t('settingMenu.enableLabel') }}</el-radio>
+            <el-radio value="N">{{ t('settingMenu.disableLabel') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="排序">
+        <el-form-item :label="t('settingMenu.sortIndex')">
           <el-input-number
             v-model="creditCardIndexModel"
             :min="0"
@@ -278,7 +278,7 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="備註">
+        <el-form-item :label="t('common.note')">
           <el-input v-model="creditCardNoteModel" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
@@ -286,7 +286,7 @@
 
     <FormDialog
       v-model="stockCategoryDialogVisible"
-      :title="stockCategoryFormMode === 'create' ? '新增股票分類' : '編輯股票分類'"
+      :title="stockCategoryFormMode === 'create' ? t('settingMenu.createStockCategory') : t('settingMenu.editStockCategory')"
       :loading="stockCategorySubmitting"
       width="460px"
       @submit="submitStockCategory"
@@ -297,19 +297,19 @@
         :rules="stockCategoryFormRules"
         label-width="100px"
       >
-        <el-form-item v-if="stockCategoryFormMode === 'edit'" label="分類 ID">
+        <el-form-item v-if="stockCategoryFormMode === 'edit'" :label="t('settingMenu.categoryId')">
           <el-input :model-value="String(editingStockCategoryId ?? '')" disabled />
         </el-form-item>
-        <el-form-item label="名稱" prop="name">
-          <el-input v-model="stockCategoryForm.name" placeholder="如 成長型 / 債券 / 類現金" />
+        <el-form-item :label="t('common.name')" prop="name">
+          <el-input v-model="stockCategoryForm.name" :placeholder="t('settingMenu.phStockCategoryName')" />
         </el-form-item>
-        <el-form-item label="啟用">
+        <el-form-item :label="t('common.enable')">
           <el-radio-group v-model="stockCategoryForm.in_use">
-            <el-radio value="Y">啟用</el-radio>
-            <el-radio value="N">停用</el-radio>
+            <el-radio value="Y">{{ t('settingMenu.enableLabel') }}</el-radio>
+            <el-radio value="N">{{ t('settingMenu.disableLabel') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="排序">
+        <el-form-item :label="t('settingMenu.sortIndex')">
           <el-input-number
             v-model="stockCategoryIndexModel"
             :min="0"
@@ -319,7 +319,7 @@
             style="width: 100%"
           />
           <p class="text-xs text-on-surface-variant mt-1">
-            分類 ID 由系統自動產生 (SC-NNN);留空排序時自動接續
+            {{ t('settingMenu.stockCategoryIndexHint') }}
           </p>
         </el-form-item>
       </el-form>
@@ -327,7 +327,7 @@
 
     <FormDialog
       v-model="codeDialogVisible"
-      :title="codeFormMode === 'create' ? '新增主分類' : '編輯主分類'"
+      :title="codeFormMode === 'create' ? t('settingMenu.createMainCode') : t('settingMenu.editMainCode')"
       :loading="codeSubmitting"
       width="520px"
       @submit="submitCode"
@@ -338,14 +338,14 @@
         :rules="codeFormRules"
         label-width="100px"
       >
-        <el-form-item label="分類 ID" prop="code_id">
+        <el-form-item :label="t('settingMenu.codeId')" prop="code_id">
           <el-input
             v-model="codeForm.code_id"
             :disabled="codeFormMode === 'edit'"
-            placeholder="如 E01"
+            :placeholder="t('settingMenu.phCodeId')"
           />
         </el-form-item>
-        <el-form-item label="類型" prop="code_type">
+        <el-form-item :label="t('common.type')" prop="code_type">
           <el-select v-model="codeForm.code_type" style="width: 100%">
             <el-option
               v-for="opt in CODE_TYPE_OPTIONS"
@@ -355,16 +355,16 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="名稱" prop="name">
+        <el-form-item :label="t('common.name')" prop="name">
           <el-input v-model="codeForm.name" />
         </el-form-item>
-        <el-form-item label="啟用">
+        <el-form-item :label="t('common.enable')">
           <el-radio-group v-model="codeForm.in_use">
-            <el-radio value="Y">啟用</el-radio>
-            <el-radio value="N">停用</el-radio>
+            <el-radio value="Y">{{ t('settingMenu.enableLabel') }}</el-radio>
+            <el-radio value="N">{{ t('settingMenu.disableLabel') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="排序">
+        <el-form-item :label="t('settingMenu.sortIndex')">
           <el-input-number
             v-model="codeIndexModel"
             :min="0"
@@ -374,11 +374,11 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="年度事件">
+        <el-form-item :label="t('settingMenu.annualEvent')">
           <div class="flex flex-col gap-1">
             <el-switch v-model="codeForm.is_annual_event" />
             <span class="text-xs text-on-surface-muted">
-              開啟後此分類改以「全年一筆額度」編列,不分攤到 12 個月 (如過年、年節送禮)
+              {{ t('settingMenu.annualEventHint') }}
             </span>
           </div>
         </el-form-item>
@@ -387,7 +387,7 @@
 
     <FormDialog
       v-model="subCodeDialogVisible"
-      :title="subCodeFormMode === 'create' ? '新增子分類' : '編輯子分類'"
+      :title="subCodeFormMode === 'create' ? t('settingMenu.createSubCode') : t('settingMenu.editSubCode')"
       :loading="subCodeSubmitting"
       width="480px"
       @submit="submitSubCode"
@@ -398,22 +398,22 @@
         :rules="subCodeFormRules"
         label-width="100px"
       >
-        <el-form-item label="父分類">
+        <el-form-item :label="t('settingMenu.parentCode')">
           <el-input :model-value="subCodeForm.parent_id ?? ''" disabled />
         </el-form-item>
-        <el-form-item label="子分類 ID" prop="code_id">
+        <el-form-item :label="t('settingMenu.subCodeId')" prop="code_id">
           <el-input
             v-model="subCodeForm.code_id"
             :disabled="subCodeFormMode === 'edit'"
           />
         </el-form-item>
-        <el-form-item label="名稱" prop="name">
+        <el-form-item :label="t('common.name')" prop="name">
           <el-input v-model="subCodeForm.name" />
         </el-form-item>
-        <el-form-item label="啟用">
+        <el-form-item :label="t('common.enable')">
           <el-radio-group v-model="subCodeForm.in_use">
-            <el-radio value="Y">啟用</el-radio>
-            <el-radio value="N">停用</el-radio>
+            <el-radio value="Y">{{ t('settingMenu.enableLabel') }}</el-radio>
+            <el-radio value="N">{{ t('settingMenu.disableLabel') }}</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -421,7 +421,7 @@
 
     <FormDialog
       v-model="accountDialogVisible"
-      :title="accountFormMode === 'create' ? '新增帳戶' : '編輯帳戶'"
+      :title="accountFormMode === 'create' ? t('settingMenu.createAccount') : t('settingMenu.editAccount')"
       :loading="accountSubmitting"
       width="540px"
       @submit="submitAccount"
@@ -432,35 +432,35 @@
         :rules="accountFormRules"
         label-width="100px"
       >
-        <el-form-item label="帳戶 ID" prop="account_id">
+        <el-form-item :label="t('settingMenu.accountId')" prop="account_id">
           <el-input
             v-model="accountForm.account_id"
             :disabled="accountFormMode === 'edit'"
-            placeholder="如 BANK-CHASE-01"
+            :placeholder="t('settingMenu.phAccountId')"
           />
         </el-form-item>
-        <el-form-item label="名稱" prop="name">
+        <el-form-item :label="t('common.name')" prop="name">
           <el-input v-model="accountForm.name" />
         </el-form-item>
-        <el-form-item label="類型" prop="account_type">
-          <el-input v-model="accountForm.account_type" placeholder="如 BANK / CASH / INVEST" />
+        <el-form-item :label="t('common.type')" prop="account_type">
+          <el-input v-model="accountForm.account_type" :placeholder="t('settingMenu.phAccountType')" />
         </el-form-item>
-        <el-form-item label="幣別" prop="fx_code">
-          <el-input v-model="accountForm.fx_code" placeholder="如 TWD / USD" />
+        <el-form-item :label="t('settingMenu.fxCode')" prop="fx_code">
+          <el-input v-model="accountForm.fx_code" :placeholder="t('settingMenu.phFxCode')" />
         </el-form-item>
-        <el-form-item label="計入資產">
+        <el-form-item :label="t('settingMenu.isCalculate')">
           <el-radio-group v-model="accountForm.is_calculate">
-            <el-radio value="Y">是</el-radio>
-            <el-radio value="N">否</el-radio>
+            <el-radio value="Y">{{ t('settingMenu.yes') }}</el-radio>
+            <el-radio value="N">{{ t('settingMenu.no') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="啟用">
+        <el-form-item :label="t('common.enable')">
           <el-radio-group v-model="accountForm.in_use">
-            <el-radio value="Y">啟用</el-radio>
-            <el-radio value="N">停用</el-radio>
+            <el-radio value="Y">{{ t('settingMenu.enableLabel') }}</el-radio>
+            <el-radio value="N">{{ t('settingMenu.disableLabel') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="折扣">
+        <el-form-item :label="t('settingMenu.discount')">
           <el-input-number
             v-model="accountForm.discount"
             :precision="4"
@@ -470,13 +470,13 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="持有人">
+        <el-form-item :label="t('settingMenu.owner')">
           <el-input v-model="ownerModel" />
         </el-form-item>
-        <el-form-item label="備註">
+        <el-form-item :label="t('common.note')">
           <el-input v-model="memoModel" type="textarea" :rows="2" />
         </el-form-item>
-        <el-form-item label="排序">
+        <el-form-item :label="t('settingMenu.sortIndex')">
           <el-input-number
             v-model="accountIndexModel"
             :min="0"
@@ -535,6 +535,7 @@ import type {
 const CODE_TYPE_OPTIONS = ['Floating', 'Fixed', 'Invest', 'Income', 'Transfer'] as const
 
 const store = useSettingStore()
+const { t } = useI18n()
 
 const activeTab = ref<'accounts' | 'codes' | 'credit-cards' | 'stock-categories'>('accounts')
 
@@ -579,12 +580,12 @@ function emptyAccountForm(): AccountCreate {
   }
 }
 
-const accountFormRules: FormRules = {
-  account_id: [{ required: true, message: '請輸入帳戶 ID', trigger: 'blur' }],
-  name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
-  account_type: [{ required: true, message: '請輸入類型', trigger: 'blur' }],
-  fx_code: [{ required: true, message: '請輸入幣別', trigger: 'blur' }],
-}
+const accountFormRules = computed<FormRules>(() => ({
+  account_id: [{ required: true, message: t('validation.enterAccountId'), trigger: 'blur' }],
+  name: [{ required: true, message: t('settingMenu.enterName'), trigger: 'blur' }],
+  account_type: [{ required: true, message: t('settingMenu.enterType'), trigger: 'blur' }],
+  fx_code: [{ required: true, message: t('settingMenu.enterFxCode'), trigger: 'blur' }],
+}))
 
 const {
   dialogVisible: accountDialogVisible,
@@ -619,7 +620,10 @@ const {
   },
   remove: (id) => deleteAccount(id as number),
   refetch: () => store.fetchAccounts(),
-  confirmDelete: (row) => ({ title: '刪除帳戶', message: `確定要刪除「${row.name}」?` }),
+  confirmDelete: (row) => ({
+    title: t('settingMenu.deleteAccountTitle'),
+    message: t('settingMenu.deleteAccountMsg', { name: row.name }),
+  }),
 })
 
 const ownerModel = computed<string>({
@@ -659,11 +663,11 @@ function emptyCodeForm(): CodeDataCreate {
   }
 }
 
-const codeFormRules: FormRules = {
-  code_id: [{ required: true, message: '請輸入分類 ID', trigger: 'blur' }],
-  code_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
-  name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
-}
+const codeFormRules = computed<FormRules>(() => ({
+  code_id: [{ required: true, message: t('settingMenu.enterCodeId'), trigger: 'blur' }],
+  code_type: [{ required: true, message: t('validation.pickType'), trigger: 'change' }],
+  name: [{ required: true, message: t('settingMenu.enterName'), trigger: 'blur' }],
+}))
 
 const {
   dialogVisible: codeDialogVisible,
@@ -696,8 +700,8 @@ const {
   remove: (id) => deleteCode(id as string),
   refetch: () => store.fetchCodesWithSub(),
   confirmDelete: (row) => ({
-    title: '刪除主分類',
-    message: `確定要刪除「${row.name}」? 子分類需先清空。`,
+    title: t('settingMenu.deleteMainCodeTitle'),
+    message: t('settingMenu.deleteMainCodeMsg', { name: row.name }),
   }),
 })
 
@@ -724,10 +728,10 @@ function emptySubCodeForm(parent: CodeDataWithSub): CodeDataCreate {
   }
 }
 
-const subCodeFormRules: FormRules = {
-  code_id: [{ required: true, message: '請輸入子分類 ID', trigger: 'blur' }],
-  name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
-}
+const subCodeFormRules = computed<FormRules>(() => ({
+  code_id: [{ required: true, message: t('settingMenu.enterSubCodeId'), trigger: 'blur' }],
+  name: [{ required: true, message: t('settingMenu.enterName'), trigger: 'blur' }],
+}))
 
 const {
   dialogVisible: subCodeDialogVisible,
@@ -763,7 +767,10 @@ const {
   },
   remove: (id) => deleteSubCode(id as string),
   refetch: () => store.fetchCodesWithSub(),
-  confirmDelete: (row) => ({ title: '刪除子分類', message: `確定要刪除「${row.name}」?` }),
+  confirmDelete: (row) => ({
+    title: t('settingMenu.deleteSubCodeTitle'),
+    message: t('settingMenu.deleteSubCodeMsg', { name: row.name }),
+  }),
 })
 
 function openCreateSubCode(parent: CodeDataWithSub) {
@@ -796,11 +803,11 @@ function emptyCreditCardForm(): CreditCardCreate {
   }
 }
 
-const creditCardFormRules: FormRules = {
-  credit_card_id: [{ required: true, message: '請輸入卡片 ID', trigger: 'blur' }],
-  card_name: [{ required: true, message: '請輸入卡名', trigger: 'blur' }],
-  fx_code: [{ required: true, message: '請輸入幣別', trigger: 'blur' }],
-}
+const creditCardFormRules = computed<FormRules>(() => ({
+  credit_card_id: [{ required: true, message: t('settingMenu.enterCardId'), trigger: 'blur' }],
+  card_name: [{ required: true, message: t('settingMenu.enterCardName'), trigger: 'blur' }],
+  fx_code: [{ required: true, message: t('settingMenu.enterFxCode'), trigger: 'blur' }],
+}))
 
 const {
   dialogVisible: creditCardDialogVisible,
@@ -836,7 +843,10 @@ const {
   },
   remove: (id) => deleteCreditCard(id as string),
   refetch: () => store.fetchCreditCards(),
-  confirmDelete: (row) => ({ title: '刪除信用卡', message: `確定要刪除「${row.card_name}」?` }),
+  confirmDelete: (row) => ({
+    title: t('settingMenu.deleteCreditCardTitle'),
+    message: t('settingMenu.deleteCreditCardMsg', { name: row.card_name }),
+  }),
 })
 
 const cardNoModel = computed<string>({
@@ -888,9 +898,9 @@ function emptyStockCategoryForm(): StockCategoryCreate {
   return { name: '', in_use: 'Y', category_index: undefined }
 }
 
-const stockCategoryFormRules: FormRules = {
-  name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
-}
+const stockCategoryFormRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('settingMenu.enterName'), trigger: 'blur' }],
+}))
 
 const {
   dialogVisible: stockCategoryDialogVisible,
@@ -921,8 +931,8 @@ const {
   remove: (id) => deleteStockCategory(id as string),
   refetch: () => store.fetchStockCategories(),
   confirmDelete: (row) => ({
-    title: '刪除股票分類',
-    message: `確定要刪除「${row.name}」? 已被持股引用的分類請改為停用 (停用)。`,
+    title: t('settingMenu.deleteStockCategoryTitle'),
+    message: t('settingMenu.deleteStockCategoryMsg', { name: row.name }),
   }),
 })
 

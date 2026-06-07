@@ -2,34 +2,41 @@
  * Display-only translations for SelectionGroup labels.
  *
  * BE returns English keys (account_type, table names) in `SelectionGroup.label`.
- * Templates render via `translateGroupLabel(label)` to show user-friendly
- * Chinese. Do NOT translate when storing values in journal payloads — the raw
- * key is the source of truth, only display layer translates.
- *
- * Source: account-book-view's commonData/accountData.js plus the financial
- * tables we surface as sub options.
+ * Templates render via `translateGroupLabel(label)` to show the user-friendly
+ * label in the active UI locale. Do NOT translate when storing values in journal
+ * payloads — the raw key is the source of truth, only the display layer translates.
  */
-const GROUP_LABEL_TRANSLATIONS: Record<string, string> = {
+import { i18n } from '@/i18n'
+
+/** Backend SelectionGroup.label key → i18n message key (selection.*). */
+const GROUP_LABEL_KEYS: Record<string, string> = {
   // Account types
-  cash: '現金',
-  normal: '一般帳戶',
-  finance: '財務規劃帳戶',
-  eWallet: '電子錢包',
-  gift: '禮券',
+  cash: 'selection.cash',
+  normal: 'selection.normal',
+  finance: 'selection.finance',
+  eWallet: 'selection.eWallet',
+  gift: 'selection.gift',
   // Other financial entities
-  Credit_Card: '信用卡',
-  Loan: '貸款',
-  Insurance: '保險',
-  Other_Asset: '其他資產',
+  Credit_Card: 'selection.creditCard',
+  Loan: 'selection.loan',
+  Insurance: 'selection.insurance',
+  Other_Asset: 'selection.otherAsset',
   // Code types (main category groups)
-  Floating: '浮動支出',
-  Fixed: '固定支出',
-  Income: '主動收入',
-  Passive: '被動收入',
-  Invest: '投資',
-  Transfer: '轉帳',
+  Floating: 'selection.floating',
+  Fixed: 'selection.fixed',
+  Income: 'selection.income',
+  Passive: 'selection.passive',
+  Invest: 'selection.invest',
+  Transfer: 'selection.transfer',
+  // Component-built group header for built-in financial behaviors.
+  FinancialBehavior: 'selection.financialBehaviorGroup',
 }
 
+/**
+ * Translate a backend SelectionGroup label to the active UI locale.
+ * Reactive in templates: `i18n.global.t` reads the global locale ref during render.
+ */
 export function translateGroupLabel(label: string): string {
-  return GROUP_LABEL_TRANSLATIONS[label] ?? label
+  const key = GROUP_LABEL_KEYS[label]
+  return key ? i18n.global.t(key) : label
 }

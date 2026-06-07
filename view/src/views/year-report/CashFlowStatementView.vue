@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col gap-8">
-    <PageHeader title="現金流量表" :subtitle="`${store.selectedYear} 年 · 生活 / 投資 / 債務`">
+    <PageHeader :title="t('cashFlowStatement.title')" :subtitle="t('cashFlowStatement.subtitle', { year: store.selectedYear })">
       <template #actions>
         <el-date-picker
           v-model="selectedYearDate"
           type="year"
-          placeholder="選擇年份"
+          :placeholder="t('common.pickYear')"
           format="YYYY"
           :clearable="false"
         />
@@ -13,56 +13,56 @@
     </PageHeader>
 
     <el-tabs v-model="activeType" @tab-change="handleTypeChange">
-      <el-tab-pane label="月度" name="monthly" />
-      <el-tab-pane label="年度" name="yearly" />
+      <el-tab-pane :label="t('common.monthly')" name="monthly" />
+      <el-tab-pane :label="t('common.yearly')" name="yearly" />
     </el-tabs>
 
     <el-skeleton v-if="store.cashFlowLoading" :rows="6" animated />
-    <EmptyState v-else-if="!hasData" message="暫無現金流資料" />
+    <EmptyState v-else-if="!hasData" :message="t('cashFlowStatement.empty')" />
     <template v-else>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
-          label="生活淨額"
+          :label="t('cashFlowStatement.operatingNet')"
           :amount="nets.operating"
           :tone="nets.operating < 0 ? 'rose' : 'primary'"
-          tooltip="收入 − 生活支出 − 貸款利息"
+          :tooltip="t('cashFlowStatement.operatingTooltip')"
         />
         <MetricCard
-          label="投資淨額"
+          :label="t('cashFlowStatement.investingNet')"
           :amount="nets.investing"
           :tone="nets.investing < 0 ? 'rose' : 'primary'"
-          tooltip="投資買賣淨額（買入為負、賣出為正）"
+          :tooltip="t('cashFlowStatement.investingTooltip')"
         />
         <MetricCard
-          label="債務淨額"
+          :label="t('cashFlowStatement.financingNet')"
           :amount="nets.financing"
           :tone="nets.financing < 0 ? 'rose' : 'primary'"
-          tooltip="新增借款 − 償還本金"
+          :tooltip="t('cashFlowStatement.financingTooltip')"
         />
         <MetricCard
-          label="現金淨變動"
+          :label="t('cashFlowStatement.netChange')"
           :amount="summary.net_change"
           :tone="summary.net_change < 0 ? 'rose' : 'primary'"
-          tooltip="生活 ＋ 投資 ＋ 債務"
+          :tooltip="t('cashFlowStatement.netChangeTooltip')"
         />
       </div>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="現金流構成（生活 → 投資 → 債務）" />
+        <SectionHeader :title="t('cashFlowStatement.composition')" />
         <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
-          <WaterfallChart :items="waterfallItems" total-label="現金淨變動" height="320px" />
+          <WaterfallChart :items="waterfallItems" :total-label="t('cashFlowStatement.netChange')" height="320px" />
         </div>
       </section>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="逐期現金流" />
+        <SectionHeader :title="t('cashFlowStatement.byPeriod')" />
         <BarChart :x-data="chart.xData" :series="chart.series" height="360px" />
       </section>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="現金流明細" />
+        <SectionHeader :title="t('cashFlowStatement.detail')" />
         <p class="text-on-surface-variant/70 text-sm -mt-2">
-          自轉帳已排除；信用卡支出於消費當月計入一次。投資買賣與債務本金屬現金流量，與「損益表」的損益口徑刻意不同——並非錯誤。
+          {{ t('cashFlowStatement.detailNote') }}
         </p>
         <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
           <el-table
@@ -73,8 +73,8 @@
             border
             style="width: 100%"
           >
-            <el-table-column prop="label" label="項目" min-width="220" />
-            <el-table-column label="金額" width="200" align="right">
+            <el-table-column prop="label" :label="t('common.item')" min-width="220" />
+            <el-table-column :label="t('common.amount')" width="200" align="right">
               <template #default="{ row }">
                 <MoneyDisplay
                   :amount="row.amount"
@@ -103,6 +103,7 @@ import WaterfallChart from '@/components/charts/WaterfallChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'
 
 const store = useYearReportStore()
+const { t } = useI18n()
 
 const activeType = ref<'monthly' | 'yearly'>('monthly')
 const selectedYearDate = ref<Date>(new Date(store.selectedYear, 0, 1))
@@ -148,11 +149,11 @@ const chart = computed(() => {
     xData: report.points.map((p) => p.period),
     series: [
       // 生活 / 投資 / 債務 stack into 現金淨變動; the line traces the total.
-      { name: '生活', data: report.points.map((p) => p.operating), stack: 'cf' },
-      { name: '投資', data: report.points.map((p) => p.investing), stack: 'cf' },
-      { name: '債務', data: report.points.map((p) => p.financing), stack: 'cf' },
+      { name: t('cashFlowStatement.seriesOperating'), data: report.points.map((p) => p.operating), stack: 'cf' },
+      { name: t('cashFlowStatement.seriesInvesting'), data: report.points.map((p) => p.investing), stack: 'cf' },
+      { name: t('cashFlowStatement.seriesFinancing'), data: report.points.map((p) => p.financing), stack: 'cf' },
       {
-        name: '現金淨變動',
+        name: t('cashFlowStatement.netChange'),
         data: report.points.map((p) => p.net_change),
         type: 'line' as const,
       },
@@ -161,9 +162,9 @@ const chart = computed(() => {
 })
 
 const waterfallItems = computed(() => [
-  { name: '生活', value: nets.value.operating },
-  { name: '投資', value: nets.value.investing },
-  { name: '債務', value: nets.value.financing },
+  { name: t('cashFlowStatement.seriesOperating'), value: nets.value.operating },
+  { name: t('cashFlowStatement.seriesInvesting'), value: nets.value.investing },
+  { name: t('cashFlowStatement.seriesFinancing'), value: nets.value.financing },
 ])
 
 const breakdownTree = computed(() => {
@@ -179,7 +180,7 @@ const breakdownTree = computed(() => {
         amount: it.amount,
       })),
     })),
-    { key: 'net_change', label: '現金淨變動', amount: s.net_change },
+    { key: 'net_change', label: t('cashFlowStatement.netChange'), amount: s.net_change },
   ]
 })
 </script>

@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col gap-8">
-    <PageHeader title="資產概覽" :subtitle="`${store.selectedYear} 年`">
+    <PageHeader :title="t('asset.title')" :subtitle="t('common.yearLabel', { year: store.selectedYear })">
       <template #actions>
         <el-date-picker
           v-model="selectedYearDate"
           type="year"
-          placeholder="選擇年份"
+          :placeholder="t('common.pickYear')"
           format="YYYY"
           :clearable="false"
         />
@@ -15,32 +15,32 @@
     <el-skeleton v-if="store.assetsLoading" :rows="6" animated />
     <EmptyState
       v-else-if="!store.assetsReport || store.assetsReport.items.length === 0"
-      message="暫無資產資料"
+      :message="t('asset.empty')"
     />
     <template v-else>
-      <MetricCard label="總資產" :amount="store.assetsReport.total" />
+      <MetricCard :label="t('asset.totalAssets')" :amount="store.assetsReport.total" />
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section class="flex flex-col gap-4">
-          <SectionHeader title="資產組成" />
+          <SectionHeader :title="t('asset.composition')" />
           <DonutChart :data="donutData" :center-text="centerText" height="360px" />
         </section>
 
         <section class="flex flex-col gap-4">
-          <SectionHeader title="明細" />
+          <SectionHeader :title="t('asset.detail')" />
           <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
             <el-table :data="store.assetsReport.items" stripe border style="width: 100%">
-              <el-table-column prop="type" label="類別" min-width="140">
+              <el-table-column prop="type" :label="t('common.category')" min-width="140">
                 <template #default="{ row }">
-                  <span>{{ TYPE_LABEL[row.type] ?? row.type }}</span>
+                  <span>{{ assetTypeLabel(row.type) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="金額" width="180" align="right">
+              <el-table-column :label="t('common.amount')" width="180" align="right">
                 <template #default="{ row }">
                   <MoneyDisplay :amount="row.amount" :positive="true" size="sm" />
                 </template>
               </el-table-column>
-              <el-table-column label="占比" width="120" align="right">
+              <el-table-column :label="t('asset.share')" width="120" align="right">
                 <template #default="{ row }">
                   <span class="text-on-surface tabular-nums">{{ row.share.toFixed(1) }}%</span>
                 </template>
@@ -51,18 +51,18 @@
       </div>
 
       <section v-if="hasStockAllocation" class="flex flex-col gap-4">
-        <SectionHeader title="股票分類配置" />
+        <SectionHeader :title="t('asset.stockAllocation')" />
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <DonutChart :data="stockDonutData" :center-text="stockCenterText" height="320px" />
           <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
             <el-table :data="store.stockAllocation!.items" stripe border style="width: 100%">
-              <el-table-column prop="category_name" label="分類" min-width="140" />
-              <el-table-column label="金額" width="180" align="right">
+              <el-table-column prop="category_name" :label="t('asset.category')" min-width="140" />
+              <el-table-column :label="t('common.amount')" width="180" align="right">
                 <template #default="{ row }">
                   <MoneyDisplay :amount="row.amount" :positive="true" size="sm" />
                 </template>
               </el-table-column>
-              <el-table-column label="占比" width="120" align="right">
+              <el-table-column :label="t('asset.share')" width="120" align="right">
                 <template #default="{ row }">
                   <span class="text-on-surface tabular-nums">{{ row.share.toFixed(1) }}%</span>
                 </template>
@@ -84,15 +84,23 @@ import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import DonutChart from '@/components/charts/DonutChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'
+import { useMoney } from '@/composables/useMoney'
 
 const store = useYearReportStore()
+const { t } = useI18n()
+const { format: formatMoney } = useMoney()
 
 const TYPE_LABEL: Record<string, string> = {
-  accounts: '帳戶',
-  stocks: '股票',
-  estates: '不動產',
-  insurances: '保險',
-  other_assets: '其他資產',
+  accounts: 'asset.typeAccounts',
+  stocks: 'asset.typeStocks',
+  estates: 'asset.typeEstates',
+  insurances: 'asset.typeInsurances',
+  other_assets: 'asset.typeOtherAssets',
+}
+
+function assetTypeLabel(type: string): string {
+  const key = TYPE_LABEL[type]
+  return key ? t(key) : type
 }
 
 const selectedYearDate = ref<Date>(new Date(store.selectedYear, 0, 1))
@@ -113,7 +121,7 @@ onMounted(() => {
 const donutData = computed(() =>
   store.assetsReport
     ? store.assetsReport.items.map((i) => ({
-        name: TYPE_LABEL[i.type] ?? i.type,
+        name: assetTypeLabel(i.type),
         value: i.amount,
       }))
     : [],
@@ -121,10 +129,8 @@ const donutData = computed(() =>
 
 const centerText = computed(() => {
   if (!store.assetsReport) return ''
-  const total = new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 0,
-  }).format(store.assetsReport.total)
-  return `總額 ${total}`
+  const total = formatMoney(store.assetsReport.total, { maximumFractionDigits: 0 })
+  return t('asset.donutCenter', { total })
 })
 
 const hasStockAllocation = computed(
@@ -139,9 +145,7 @@ const stockDonutData = computed(() =>
 
 const stockCenterText = computed(() => {
   if (!store.stockAllocation) return ''
-  const total = new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 0,
-  }).format(store.stockAllocation.total)
-  return `股票 ${total}`
+  const total = formatMoney(store.stockAllocation.total, { maximumFractionDigits: 0 })
+  return t('asset.stockDonutCenter', { total })
 })
 </script>

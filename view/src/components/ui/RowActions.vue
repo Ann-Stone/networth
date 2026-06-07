@@ -8,19 +8,20 @@
     The default slot renders after the pair for any extra row actions.
   -->
   <template v-if="variant === 'link'">
-    <el-button link type="primary" @click="emit('edit')">{{ editText }}</el-button>
-    <el-button link type="danger" @click="emit('delete')">{{ deleteText }}</el-button>
+    <el-button link type="primary" @click="emit('edit')">{{ editLabel }}</el-button>
+    <el-button link type="danger" @click="emit('delete')">{{ deleteLabel }}</el-button>
   </template>
   <template v-else>
-    <el-button size="small" :icon="Edit" @click="emit('edit')">{{ editText }}</el-button>
+    <el-button size="small" :icon="Edit" @click="emit('edit')">{{ editLabel }}</el-button>
     <el-button size="small" type="danger" :icon="Delete" @click="emit('delete')">
-      {{ deleteText }}
+      {{ deleteLabel }}
     </el-button>
   </template>
   <slot />
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Edit, Delete } from '@element-plus/icons-vue'
 
 const props = withDefaults(
@@ -31,8 +32,6 @@ const props = withDefaults(
   }>(),
   {
     variant: 'icon',
-    editText: '編輯',
-    deleteText: '刪除',
   },
 )
 
@@ -41,5 +40,9 @@ const emit = defineEmits<{
   (e: 'delete'): void
 }>()
 
-void props
+const { t } = useI18n()
+
+// Default to the shared common.* labels; callers can still override per-row.
+const editLabel = computed(() => props.editText ?? t('common.edit'))
+const deleteLabel = computed(() => props.deleteText ?? t('common.delete'))
 </script>

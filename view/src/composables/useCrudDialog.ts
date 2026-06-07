@@ -1,6 +1,7 @@
 import { ref, type Ref } from 'vue'
 import { ElMessage, type FormInstance } from 'element-plus'
 import { useConfirm } from './useConfirm'
+import { i18n } from '@/i18n'
 
 /**
  * Options describing how a single entity's create/edit/delete flow behaves.
@@ -31,7 +32,7 @@ export interface UseCrudDialogOptions<TRow, TForm> {
   refetch: () => unknown | Promise<unknown>
   /** Title + message for the delete confirmation dialog. */
   confirmDelete: (row: TRow) => { title: string; message: string }
-  /** Success-toast overrides (defaults: 新增成功 / 更新成功 / 已刪除). */
+  /** Success-toast overrides (defaults: toast.addSuccess / updateSuccess / deleted). */
   messages?: { created?: string; updated?: string; deleted?: string }
   /** Extra cleanup after a successful delete (e.g. drop cached details). */
   onAfterDelete?: (row: TRow) => void
@@ -68,10 +69,10 @@ export function useCrudDialog<TRow, TForm>(opts: UseCrudDialogOptions<TRow, TFor
     try {
       if (formMode.value === 'create') {
         await opts.create(form.value)
-        ElMessage.success(opts.messages?.created ?? '新增成功')
+        ElMessage.success(opts.messages?.created ?? i18n.global.t('toast.addSuccess'))
       } else if (editingId.value !== null) {
         await opts.update(editingId.value, form.value)
-        ElMessage.success(opts.messages?.updated ?? '更新成功')
+        ElMessage.success(opts.messages?.updated ?? i18n.global.t('toast.updateSuccess'))
       }
       dialogVisible.value = false
       await opts.refetch()
@@ -85,7 +86,7 @@ export function useCrudDialog<TRow, TForm>(opts: UseCrudDialogOptions<TRow, TFor
     const ok = await confirm({ title, message, type: 'warning' })
     if (!ok) return
     await opts.remove(opts.getId(row))
-    ElMessage.success(opts.messages?.deleted ?? '已刪除')
+    ElMessage.success(opts.messages?.deleted ?? i18n.global.t('toast.deleted'))
     opts.onAfterDelete?.(row)
     await opts.refetch()
   }

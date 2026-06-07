@@ -14,6 +14,7 @@
  *   mock); magnitudes use Math.abs so totals/shares are convention-agnostic.
  */
 import type { BalanceReport, BalanceReportLine } from '@/types/models'
+import { i18n } from '@/i18n'
 
 export interface BalanceNode {
   key: string
@@ -30,25 +31,25 @@ const BASE_CURRENCY = 'TWD'
 // Friendly labels for common currencies; any code not listed falls back to the
 // raw code (e.g. 'SGD'), so multi-currency support is not limited to this list.
 const CURRENCY_LABEL: Record<string, string> = {
-  TWD: '台幣',
-  USD: '美金',
-  JPY: '日圓',
-  EUR: '歐元',
-  CNY: '人民幣',
-  HKD: '港幣',
-  GBP: '英鎊',
-  AUD: '澳幣',
+  TWD: 'balanceSheet.curTWD',
+  USD: 'balanceSheet.curUSD',
+  JPY: 'balanceSheet.curJPY',
+  EUR: 'balanceSheet.curEUR',
+  CNY: 'balanceSheet.curCNY',
+  HKD: 'balanceSheet.curHKD',
+  GBP: 'balanceSheet.curGBP',
+  AUD: 'balanceSheet.curAUD',
 }
 
 // Stock market labels via the currency proxy; unlisted codes fall back to
 // `<code> 股` (e.g. 'SGD 股').
 const MARKET_LABEL: Record<string, string> = {
-  TWD: '台股',
-  USD: '美股',
-  JPY: '日股',
-  HKD: '港股',
-  CNY: '陸股',
-  EUR: '歐股',
+  TWD: 'balanceSheet.mktTWD',
+  USD: 'balanceSheet.mktUSD',
+  JPY: 'balanceSheet.mktJPY',
+  HKD: 'balanceSheet.mktHKD',
+  CNY: 'balanceSheet.mktCNY',
+  EUR: 'balanceSheet.mktEUR',
 }
 
 function currencyOf(line: BalanceReportLine): string {
@@ -106,7 +107,7 @@ function groupByCurrency(
     const groupKey = `${keyPrefix}-${cur}`
     const node: BalanceNode = {
       key: groupKey,
-      label: labelMap[cur] ?? labelFallback(cur),
+      label: labelMap[cur] ? i18n.global.t(labelMap[cur]) : labelFallback(cur),
       amount: sumLeaves(groupLines),
       children: groupLines.map((l, i) => leafNode(l, groupKey, i)),
     }
@@ -153,7 +154,7 @@ export function buildAssetTree(report: BalanceReport): BalanceNode[] {
     nodes.push(
       categoryNode(
         'cash',
-        '現金及約當現金',
+        i18n.global.t('balanceSheet.catCash'),
         a.accounts,
         groupByCurrency(a.accounts, 'cash', CURRENCY_LABEL, (c) => c),
         share,
@@ -164,9 +165,11 @@ export function buildAssetTree(report: BalanceReport): BalanceNode[] {
     nodes.push(
       categoryNode(
         'stock',
-        '投資',
+        i18n.global.t('balanceSheet.catInvest'),
         a.stocks,
-        groupByCurrency(a.stocks, 'stock', MARKET_LABEL, (c) => `${c} 股`),
+        groupByCurrency(a.stocks, 'stock', MARKET_LABEL, (c) =>
+          i18n.global.t('balanceSheet.mktFallback', { code: c }),
+        ),
         share,
       ),
     )
@@ -177,7 +180,7 @@ export function buildAssetTree(report: BalanceReport): BalanceNode[] {
     nodes.push(
       categoryNode(
         'insurance',
-        '保險',
+        i18n.global.t('balanceSheet.catInsurance'),
         a.insurances,
         groupByCurrency(a.insurances, 'insurance', CURRENCY_LABEL, (c) => c),
         share,
@@ -189,7 +192,7 @@ export function buildAssetTree(report: BalanceReport): BalanceNode[] {
     nodes.push(
       categoryNode(
         'estate',
-        '不動產',
+        i18n.global.t('balanceSheet.catEstate'),
         a.estates,
         groupByCurrency(a.estates, 'estate', CURRENCY_LABEL, (c) => c),
         share,
@@ -210,7 +213,7 @@ export function buildLiabilityTree(report: BalanceReport): BalanceNode[] {
     const amount = sumLeaves(l.credit_cards)
     nodes.push({
       key: 'cc',
-      label: '信用卡',
+      label: i18n.global.t('balanceSheet.catCreditCard'),
       amount,
       share: share(amount),
       children: l.credit_cards.map((x, i) => leafNode(x, 'cc', i)),
@@ -221,7 +224,7 @@ export function buildLiabilityTree(report: BalanceReport): BalanceNode[] {
     nodes.push(
       categoryNode(
         'loan',
-        '貸款',
+        i18n.global.t('balanceSheet.catLoan'),
         l.loans,
         groupByCurrency(l.loans, 'loan', CURRENCY_LABEL, (c) => c),
         share,

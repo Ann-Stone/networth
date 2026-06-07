@@ -32,6 +32,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: EstateDetailFormState): void
 }>()
 
+const { t } = useI18n()
+
 const form = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
@@ -54,11 +56,11 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
 </script>
 
 <template>
-  <el-form-item v-if="showEstateIdInput" label="房產 ID">
+  <el-form-item v-if="showEstateIdInput" :label="t('forms.estateId')">
     <el-input :model-value="form.estate_id" disabled />
   </el-form-item>
 
-  <el-form-item v-if="!isCashflow" label="日期" prop="excute_date">
+  <el-form-item v-if="!isCashflow" :label="t('common.date')" prop="excute_date">
     <el-date-picker
       v-model="formDate"
       type="date"
@@ -68,18 +70,18 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
     />
   </el-form-item>
 
-  <el-form-item label="類型" prop="estate_excute_type">
+  <el-form-item :label="t('common.type')" prop="estate_excute_type">
     <el-select v-model="form.estate_excute_type" style="width: 100%">
-      <el-option label="稅務 (tax)" value="tax" />
-      <el-option label="管理費 (fee)" value="fee" />
-      <el-option label="保險 (insurance)" value="insurance" />
-      <el-option label="維修 (fix)" value="fix" />
-      <el-option label="租金 (rent)" value="rent" />
-      <el-option label="押金 (deposit)" value="deposit" />
+      <el-option :label="t('forms.estateTax')" value="tax" />
+      <el-option :label="t('forms.estateFee')" value="fee" />
+      <el-option :label="t('forms.estateInsurance')" value="insurance" />
+      <el-option :label="t('forms.estateFix')" value="fix" />
+      <el-option :label="t('forms.estateRent')" value="rent" />
+      <el-option :label="t('forms.estateDeposit')" value="deposit" />
     </el-select>
   </el-form-item>
 
-  <el-form-item v-if="!isCashflow" label="金額" prop="excute_price">
+  <el-form-item v-if="!isCashflow" :label="t('common.amount')" prop="excute_price">
     <el-input-number
       v-model="form.excute_price"
       :precision="2"
@@ -89,15 +91,15 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
     />
   </el-form-item>
   <p v-else class="text-xs text-on-surface-variant mt-1">
-    金額會自動帶入主表單的金額（含正負號）
+    {{ t('forms.amountAutoHint') }}
   </p>
 
-  <el-form-item v-if="!isCashflow" label="備註">
+  <el-form-item v-if="!isCashflow" :label="t('common.note')">
     <el-input
       v-model="form.memo"
       type="textarea"
       :rows="2"
-      placeholder="(可選)"
+      :placeholder="t('common.optional')"
     />
   </el-form-item>
 </template>
@@ -105,15 +107,22 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
 <script lang="ts">
 import type { FormRules } from 'element-plus'
 
-// Validation rules — exported so parents that compose this component into a
-// larger form can spread the relevant subset into their own rules object.
-export const ESTATE_DETAIL_FULL_RULES: FormRules = {
-  excute_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
-  estate_excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
-  excute_price: [{ required: true, message: '請輸入金額', trigger: 'blur' }],
+type TranslateFn = (key: string) => string
+
+// Validation rules — exported as factory functions so parents can build them
+// with their own i18n `t` (messages re-evaluate on locale switch when the
+// caller wraps these in a `computed`).
+export function estateDetailFullRules(t: TranslateFn): FormRules {
+  return {
+    excute_date: [{ required: true, message: t('validation.pickDate'), trigger: 'change' }],
+    estate_excute_type: [{ required: true, message: t('validation.pickType'), trigger: 'change' }],
+    excute_price: [{ required: true, message: t('validation.enterAmount'), trigger: 'blur' }],
+  }
 }
 
-export const ESTATE_DETAIL_CASHFLOW_RULES: FormRules = {
-  estate_excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
+export function estateDetailCashflowRules(t: TranslateFn): FormRules {
+  return {
+    estate_excute_type: [{ required: true, message: t('validation.pickType'), trigger: 'change' }],
+  }
 }
 </script>

@@ -1,18 +1,18 @@
 <template>
   <div class="flex flex-col gap-6">
-    <PageHeader title="資料匯入" subtitle="批次匯入股價、匯率與發票" />
+    <PageHeader :title="t('import.title')" :subtitle="t('import.subtitle')" />
 
-    <DataListCard title="股價匯入">
+    <DataListCard :title="t('import.stockTitle')">
       <div class="p-6 flex flex-col gap-3">
         <p class="text-sm text-on-surface-variant">
-          透過 yfinance 抓取股票交易紀錄中所有 ticker 的指定期間日線價格，寫入 Stock_Price_History。
+          {{ t('import.stockDesc') }}
         </p>
         <div class="flex flex-wrap items-center gap-3">
           <el-date-picker
             v-model="stockPeriod"
             type="month"
             value-format="YYYYMM"
-            placeholder="留白表示今日"
+            :placeholder="t('import.periodPlaceholder')"
             style="width: 200px"
           />
           <el-button
@@ -20,26 +20,26 @@
             :loading="stockLoading"
             @click="handleStockPriceImport"
           >
-            匯入股價
+            {{ t('import.stockButton') }}
           </el-button>
         </div>
         <p class="text-xs text-on-surface-muted">
-          留白表示今日；填入 YYYYMM 抓該月最後一個交易日的價格。
+          {{ t('import.stockHint') }}
         </p>
       </div>
     </DataListCard>
 
-    <DataListCard title="匯率匯入">
+    <DataListCard :title="t('import.fxTitle')">
       <div class="p-6 flex flex-col gap-3">
         <p class="text-sm text-on-surface-variant">
-          從永豐銀行抓取指定期間的外幣買入匯率，upsert 至 FX_Rate。
+          {{ t('import.fxDesc') }}
         </p>
         <div class="flex flex-wrap items-center gap-3">
           <el-date-picker
             v-model="fxPeriod"
             type="month"
             value-format="YYYYMM"
-            placeholder="留白表示今日"
+            :placeholder="t('import.periodPlaceholder')"
             style="width: 200px"
           />
           <el-button
@@ -47,19 +47,19 @@
             :loading="fxLoading"
             @click="handleFxRateImport"
           >
-            匯入匯率
+            {{ t('import.fxButton') }}
           </el-button>
         </div>
         <p class="text-xs text-on-surface-muted">
-          留白表示今日；填入 YYYYMM 抓該月最後一日的匯率。
+          {{ t('import.fxHint') }}
         </p>
       </div>
     </DataListCard>
 
-    <DataListCard title="發票匯入">
+    <DataListCard :title="t('import.invoiceTitle')">
       <div v-loading="invoiceLoading" class="p-6 flex flex-col gap-3">
         <p class="text-sm text-on-surface-variant">
-          上傳財政部電子發票平台匯出的 CSV（pipe 分隔），系統會解析、去重後寫入 Journal，並回報匯入結果。
+          {{ t('import.invoiceDesc') }}
         </p>
         <div class="flex flex-wrap items-center gap-3">
           <el-upload
@@ -73,7 +73,7 @@
             :on-exceed="handleInvoiceExceed"
           >
             <template #trigger>
-              <el-button>選擇 CSV 檔</el-button>
+              <el-button>{{ t('import.chooseCsv') }}</el-button>
             </template>
           </el-upload>
           <el-button
@@ -82,26 +82,31 @@
             :disabled="!invoiceFile"
             @click="handleInvoiceImport"
           >
-            匯入發票
+            {{ t('import.invoiceButton') }}
           </el-button>
         </div>
         <div v-if="invoiceResult" class="flex flex-col gap-1">
           <p class="text-xs text-on-surface-muted">
-            最近一次：匯入 {{ invoiceResult.imported }} 筆 · 略過
-            {{ invoiceResult.skipped }} 筆 · 失敗 {{ invoiceResult.failed }} 筆
+            {{
+              t('import.lastResult', {
+                imported: invoiceResult.imported,
+                skipped: invoiceResult.skipped,
+                failed: invoiceResult.failed,
+              })
+            }}
           </p>
           <ul
             v-if="invoiceResult.months.length"
             class="flex flex-col gap-0.5 text-xs text-on-surface-muted"
           >
             <li v-for="m in invoiceResult.months" :key="m.month">
-              {{ formatMonth(m.month) }}：匯入 {{ m.imported }} 筆<span v-if="m.skipped">
-                · 略過 {{ m.skipped }} 筆</span>
+              {{ t('import.monthImported', { month: formatMonth(m.month), imported: m.imported })
+              }}<span v-if="m.skipped">{{ t('import.monthSkipped', { skipped: m.skipped }) }}</span>
             </li>
           </ul>
         </div>
         <p v-else class="text-xs text-on-surface-muted">
-          僅接受 CSV 檔；選擇檔案後按「匯入發票」即可。
+          {{ t('import.invoiceEmptyHint') }}
         </p>
       </div>
     </DataListCard>
@@ -120,6 +125,8 @@ import {
   importInvoices,
 } from '@/api/utilities'
 import type { InvoiceImportResult } from '@/types/models'
+
+const { t } = useI18n()
 
 const stockPeriod = ref<string>('')
 const fxPeriod = ref<string>('')
@@ -142,9 +149,9 @@ async function handleStockPriceImport() {
   stockLoading.value = true
   try {
     const res = await importStockPrices(stockPeriod.value)
-    ElMessage.success(res.message || '股價匯入已排程')
+    ElMessage.success(res.message || t('import.stockScheduled'))
   } catch {
-    ElMessage.error('股價匯入失敗')
+    ElMessage.error(t('import.stockFailed'))
   } finally {
     stockLoading.value = false
   }
@@ -154,9 +161,9 @@ async function handleFxRateImport() {
   fxLoading.value = true
   try {
     const res = await importFxRates(fxPeriod.value)
-    ElMessage.success(res.message || '匯率匯入已排程')
+    ElMessage.success(res.message || t('import.fxScheduled'))
   } catch {
-    ElMessage.error('匯率匯入失敗')
+    ElMessage.error(t('import.fxFailed'))
   } finally {
     fxLoading.value = false
   }
@@ -183,20 +190,24 @@ const handleInvoiceExceed: UploadProps['onExceed'] = (files) => {
 
 async function handleInvoiceImport() {
   if (!invoiceFile.value) {
-    ElMessage.warning('請先選擇要匯入的 CSV 檔')
+    ElMessage.warning(t('import.pickCsvFirst'))
     return
   }
   invoiceLoading.value = true
   try {
     const res = await importInvoices(invoiceFile.value)
     invoiceResult.value = res
-    const msg = `匯入 ${res.imported} 筆，略過 ${res.skipped} 筆，失敗 ${res.failed} 筆`
+    const msg = t('import.resultSummary', {
+      imported: res.imported,
+      skipped: res.skipped,
+      failed: res.failed,
+    })
     if (res.failed > 0) ElMessage.warning(msg)
     else ElMessage.success(msg)
     invoiceUploadRef.value?.clearFiles()
     invoiceFile.value = null
   } catch {
-    ElMessage.error('發票匯入失敗')
+    ElMessage.error(t('import.invoiceFailed'))
   } finally {
     invoiceLoading.value = false
   }

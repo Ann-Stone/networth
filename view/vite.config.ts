@@ -13,7 +13,7 @@ export default defineConfig({
     tailwindcss(),
     AutoImport({
       resolvers: [ElementPlusResolver()],
-      imports: ['vue', 'vue-router', 'pinia'],
+      imports: ['vue', 'vue-router', 'pinia', 'vue-i18n'],
       dts: 'src/auto-imports.d.ts',
     }),
     Components({

@@ -34,6 +34,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: StockDetailFormState): void
 }>()
 
+const { t } = useI18n()
+
 const form = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
@@ -56,11 +58,11 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
 </script>
 
 <template>
-  <el-form-item v-if="showStockIdInput" label="持有 ID">
+  <el-form-item v-if="showStockIdInput" :label="t('forms.holdingId')">
     <el-input :model-value="form.stock_id" disabled />
   </el-form-item>
 
-  <el-form-item v-if="!isCashflow" label="日期" prop="excute_date">
+  <el-form-item v-if="!isCashflow" :label="t('common.date')" prop="excute_date">
     <el-date-picker
       v-model="formDate"
       type="date"
@@ -70,16 +72,16 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
     />
   </el-form-item>
 
-  <el-form-item label="類型" prop="excute_type">
+  <el-form-item :label="t('common.type')" prop="excute_type">
     <el-select v-model="form.excute_type" style="width: 100%">
-      <el-option label="買入 (buy)" value="buy" />
-      <el-option label="賣出 (sell)" value="sell" />
-      <el-option label="股票股利 (stock)" value="stock" />
-      <el-option label="現金股利 (cash)" value="cash" />
+      <el-option :label="t('forms.stockBuy')" value="buy" />
+      <el-option :label="t('forms.stockSell')" value="sell" />
+      <el-option :label="t('forms.stockStockDividend')" value="stock" />
+      <el-option :label="t('forms.stockCashDividend')" value="cash" />
     </el-select>
   </el-form-item>
 
-  <el-form-item label="數量" prop="excute_amount">
+  <el-form-item :label="t('forms.quantity')" prop="excute_amount">
     <el-input-number
       v-model="form.excute_amount"
       :precision="2"
@@ -88,11 +90,11 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
       style="width: 100%"
     />
     <p v-if="isCashflow" class="text-xs text-on-surface-variant mt-1">
-      現金股息可留 0；單價會自動帶入主表單的金額（含正負號）
+      {{ t('forms.cashDividendHint') }}
     </p>
   </el-form-item>
 
-  <el-form-item v-if="!isCashflow" label="單價" prop="excute_price">
+  <el-form-item v-if="!isCashflow" :label="t('forms.unitPrice')" prop="excute_price">
     <el-input-number
       v-model="form.excute_price"
       :precision="2"
@@ -103,18 +105,18 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
   </el-form-item>
 
   <template v-if="!isCashflow">
-    <el-form-item label="帳戶 ID" prop="account_id">
-      <el-input v-model="form.account_id" placeholder="例如 BANK-CHASE-01" />
+    <el-form-item :label="t('forms.accountId')" prop="account_id">
+      <el-input v-model="form.account_id" :placeholder="t('forms.accountIdPlaceholder')" />
     </el-form-item>
-    <el-form-item label="帳戶名稱" prop="account_name">
-      <el-input v-model="form.account_name" placeholder="例如 Chase Checking" />
+    <el-form-item :label="t('forms.accountName')" prop="account_name">
+      <el-input v-model="form.account_name" :placeholder="t('forms.accountNamePlaceholder')" />
     </el-form-item>
-    <el-form-item label="備註">
+    <el-form-item :label="t('common.note')">
       <el-input
         v-model="form.memo"
         type="textarea"
         :rows="2"
-        placeholder="(可選)"
+        :placeholder="t('common.optional')"
       />
     </el-form-item>
   </template>
@@ -123,18 +125,25 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
 <script lang="ts">
 import type { FormRules } from 'element-plus'
 
-// Validation rules — exported so parents that compose this component into a
-// larger form can spread the relevant subset into their own rules object.
-export const STOCK_DETAIL_FULL_RULES: FormRules = {
-  excute_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
-  excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
-  excute_amount: [{ required: true, message: '請輸入數量', trigger: 'blur' }],
-  excute_price: [{ required: true, message: '請輸入單價', trigger: 'blur' }],
-  account_id: [{ required: true, message: '請輸入帳戶 ID', trigger: 'blur' }],
-  account_name: [{ required: true, message: '請輸入帳戶名稱', trigger: 'blur' }],
+type TranslateFn = (key: string) => string
+
+// Validation rules — exported as factory functions so parents can build them
+// with their own i18n `t` (messages re-evaluate on locale switch when the
+// caller wraps these in a `computed`).
+export function stockDetailFullRules(t: TranslateFn): FormRules {
+  return {
+    excute_date: [{ required: true, message: t('validation.pickDate'), trigger: 'change' }],
+    excute_type: [{ required: true, message: t('validation.pickType'), trigger: 'change' }],
+    excute_amount: [{ required: true, message: t('validation.enterQuantity'), trigger: 'blur' }],
+    excute_price: [{ required: true, message: t('validation.enterUnitPrice'), trigger: 'blur' }],
+    account_id: [{ required: true, message: t('validation.enterAccountId'), trigger: 'blur' }],
+    account_name: [{ required: true, message: t('validation.enterAccountName'), trigger: 'blur' }],
+  }
 }
 
-export const STOCK_DETAIL_CASHFLOW_RULES: FormRules = {
-  excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
+export function stockDetailCashflowRules(t: TranslateFn): FormRules {
+  return {
+    excute_type: [{ required: true, message: t('validation.pickType'), trigger: 'change' }],
+  }
 }
 </script>

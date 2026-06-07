@@ -1,58 +1,58 @@
 <template>
   <div class="flex flex-col gap-8">
-    <PageHeader title="月度帳務" :subtitle="store.selectedMonth">
+    <PageHeader :title="t('cashFlow.title')" :subtitle="store.selectedMonth">
       <template #actions>
         <el-date-picker
           v-model="selectedMonthDate"
           type="month"
-          placeholder="選擇月份"
+          :placeholder="t('cashFlow.pickMonth')"
           format="YYYY/MM"
           :clearable="false"
         />
         <el-button :icon="TrendCharts" @click="openStockPriceSnapshot">
-          股價快照
+          {{ t('cashFlow.stockSnapshot') }}
         </el-button>
         <el-button :icon="Wallet" @click="openInsuranceSnapshot">
-          解約金
+          {{ t('cashFlow.surrenderValue') }}
         </el-button>
         <el-button :icon="House" @click="openEstateSnapshot">
-          房產估值
+          {{ t('cashFlow.estateValuation') }}
         </el-button>
         <el-button type="warning" :loading="settling" @click="confirmSettle">
-          執行月結
+          {{ t('cashFlow.runSettle') }}
         </el-button>
       </template>
     </PageHeader>
 
     <section class="flex flex-col gap-4">
-      <SectionHeader title="日記帳">
+      <SectionHeader :title="t('cashFlow.journal')">
         <template #actions>
           <el-button type="primary" :icon="Plus" size="small" @click="openCreateJournal">
-            新增
+            {{ t('common.add') }}
           </el-button>
         </template>
       </SectionHeader>
       <el-skeleton v-if="store.journalsLoading" :rows="5" animated />
-      <EmptyState v-else-if="store.journals.length === 0" message="本月尚無日記帳資料" />
+      <EmptyState v-else-if="store.journals.length === 0" :message="t('cashFlow.noJournals')" />
       <template v-else>
         <el-table :data="store.journals" stripe border style="width: 100%">
-          <el-table-column prop="spend_date" label="日期" width="110" />
-          <el-table-column label="帳戶" min-width="140">
+          <el-table-column prop="spend_date" :label="t('cashFlow.colDate')" width="110" />
+          <el-table-column :label="t('cashFlow.colAccount')" min-width="140">
             <template #default="{ row }">
               <span>{{ spendWayLabel(row) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="類別" width="140">
+          <el-table-column :label="t('cashFlow.colCategory')" width="140">
             <template #default="{ row }">
               <span>{{ actionMainLabel(row) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="子類" width="140">
+          <el-table-column :label="t('cashFlow.colSubCategory')" width="140">
             <template #default="{ row }">
               <span>{{ actionSubLabel(row) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="金額" width="180" align="right">
+          <el-table-column :label="t('cashFlow.colAmount')" width="180" align="right">
             <template #default="{ row }">
               <MoneyDisplay
                 :amount="row.spending"
@@ -61,21 +61,21 @@
               />
             </template>
           </el-table-column>
-          <el-table-column prop="note" label="備註" min-width="160">
+          <el-table-column prop="note" :label="t('common.note')" min-width="160">
             <template #default="{ row }">
               <span>{{ row.note ?? '' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="180" align="center">
+          <el-table-column :label="t('common.actions')" width="180" align="center">
             <template #default="{ row }">
               <div class="flex items-center justify-center gap-2 whitespace-nowrap">
-              <el-button size="small" :icon="Edit" @click="editJournal(row)">編輯</el-button>
+              <el-button size="small" :icon="Edit" @click="editJournal(row)">{{ t('common.edit') }}</el-button>
               <el-popconfirm
-                title="確定刪除這筆日記帳?"
+                :title="t('cashFlow.confirmDeleteJournal')"
                 @confirm="handleDeleteJournal(row.distinct_number)"
               >
                 <template #reference>
-                  <el-button size="small" type="danger" :icon="Delete">刪除</el-button>
+                  <el-button size="small" type="danger" :icon="Delete">{{ t('common.delete') }}</el-button>
                 </template>
               </el-popconfirm>
               </div>
@@ -87,15 +87,15 @@
           class="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-xl border border-outline-variant bg-surface-container p-6"
         >
           <div class="flex flex-col gap-1">
-            <p class="text-on-surface-variant text-xs uppercase tracking-wider">本月收入</p>
+            <p class="text-on-surface-variant text-xs uppercase tracking-wider">{{ t('cashFlow.monthIncome') }}</p>
             <MoneyDisplay :amount="totalIncome" :positive="true" size="lg" />
           </div>
           <div class="flex flex-col gap-1">
-            <p class="text-on-surface-variant text-xs uppercase tracking-wider">本月支出</p>
+            <p class="text-on-surface-variant text-xs uppercase tracking-wider">{{ t('cashFlow.monthExpense') }}</p>
             <MoneyDisplay :amount="totalExpense" :positive="false" size="lg" />
           </div>
           <div class="flex flex-col gap-1">
-            <p class="text-on-surface-variant text-xs uppercase tracking-wider">本月淨額</p>
+            <p class="text-on-surface-variant text-xs uppercase tracking-wider">{{ t('cashFlow.monthNet') }}</p>
             <MoneyDisplay
               :amount="netTotal"
               :positive="netTotal > 0 ? true : netTotal < 0 ? false : null"
@@ -107,13 +107,13 @@
     </section>
 
     <section class="flex flex-col gap-4">
-      <SectionHeader title="月度分析" />
+      <SectionHeader :title="t('cashFlow.analysis')" />
       <el-tabs v-model="activeChartTab">
-        <el-tab-pane label="收支預算" name="budget">
+        <el-tab-pane :label="t('cashFlow.tabBudget')" name="budget">
           <el-skeleton v-if="store.expenditureBudgetLoading" :rows="4" animated />
           <EmptyState
             v-else-if="!store.expenditureBudget || store.expenditureBudget.rows.length === 0"
-            message="本月無預算資料"
+            :message="t('cashFlow.noBudget')"
           />
           <BarChart
             v-else
@@ -122,32 +122,32 @@
             height="320px"
           />
         </el-tab-pane>
-        <el-tab-pane label="支出比例" name="expenditureRatio">
+        <el-tab-pane :label="t('cashFlow.tabExpenseRatio')" name="expenditureRatio">
           <el-skeleton v-if="store.expenditureRatioLoading" :rows="4" animated />
           <EmptyState
             v-else-if="!store.expenditureRatio || store.expenditureRatio.outer.length === 0"
-            message="本月無支出資料"
+            :message="t('cashFlow.noExpense')"
           />
           <DonutChart v-else :data="store.expenditureRatio.outer" height="320px" />
         </el-tab-pane>
-        <el-tab-pane label="投資比例" name="investRatio">
+        <el-tab-pane :label="t('cashFlow.tabInvestRatio')" name="investRatio">
           <el-skeleton v-if="store.investRatioLoading" :rows="4" animated />
           <EmptyState
             v-else-if="!store.investRatio || store.investRatio.items.length === 0"
-            message="本月無投資資料"
+            :message="t('cashFlow.noInvest')"
           />
           <DonutChart v-else :data="store.investRatio.items" height="320px" />
         </el-tab-pane>
-        <el-tab-pane label="負債" name="liability">
+        <el-tab-pane :label="t('cashFlow.tabLiability')" name="liability">
           <el-skeleton v-if="store.liabilityLoading" :rows="4" animated />
           <EmptyState
             v-else-if="!store.liability || store.liability.items.length === 0"
-            message="本月無信用卡負債資料"
+            :message="t('cashFlow.noLiability')"
           />
           <el-table v-else :data="store.liability.items" border>
-            <el-table-column prop="credit_card_id" label="信用卡 ID" width="160" />
-            <el-table-column prop="credit_card_name" label="名稱" min-width="160" />
-            <el-table-column label="金額" width="200" align="right">
+            <el-table-column prop="credit_card_id" :label="t('cashFlow.colCreditCardId')" width="160" />
+            <el-table-column prop="credit_card_name" :label="t('cashFlow.colName')" min-width="160" />
+            <el-table-column :label="t('cashFlow.colAmount')" width="200" align="right">
               <template #default="{ row }">
                 <MoneyDisplay :amount="row.amount" :positive="false" size="sm" />
               </template>
@@ -159,29 +159,29 @@
 
     <el-dialog
       v-model="stockPriceSnapshotVisible"
-      title="股價快照"
+      :title="t('cashFlow.stockSnapshot')"
       width="640px"
     >
       <div class="flex justify-end mb-3">
         <el-button type="primary" :icon="Plus" size="small" @click="openStockPriceDialog()">
-          新增股價
+          {{ t('cashFlow.addStockPrice') }}
         </el-button>
       </div>
       <el-skeleton v-if="store.stockPricesLoading" :rows="3" animated />
       <EmptyState
         v-else-if="store.stockPrices.length === 0"
-        message="本月尚無股價快照"
+        :message="t('cashFlow.noStockSnapshot')"
       />
       <el-table v-else :data="store.stockPrices" border>
-        <el-table-column prop="stock_code" label="代號" width="120" />
-        <el-table-column prop="stock_name" label="名稱" min-width="180" />
-        <el-table-column label="日期" width="120" align="center">
+        <el-table-column prop="stock_code" :label="t('cashFlow.colCode')" width="120" />
+        <el-table-column prop="stock_name" :label="t('cashFlow.colName')" min-width="180" />
+        <el-table-column :label="t('cashFlow.colDate')" width="120" align="center">
           <template #default="{ row }">
             <span v-if="row.fetch_date">{{ formatDate(row.fetch_date) }}</span>
             <span v-else class="text-gray-400">—</span>
           </template>
         </el-table-column>
-        <el-table-column label="收盤價" width="180" align="right">
+        <el-table-column :label="t('cashFlow.colClosePrice')" width="180" align="right">
           <template #default="{ row }">
             <MoneyDisplay v-if="row.close_price !== null" :amount="row.close_price" size="sm" />
             <el-button
@@ -192,7 +192,7 @@
               :icon="Plus"
               @click="openStockPriceDialog(row.stock_code)"
             >
-              待補
+              {{ t('cashFlow.pending') }}
             </el-button>
           </template>
         </el-table-column>
@@ -201,16 +201,16 @@
 
     <FormDialog
       v-model="stockPriceDialogVisible"
-      title="新增股價記錄"
+      :title="t('cashFlow.addStockPriceTitle')"
       :loading="stockPriceSubmitting"
       width="520px"
       @submit="submitStockPrice"
     >
       <el-form ref="stockPriceFormRef" :model="stockPriceForm" :rules="stockPriceRules" label-width="120px">
-        <el-form-item label="代號" prop="stock_code">
-          <el-input v-model="stockPriceForm.stock_code" placeholder="例如 AAPL" />
+        <el-form-item :label="t('cashFlow.colCode')" prop="stock_code">
+          <el-input v-model="stockPriceForm.stock_code" :placeholder="t('cashFlow.stockCodeExample')" />
         </el-form-item>
-        <el-form-item label="日期" prop="fetch_date">
+        <el-form-item :label="t('cashFlow.colDate')" prop="fetch_date">
           <el-date-picker
             v-model="stockPriceFormDate"
             type="date"
@@ -219,39 +219,39 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="開盤" prop="open_price">
+        <el-form-item :label="t('cashFlow.fieldOpen')" prop="open_price">
           <el-input-number v-model="stockPriceForm.open_price" :precision="2" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="最高" prop="highest_price">
+        <el-form-item :label="t('cashFlow.fieldHigh')" prop="highest_price">
           <el-input-number v-model="stockPriceForm.highest_price" :precision="2" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="最低" prop="lowest_price">
+        <el-form-item :label="t('cashFlow.fieldLow')" prop="lowest_price">
           <el-input-number v-model="stockPriceForm.lowest_price" :precision="2" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="收盤" prop="close_price">
+        <el-form-item :label="t('cashFlow.fieldClose')" prop="close_price">
           <el-input-number v-model="stockPriceForm.close_price" :precision="2" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="自動抓取">
+        <el-form-item :label="t('cashFlow.fieldAutoFetch')">
           <el-switch v-model="stockPriceForm.trigger_yfinance" />
           <p class="text-xs text-on-surface-variant ml-3">
-            開啟後會以 yfinance 收盤價覆寫
+            {{ t('cashFlow.yfinanceHint') }}
           </p>
         </el-form-item>
       </el-form>
     </FormDialog>
 
-    <el-dialog v-model="insuranceSnapshotVisible" title="保單解約金" width="640px">
+    <el-dialog v-model="insuranceSnapshotVisible" :title="t('cashFlow.insuranceSurrenderTitle')" width="640px">
       <p class="text-on-surface-variant/70 text-sm mb-3">
-        登錄各保單當月解約金（解約金表為契約已知值）。月結後會用此值取代「已繳保費」估算，反映保單實際增值。
+        {{ t('cashFlow.insuranceSurrenderDesc') }}
       </p>
       <el-skeleton v-if="store.insuranceValuesLoading" :rows="3" animated />
       <EmptyState
         v-else-if="store.insuranceValues.length === 0"
-        message="尚無保單"
+        :message="t('cashFlow.noInsurance')"
       />
       <el-table v-else :data="store.insuranceValues" border>
-        <el-table-column prop="insurance_name" label="保單" min-width="200" />
-        <el-table-column label="解約金" width="200" align="right">
+        <el-table-column prop="insurance_name" :label="t('cashFlow.colInsurance')" min-width="200" />
+        <el-table-column :label="t('cashFlow.surrenderValue')" width="200" align="right">
           <template #default="{ row }">
             <MoneyDisplay
               v-if="row.surrender_value !== null"
@@ -261,16 +261,16 @@
             <span v-else class="text-on-surface-variant/40">—</span>
           </template>
         </el-table-column>
-        <el-table-column label="狀態" width="120" align="center">
+        <el-table-column :label="t('cashFlow.colStatus')" width="120" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.recorded" type="success" size="small" effect="plain">本月登錄</el-tag>
-            <el-tag v-else type="warning" size="small" effect="plain">待補</el-tag>
+            <el-tag v-if="row.recorded" type="success" size="small" effect="plain">{{ t('cashFlow.recordedThisMonth') }}</el-tag>
+            <el-tag v-else type="warning" size="small" effect="plain">{{ t('cashFlow.pending') }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" align="center">
+        <el-table-column :label="t('common.actions')" width="120" align="center">
           <template #default="{ row }">
             <el-button size="small" link :icon="Edit" @click="openInsuranceValueDialog(row)">
-              登錄
+              {{ t('cashFlow.record') }}
             </el-button>
           </template>
         </el-table-column>
@@ -279,19 +279,19 @@
 
     <FormDialog
       v-model="insuranceValueDialogVisible"
-      title="登錄解約金"
+      :title="t('cashFlow.recordSurrenderTitle')"
       :loading="insuranceValueSubmitting"
       width="480px"
       @submit="submitInsuranceValue"
     >
       <el-form ref="insuranceValueFormRef" :model="insuranceValueForm" :rules="insuranceValueRules" label-width="120px">
-        <el-form-item label="保單">
+        <el-form-item :label="t('cashFlow.colInsurance')">
           <span>{{ insuranceValueForm.insurance_name }}</span>
         </el-form-item>
-        <el-form-item label="月份">
+        <el-form-item :label="t('cashFlow.fieldMonth')">
           <span>{{ store.selectedMonth }}</span>
         </el-form-item>
-        <el-form-item label="解約金" prop="surrender_value">
+        <el-form-item :label="t('cashFlow.surrenderValue')" prop="surrender_value">
           <el-input-number
             v-model="insuranceValueForm.surrender_value"
             :precision="2"
@@ -302,10 +302,10 @@
       </el-form>
     </FormDialog>
 
-    <el-dialog v-model="estateSnapshotVisible" title="房產估值" width="780px">
+    <el-dialog v-model="estateSnapshotVisible" :title="t('cashFlow.estateValuation')" width="780px">
       <div class="flex items-start justify-between gap-3 mb-3">
         <p class="text-on-surface-variant/70 text-sm">
-          登錄各房產當月市值（來源：實價登錄同社區成交或銀行估價）。月結後會用此值取代購入成本。「建議市值」由內政部住宅價格指數（交易型、貼市值）推估＝成本×指數漲幅，可一鍵帶入後再修改；登錄值永遠優先。
+          {{ t('cashFlow.estateValuationDesc') }}
         </p>
         <el-button
           size="small"
@@ -313,14 +313,14 @@
           :loading="refreshingIndex"
           @click="refreshIndex"
         >
-          更新指數
+          {{ t('cashFlow.refreshIndex') }}
         </el-button>
       </div>
       <el-skeleton v-if="store.estateValuesLoading" :rows="3" animated />
-      <EmptyState v-else-if="store.estateValues.length === 0" message="尚無房產" />
+      <EmptyState v-else-if="store.estateValues.length === 0" :message="t('cashFlow.noEstate')" />
       <el-table v-else :data="store.estateValues" border>
-        <el-table-column prop="estate_name" label="房產" min-width="150" />
-        <el-table-column label="市值" width="150" align="right">
+        <el-table-column prop="estate_name" :label="t('cashFlow.colEstate')" min-width="150" />
+        <el-table-column :label="t('cashFlow.colMarketValue')" width="150" align="right">
           <template #default="{ row }">
             <MoneyDisplay
               v-if="row.market_value !== null"
@@ -330,7 +330,7 @@
             <span v-else class="text-on-surface-variant/40">—</span>
           </template>
         </el-table-column>
-        <el-table-column label="建議市值" width="190" align="right">
+        <el-table-column :label="t('cashFlow.colSuggestedValue')" width="190" align="right">
           <template #default="{ row }">
             <div
               v-if="suggestedValueFor(row.estate_id) != null"
@@ -338,22 +338,22 @@
             >
               <MoneyDisplay :amount="suggestedValueFor(row.estate_id) as number" size="sm" />
               <el-button size="small" link type="primary" @click="applySuggestion(row)">
-                帶入
+                {{ t('cashFlow.applySuggestion') }}
               </el-button>
             </div>
             <span v-else class="text-on-surface-variant/40">—</span>
           </template>
         </el-table-column>
-        <el-table-column label="狀態" width="100" align="center">
+        <el-table-column :label="t('cashFlow.colStatus')" width="100" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.recorded" type="success" size="small" effect="plain">本月登錄</el-tag>
-            <el-tag v-else type="warning" size="small" effect="plain">待補</el-tag>
+            <el-tag v-if="row.recorded" type="success" size="small" effect="plain">{{ t('cashFlow.recordedThisMonth') }}</el-tag>
+            <el-tag v-else type="warning" size="small" effect="plain">{{ t('cashFlow.pending') }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="90" align="center">
+        <el-table-column :label="t('common.actions')" width="90" align="center">
           <template #default="{ row }">
             <el-button size="small" link :icon="Edit" @click="openEstateValueDialog(row)">
-              登錄
+              {{ t('cashFlow.record') }}
             </el-button>
           </template>
         </el-table-column>
@@ -362,19 +362,19 @@
 
     <FormDialog
       v-model="estateValueDialogVisible"
-      title="登錄房產市值"
+      :title="t('cashFlow.recordEstateTitle')"
       :loading="estateValueSubmitting"
       width="480px"
       @submit="submitEstateValue"
     >
       <el-form ref="estateValueFormRef" :model="estateValueForm" :rules="estateValueRules" label-width="120px">
-        <el-form-item label="房產">
+        <el-form-item :label="t('cashFlow.colEstate')">
           <span>{{ estateValueForm.estate_name }}</span>
         </el-form-item>
-        <el-form-item label="月份">
+        <el-form-item :label="t('cashFlow.fieldMonth')">
           <span>{{ store.selectedMonth }}</span>
         </el-form-item>
-        <el-form-item label="市值" prop="market_value">
+        <el-form-item :label="t('cashFlow.colMarketValue')" prop="market_value">
           <el-input-number
             v-model="estateValueForm.market_value"
             :precision="2"
@@ -387,30 +387,30 @@
 
     <FormDialog
       v-model="journalDialogVisible"
-      :title="formMode === 'create' ? '新增日記帳' : '編輯日記帳'"
+      :title="formMode === 'create' ? t('cashFlow.addJournal') : t('cashFlow.editJournal')"
       :loading="submitting"
       width="640px"
       @submit="submitJournal"
     >
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
-        <el-form-item label="日期" prop="spend_date">
+        <el-form-item :label="t('cashFlow.colDate')" prop="spend_date">
           <el-date-picker
             v-model="formDateValue"
             type="date"
-            placeholder="選擇日期"
+            :placeholder="t('cashFlow.selectDate')"
             format="YYYY/MM/DD"
             :clearable="false"
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="支付來源" prop="spend_way_type">
+        <el-form-item :label="t('cashFlow.fieldPaymentSource')" prop="spend_way_type">
           <el-radio-group v-model="formData.spend_way_type" @change="onSpendWayTypeChange">
-            <el-radio value="account">帳戶</el-radio>
-            <el-radio value="credit_card">信用卡</el-radio>
+            <el-radio value="account">{{ t('cashFlow.colAccount') }}</el-radio>
+            <el-radio value="credit_card">{{ t('cashFlow.creditCard') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="帳戶/卡片" prop="spend_way">
-          <el-select v-model="formData.spend_way" placeholder="選擇" filterable style="width: 100%">
+        <el-form-item :label="t('cashFlow.fieldAccountCard')" prop="spend_way">
+          <el-select v-model="formData.spend_way" :placeholder="t('cashFlow.select')" filterable style="width: 100%">
             <el-option-group
               v-for="group in activeSpendWayGroups"
               :key="group.label"
@@ -425,10 +425,10 @@
             </el-option-group>
           </el-select>
         </el-form-item>
-        <el-form-item label="主類別" prop="action_main">
+        <el-form-item :label="t('cashFlow.fieldMainCategory')" prop="action_main">
           <el-select
             v-model="formData.action_main"
-            placeholder="選擇主類別"
+            :placeholder="t('cashFlow.selectMainCategory')"
             filterable
             style="width: 100%"
             @change="onActionMainChange"
@@ -448,10 +448,10 @@
             </el-option-group>
           </el-select>
         </el-form-item>
-        <el-form-item label="子類別">
+        <el-form-item :label="t('cashFlow.fieldSubCategory')">
           <el-select
             v-model="formData.action_sub"
-            placeholder="(可選)"
+            :placeholder="t('noteHints.optional')"
             filterable
             clearable
             style="width: 100%"
@@ -482,7 +482,7 @@
             </template>
           </el-select>
         </el-form-item>
-        <el-form-item label="金額" prop="spending">
+        <el-form-item :label="t('cashFlow.colAmount')" prop="spending">
           <el-input-number
             v-model="formData.spending"
             :precision="2"
@@ -491,13 +491,13 @@
             style="width: 100%"
           />
           <p class="text-xs text-on-surface-variant mt-1">
-            正數 = 收入,負數 = 支出
+            {{ t('cashFlow.amountHint') }}
           </p>
         </el-form-item>
-        <el-form-item label="發票號碼">
-          <el-input v-model="formData.invoice_number" placeholder="(可選)" />
+        <el-form-item :label="t('cashFlow.fieldInvoice')">
+          <el-input v-model="formData.invoice_number" :placeholder="t('noteHints.optional')" />
         </el-form-item>
-        <el-form-item label="備註">
+        <el-form-item :label="t('common.note')">
           <el-input
             v-model="formData.note"
             type="textarea"
@@ -512,14 +512,14 @@
             type="info"
             :closable="false"
             show-icon
-            title="同步資產為單向操作"
-            description="送出後會把這筆現金流同時寫入對應的資產明細。若需移除錯誤資料，請至『其他資產』頁面手動處理。"
+            :title="t('cashFlow.syncAssetTitle')"
+            :description="t('cashFlow.syncAssetDesc')"
             class="mb-4"
           />
           <el-form-item :label="syncHoldingLabel">
             <el-select
               v-model="syncHoldingId"
-              :placeholder="`選擇${syncHoldingLabel}`"
+              :placeholder="t('cashFlow.selectHolding', { label: syncHoldingLabel })"
               filterable
               style="width: 100%"
               :disabled="currentSyncSelectionGroups.length === 0"
@@ -623,6 +623,7 @@ import { translateGroupLabel } from '@/constants/selectionLabels'
 import type { CodeDataWithSub, Journal, JournalCreate, SelectionGroup } from '@/types/models'
 
 const store = useCashFlowStore()
+const { t } = useI18n()
 
 // YYYYMMDD → YYYY-MM-DD for display.
 function formatDate(yyyymmdd: string): string {
@@ -683,8 +684,8 @@ const budgetChart = computed(() => {
   return {
     xData: rows.map((r) => r.action_main_type),
     series: [
-      { name: '預算', data: rows.map((r) => r.expected) },
-      { name: '實際', data: rows.map((r) => Math.abs(r.actual)) },
+      { name: t('cashFlow.seriesBudget'), data: rows.map((r) => r.expected) },
+      { name: t('cashFlow.seriesActual'), data: rows.map((r) => Math.abs(r.actual)) },
     ],
   }
 })
@@ -703,11 +704,11 @@ const otherAssetDbTypes = ref<Set<string>>(new Set())
 // rather than in a constants file: this is dispatch glue, not domain data.
 const OTHER_ASSET_DISPATCH: Record<
   string,
-  { subKey: string; subTable: string; label: string }
+  { subKey: string; subTable: string; labelKey: string }
 > = {
-  stock:     { subKey: 'Stock',     subTable: 'Stock_Detail',     label: '股票' },
-  insurance: { subKey: 'Insurance', subTable: 'Insurance_Journal', label: '保險' },
-  estate:    { subKey: 'Estate',    subTable: 'Estate_Journal',   label: '房地產' },
+  stock:     { subKey: 'Stock',     subTable: 'Stock_Detail',     labelKey: 'cashFlow.assetStock' },
+  insurance: { subKey: 'Insurance', subTable: 'Insurance_Journal', labelKey: 'cashFlow.assetInsurance' },
+  estate:    { subKey: 'Estate',    subTable: 'Estate_Journal',   labelKey: 'cashFlow.assetEstate' },
 }
 // Composite endpoints exist for all three asset types (CFL-A01). Filter
 // narrows the sub dropdown to what we can actually round-trip atomically.
@@ -716,21 +717,21 @@ const OTHER_ASSET_SUB_TABLES = new Set(
   Object.values(OTHER_ASSET_DISPATCH).map((m) => m.subTable),
 )
 
-const financialBehaviorGroup: SelectionGroup = {
-  label: '金融行為',
-  options: FINANCIAL_BEHAVIORS.map((b) => ({ value: b.key, label: b.label })),
-}
+const financialBehaviorGroup = computed<SelectionGroup>(() => ({
+  label: 'FinancialBehavior',
+  options: FINANCIAL_BEHAVIORS.map((b) => ({ value: b.key, label: t(b.labelKey) })),
+}))
 
 const mainSelectionGroups = computed<SelectionGroup[]>(() => [
   ...codeGroups.value,
-  financialBehaviorGroup,
+  financialBehaviorGroup.value,
 ])
 
 const otherAssetSubGroup = computed<SelectionGroup | null>(() => {
   const options = Object.entries(OTHER_ASSET_DISPATCH)
     .filter(([dbType]) => otherAssetDbTypes.value.has(dbType))
     .filter(([dbType]) => SUPPORTED_SYNC_ASSET_TYPES.includes(dbType))
-    .map(([, m]) => ({ value: m.subKey, label: m.label }))
+    .map(([, m]) => ({ value: m.subKey, label: t(m.labelKey) }))
   if (options.length === 0) return null
   return { label: 'Other_Asset', options }
 })
@@ -753,12 +754,12 @@ const subSelectionGroups = computed<SelectionGroup[]>(() => {
 
 const notePlaceholder = computed<string>(() => {
   const main = formData.value.action_main
-  if (!main) return '(可選)'
+  if (!main) return getNotePlaceholder()
   if (FINANCIAL_BEHAVIORS.some((b) => b.key === main)) {
     return getNotePlaceholder(main)
   }
   const mainName = codeNameMap.value.get(main)
-  if (!mainName) return '(可選)'
+  if (!mainName) return getNotePlaceholder()
   const sub = formData.value.action_sub
   const subName = sub ? codeNameMap.value.get(sub) : undefined
   return getNotePlaceholder(mainName, subName ?? undefined)
@@ -802,9 +803,9 @@ function actionSubLabel(row: Journal): string {
   if (table === 'Account' || table === 'Credit_Card') {
     return spendWayLabelMap.value.get(`${table}:${row.action_sub}`) ?? row.action_sub
   }
-  if (table === 'Stock_Detail') return row.action_sub === 'Stock' ? '股票' : row.action_sub
-  if (table === 'Insurance_Journal') return '保險'
-  if (table === 'Estate_Journal') return '房地產'
+  if (table === 'Stock_Detail') return row.action_sub === 'Stock' ? t('cashFlow.assetStock') : row.action_sub
+  if (table === 'Insurance_Journal') return t('cashFlow.assetInsurance')
+  if (table === 'Estate_Journal') return t('cashFlow.assetEstate')
   return row.action_sub
 }
 
@@ -915,13 +916,13 @@ const formDateValue = computed<Date | null>({
   },
 })
 
-const formRules: FormRules = {
-  spend_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
-  spend_way: [{ required: true, message: '請選擇帳戶/卡片', trigger: 'change' }],
-  spend_way_type: [{ required: true, message: '請選擇支付來源類型', trigger: 'change' }],
-  action_main: [{ required: true, message: '請選擇主類別', trigger: 'change' }],
-  spending: [{ required: true, message: '請輸入金額', trigger: 'blur' }],
-}
+const formRules = computed<FormRules>(() => ({
+  spend_date: [{ required: true, message: t('validation.pickDate'), trigger: 'change' }],
+  spend_way: [{ required: true, message: t('validation.pickAccount'), trigger: 'change' }],
+  spend_way_type: [{ required: true, message: t('validation.pickPaymentSource'), trigger: 'change' }],
+  action_main: [{ required: true, message: t('validation.pickMainCategory'), trigger: 'change' }],
+  spending: [{ required: true, message: t('validation.enterAmount'), trigger: 'blur' }],
+}))
 
 // ─── Sync-to-asset (Stock / Insurance / Estate) ───────────────────────────
 // The user triggers this implicitly by picking an "其他資產" sub-category
@@ -965,20 +966,20 @@ const currentSyncSelectionGroups = computed<SelectionGroup[]>(() => {
 })
 
 const SYNC_HOLDING_LABEL: Record<SyncAssetType, string> = {
-  stock: '持股',
-  insurance: '保單',
-  estate: '房產',
+  stock: 'cashFlow.holdingStock',
+  insurance: 'cashFlow.colInsurance',
+  estate: 'cashFlow.colEstate',
 }
 const SYNC_HOLDING_EMPTY_HINT: Record<SyncAssetType, string> = {
-  stock: '尚無持股，請先到「資產負債管理 → 股票」建立',
-  insurance: '尚無保單，請先到「資產負債管理 → 保險」建立',
-  estate: '尚無房產，請先到「資產負債管理 → 房產」建立',
+  stock: 'cashFlow.holdingEmptyStock',
+  insurance: 'cashFlow.holdingEmptyInsurance',
+  estate: 'cashFlow.holdingEmptyEstate',
 }
 const syncHoldingLabel = computed(() =>
-  syncAssetType.value ? SYNC_HOLDING_LABEL[syncAssetType.value] : '',
+  syncAssetType.value ? t(SYNC_HOLDING_LABEL[syncAssetType.value]) : '',
 )
 const syncHoldingEmptyHint = computed(() =>
-  syncAssetType.value ? SYNC_HOLDING_EMPTY_HINT[syncAssetType.value] : '',
+  syncAssetType.value ? t(SYNC_HOLDING_EMPTY_HINT[syncAssetType.value]) : '',
 )
 
 function emptyStockSyncDetail(): StockDetailFormState {
@@ -1019,9 +1020,9 @@ const syncEstateDetail = ref<EstateDetailFormState>(emptyEstateSyncDetail())
 
 // Noun used in the success toast ("已同步到<noun>明細").
 const SYNC_ASSET_NOUN: Record<SyncAssetType, string> = {
-  stock: '股票',
-  insurance: '保險',
-  estate: '房地產',
+  stock: 'cashFlow.assetStock',
+  insurance: 'cashFlow.assetInsurance',
+  estate: 'cashFlow.assetEstate',
 }
 
 // Composite detail payloads. Each type only carries the user-chosen fields;
@@ -1245,7 +1246,7 @@ async function submitJournal() {
     }
     const syncType = shouldShowAssetSync.value ? syncAssetType.value : null
     if (syncType && !syncHoldingId.value) {
-      ElMessage.error(`請選擇${syncHoldingLabel.value}`)
+      ElMessage.error(t('cashFlow.selectHolding', { label: syncHoldingLabel.value }))
       return
     }
 
@@ -1263,7 +1264,7 @@ async function submitJournal() {
         default:
           await createJournal(payload)
       }
-      ElMessage.success(syncType ? `新增成功（已同步到${SYNC_ASSET_NOUN[syncType]}明細）` : '新增成功')
+      ElMessage.success(syncType ? t('cashFlow.createSyncedSuccess', { noun: t(SYNC_ASSET_NOUN[syncType]) }) : t('toast.addSuccess'))
     } else if (formData.value.distinct_number !== undefined) {
       const id = formData.value.distinct_number
       switch (syncType) {
@@ -1279,7 +1280,7 @@ async function submitJournal() {
         default:
           await updateJournal(id, payload)
       }
-      ElMessage.success(syncType ? `更新成功（已同步到${SYNC_ASSET_NOUN[syncType]}明細）` : '更新成功')
+      ElMessage.success(syncType ? t('cashFlow.updateSyncedSuccess', { noun: t(SYNC_ASSET_NOUN[syncType]) }) : t('toast.updateSuccess'))
     }
     journalDialogVisible.value = false
     await store.fetchJournals()
@@ -1290,7 +1291,7 @@ async function submitJournal() {
 
 async function handleDeleteJournal(id: number) {
   await deleteJournal(id)
-  ElMessage.success('已刪除')
+  ElMessage.success(t('toast.deleted'))
   await store.fetchJournals()
 }
 
@@ -1300,9 +1301,9 @@ const settling = ref(false)
 async function confirmSettle() {
   try {
     await ElMessageBox.confirm(
-      `將執行 ${store.selectedMonth} 月結,會覆蓋既有快照,確定?`,
-      '確認月結',
-      { type: 'warning', confirmButtonText: '執行', cancelButtonText: '取消' },
+      t('cashFlow.settleConfirm', { month: store.selectedMonth }),
+      t('cashFlow.settleConfirmTitle'),
+      { type: 'warning', confirmButtonText: t('cashFlow.execute'), cancelButtonText: t('common.cancel') },
     )
   } catch {
     return
@@ -1310,7 +1311,7 @@ async function confirmSettle() {
   settling.value = true
   try {
     const result = await settleMonth(store.selectedMonth)
-    ElMessage.success(`月結完成 (帳戶 ${result.account_rows} / 信用卡 ${result.credit_card_rows})`)
+    ElMessage.success(t('cashFlow.settleDone', { account: result.account_rows, creditCard: result.credit_card_rows }))
     await store.fetchJournals()
     loadedTabs.value.clear()
     void loadChartTab(activeChartTab.value)
@@ -1363,14 +1364,14 @@ const stockPriceFormDate = computed<Date | null>({
   },
 })
 
-const stockPriceRules: FormRules = {
-  stock_code: [{ required: true, message: '請輸入代號', trigger: 'blur' }],
-  fetch_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
-  open_price: [{ required: true, message: '請輸入開盤價', trigger: 'blur' }],
-  highest_price: [{ required: true, message: '請輸入最高價', trigger: 'blur' }],
-  lowest_price: [{ required: true, message: '請輸入最低價', trigger: 'blur' }],
-  close_price: [{ required: true, message: '請輸入收盤價', trigger: 'blur' }],
-}
+const stockPriceRules = computed<FormRules>(() => ({
+  stock_code: [{ required: true, message: t('validation.enterCode'), trigger: 'blur' }],
+  fetch_date: [{ required: true, message: t('validation.pickDate'), trigger: 'change' }],
+  open_price: [{ required: true, message: t('validation.enterOpenPrice'), trigger: 'blur' }],
+  highest_price: [{ required: true, message: t('validation.enterHighPrice'), trigger: 'blur' }],
+  lowest_price: [{ required: true, message: t('validation.enterLowPrice'), trigger: 'blur' }],
+  close_price: [{ required: true, message: t('validation.enterClosePrice'), trigger: 'blur' }],
+}))
 
 function openStockPriceDialog(prefillCode?: string) {
   stockPriceForm.value = {
@@ -1387,7 +1388,7 @@ async function submitStockPrice() {
   stockPriceSubmitting.value = true
   try {
     await uploadStockPrices({ ...stockPriceForm.value })
-    ElMessage.success('股價已新增')
+    ElMessage.success(t('cashFlow.stockPriceAdded'))
     stockPriceDialogVisible.value = false
     await store.fetchStockPrices()
   } finally {
@@ -1422,9 +1423,9 @@ const insuranceValueForm = ref<InsuranceValueFormState>({
   surrender_value: 0,
 })
 
-const insuranceValueRules: FormRules = {
-  surrender_value: [{ required: true, message: '請輸入解約金', trigger: 'blur' }],
-}
+const insuranceValueRules = computed<FormRules>(() => ({
+  surrender_value: [{ required: true, message: t('validation.enterSurrenderValue'), trigger: 'blur' }],
+}))
 
 function openInsuranceSnapshot() {
   insuranceSnapshotVisible.value = true
@@ -1455,7 +1456,7 @@ async function submitInsuranceValue() {
       vesting_month: store.selectedMonth,
       surrender_value: insuranceValueForm.value.surrender_value,
     })
-    ElMessage.success('解約金已登錄')
+    ElMessage.success(t('cashFlow.surrenderRecorded'))
     insuranceValueDialogVisible.value = false
     await store.fetchInsuranceValues()
   } finally {
@@ -1481,9 +1482,9 @@ const estateValueForm = ref<EstateValueFormState>({
   market_value: 0,
 })
 
-const estateValueRules: FormRules = {
-  market_value: [{ required: true, message: '請輸入市值', trigger: 'blur' }],
-}
+const estateValueRules = computed<FormRules>(() => ({
+  market_value: [{ required: true, message: t('validation.enterMarketValue'), trigger: 'blur' }],
+}))
 
 const refreshingIndex = ref(false)
 
@@ -1510,8 +1511,8 @@ async function refreshIndex() {
   refreshingIndex.value = true
   try {
     const res = await store.refreshEstateIndex()
-    if (res.ok) ElMessage.success(`指數已更新（${res.upserted} 季）`)
-    else ElMessage.warning('指數更新失敗，沿用既有資料')
+    if (res.ok) ElMessage.success(t('cashFlow.indexUpdated', { count: res.upserted }))
+    else ElMessage.warning(t('cashFlow.indexUpdateFailed'))
   } finally {
     refreshingIndex.value = false
   }
@@ -1541,7 +1542,7 @@ async function submitEstateValue() {
       vesting_month: store.selectedMonth,
       market_value: estateValueForm.value.market_value,
     })
-    ElMessage.success('房產市值已登錄')
+    ElMessage.success(t('cashFlow.estateValueRecorded'))
     estateValueDialogVisible.value = false
     await store.fetchEstateValues()
   } finally {

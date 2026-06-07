@@ -1,27 +1,27 @@
 <template>
   <el-dialog
     :model-value="modelValue"
-    title="近期提醒"
+    :title="t('alarm.title')"
     width="520"
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <el-empty v-if="store.decorated.length === 0" description="近半年沒有待辦提醒" />
+    <el-empty v-if="store.decorated.length === 0" :description="t('alarm.empty')" />
     <div v-else class="flex flex-col gap-5">
       <AlarmGroup
         v-if="store.grouped.this_week.length"
-        title="⚠ 7 天內"
+        :title="t('alarm.within7Days')"
         tone="error"
         :alarms="store.grouped.this_week"
       />
       <AlarmGroup
         v-if="store.grouped.this_month.length"
-        title="本月內"
+        :title="t('alarm.thisMonth')"
         tone="secondary"
         :alarms="store.grouped.this_month"
       />
       <AlarmGroup
         v-if="store.grouped.later.length"
-        title="未來"
+        :title="t('alarm.later')"
         tone="muted"
         :alarms="store.grouped.later"
       />
@@ -37,4 +37,5 @@ defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
 const store = useAlarmStore()
+const { t } = useI18n()
 </script>

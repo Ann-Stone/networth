@@ -1,16 +1,16 @@
 <template>
   <div class="flex flex-col gap-8">
-    <PageHeader title="資產負債管理" subtitle="股票 / 房產 / 保險 / 貸款 / 其他資產" />
+    <PageHeader :title="t('otherAssets.pageTitle')" :subtitle="t('otherAssets.pageSubtitle')" />
 
     <el-tabs v-model="activeTab" class="other-assets-tabs">
       <!-- ─── Stocks ─────────────────────────────────────────── -->
-      <el-tab-pane label="股票" name="stocks">
+      <el-tab-pane :label="t('otherAssets.tabStocks')" name="stocks">
         <section class="flex flex-col gap-4">
-          <SectionHeader title="股票持有">
+          <SectionHeader :title="t('otherAssets.stocksSection')">
             <template #actions>
               <el-select
                 v-model="stocksAssetId"
-                placeholder="選擇資產分類"
+                :placeholder="t('otherAssets.pickCategory')"
                 style="width: 240px"
                 :disabled="stockCategoryOptions.length === 0"
               >
@@ -28,7 +28,7 @@
                 :disabled="!stocksAssetId"
                 @click="openCreateStock"
               >
-                新增
+                {{ t('common.add') }}
               </el-button>
             </template>
           </SectionHeader>
@@ -36,11 +36,11 @@
           <el-skeleton v-if="store.stocksLoading" :rows="4" animated />
           <EmptyState
             v-else-if="!stocksAssetId"
-            message="請先選擇資產分類"
+            :message="t('otherAssets.pickCategoryFirst')"
           />
           <EmptyState
             v-else-if="store.stocks.length === 0"
-            message="尚無股票持有資料"
+            :message="t('otherAssets.noStocks')"
           />
           <el-table
             v-else
@@ -54,14 +54,14 @@
               <template #default="{ row }">
                 <div class="px-6 py-4 flex flex-col gap-3">
                   <div class="flex items-center justify-between">
-                    <span class="text-on-surface font-medium">交易明細</span>
+                    <span class="text-on-surface font-medium">{{ t('otherAssets.stockDetailHeader') }}</span>
                     <el-button
                       type="primary"
                       :icon="Plus"
                       size="small"
                       @click="openCreateStockDetail(row)"
                     >
-                      新增明細
+                      {{ t('otherAssets.addDetail') }}
                     </el-button>
                   </div>
                   <el-skeleton
@@ -71,7 +71,7 @@
                   />
                   <EmptyState
                     v-else-if="(stockDetailsByStock.get(row.stock_id)?.length ?? 0) === 0"
-                    message="尚無交易明細"
+                    :message="t('otherAssets.noStockDetails')"
                   />
                   <el-table
                     v-else
@@ -79,25 +79,25 @@
                     border
                     size="small"
                   >
-                    <el-table-column prop="excute_date" label="日期" width="110" />
-                    <el-table-column prop="excute_type" label="類型" width="100" />
-                    <el-table-column label="數量" width="120" align="right">
+                    <el-table-column prop="excute_date" :label="t('common.date')" width="110" />
+                    <el-table-column prop="excute_type" :label="t('common.type')" width="100" />
+                    <el-table-column :label="t('otherAssets.colQuantity')" width="120" align="right">
                       <template #default="{ row: d }">
                         {{ d.excute_amount }}
                       </template>
                     </el-table-column>
-                    <el-table-column label="單價" width="160" align="right">
+                    <el-table-column :label="t('otherAssets.colUnitPrice')" width="160" align="right">
                       <template #default="{ row: d }">
                         <MoneyDisplay :amount="d.excute_price" size="sm" />
                       </template>
                     </el-table-column>
-                    <el-table-column prop="account_name" label="結算帳戶" min-width="160" />
-                    <el-table-column prop="memo" label="備註" min-width="120">
+                    <el-table-column prop="account_name" :label="t('otherAssets.colSettleAccount')" min-width="160" />
+                    <el-table-column prop="memo" :label="t('common.note')" min-width="120">
                       <template #default="{ row: d }">
                         <span>{{ d.memo ?? '' }}</span>
                       </template>
                     </el-table-column>
-                    <el-table-column label="操作" width="180" align="center">
+                    <el-table-column :label="t('common.actions')" width="180" align="center">
                       <template #default="{ row: d }">
                         <RowActions
                           @edit="openEditStockDetail(row, d)"
@@ -109,20 +109,20 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="stock_id" label="持有 ID" width="160" />
-            <el-table-column prop="stock_code" label="代號" width="140" />
-            <el-table-column prop="stock_name" label="名稱" min-width="200" />
-            <el-table-column label="分類" width="120">
+            <el-table-column prop="stock_id" :label="t('otherAssets.colStockId')" width="160" />
+            <el-table-column prop="stock_code" :label="t('otherAssets.colCode')" width="140" />
+            <el-table-column prop="stock_name" :label="t('common.name')" min-width="200" />
+            <el-table-column :label="t('otherAssets.colAllocation')" width="120">
               <template #default="{ row }">
                 <span>{{ row.category_id ? (allocationCategoryNameById.get(row.category_id) ?? row.category_id) : '—' }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="預計投入" width="200" align="right">
+            <el-table-column :label="t('otherAssets.colExpectedSpend')" width="200" align="right">
               <template #default="{ row }">
                 <MoneyDisplay :amount="row.expected_spend" size="sm" />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" align="center">
+            <el-table-column :label="t('common.actions')" width="180" align="center">
               <template #default="{ row }">
                 <RowActions @edit="openEditStock(row)" @delete="handleDeleteStock(row)" />
               </template>
@@ -132,13 +132,13 @@
       </el-tab-pane>
 
       <!-- ─── Estates ────────────────────────────────────────── -->
-      <el-tab-pane label="房產" name="estates">
+      <el-tab-pane :label="t('otherAssets.tabEstates')" name="estates">
         <section class="flex flex-col gap-4">
-          <SectionHeader title="房產持有">
+          <SectionHeader :title="t('otherAssets.estatesSection')">
             <template #actions>
               <el-select
                 v-model="estatesAssetId"
-                placeholder="選擇資產分類"
+                :placeholder="t('otherAssets.pickCategory')"
                 style="width: 240px"
                 :disabled="estateCategoryOptions.length === 0"
               >
@@ -156,7 +156,7 @@
                 :disabled="!estatesAssetId"
                 @click="openCreateEstate"
               >
-                新增
+                {{ t('common.add') }}
               </el-button>
             </template>
           </SectionHeader>
@@ -164,11 +164,11 @@
           <el-skeleton v-if="store.estatesLoading" :rows="4" animated />
           <EmptyState
             v-else-if="!estatesAssetId"
-            message="請先選擇資產分類"
+            :message="t('otherAssets.pickCategoryFirst')"
           />
           <EmptyState
             v-else-if="store.estates.length === 0"
-            message="尚無房產資料"
+            :message="t('otherAssets.noEstates')"
           />
           <el-table
             v-else
@@ -182,14 +182,14 @@
               <template #default="{ row }">
                 <div class="px-6 py-4 flex flex-col gap-3">
                   <div class="flex items-center justify-between">
-                    <span class="text-on-surface font-medium">收支明細</span>
+                    <span class="text-on-surface font-medium">{{ t('otherAssets.estateDetailHeader') }}</span>
                     <el-button
                       type="primary"
                       :icon="Plus"
                       size="small"
                       @click="openCreateEstateDetail(row)"
                     >
-                      新增明細
+                      {{ t('otherAssets.addDetail') }}
                     </el-button>
                   </div>
                   <el-skeleton
@@ -199,7 +199,7 @@
                   />
                   <EmptyState
                     v-else-if="(estateDetailsByEstate.get(row.estate_id)?.length ?? 0) === 0"
-                    message="尚無收支明細"
+                    :message="t('otherAssets.noEstateDetails')"
                   />
                   <el-table
                     v-else
@@ -207,19 +207,19 @@
                     border
                     size="small"
                   >
-                    <el-table-column prop="excute_date" label="日期" width="110" />
-                    <el-table-column prop="estate_excute_type" label="類型" width="120" />
-                    <el-table-column label="金額" width="180" align="right">
+                    <el-table-column prop="excute_date" :label="t('common.date')" width="110" />
+                    <el-table-column prop="estate_excute_type" :label="t('common.type')" width="120" />
+                    <el-table-column :label="t('common.amount')" width="180" align="right">
                       <template #default="{ row: d }">
                         <MoneyDisplay :amount="d.excute_price" size="sm" />
                       </template>
                     </el-table-column>
-                    <el-table-column prop="memo" label="備註" min-width="160">
+                    <el-table-column prop="memo" :label="t('common.note')" min-width="160">
                       <template #default="{ row: d }">
                         <span>{{ d.memo ?? '' }}</span>
                       </template>
                     </el-table-column>
-                    <el-table-column label="操作" width="180" align="center">
+                    <el-table-column :label="t('common.actions')" width="180" align="center">
                       <template #default="{ row: d }">
                         <RowActions
                           @edit="openEditEstateDetail(row, d)"
@@ -232,18 +232,18 @@
               </template>
             </el-table-column>
             <el-table-column prop="estate_id" label="ID" width="140" />
-            <el-table-column prop="estate_name" label="名稱" min-width="160" />
-            <el-table-column prop="estate_type" label="類型" width="120" />
-            <el-table-column prop="estate_address" label="地址" min-width="200" />
-            <el-table-column prop="obtain_date" label="取得日期" width="120" />
-            <el-table-column label="狀態" width="100">
+            <el-table-column prop="estate_name" :label="t('common.name')" min-width="160" />
+            <el-table-column prop="estate_type" :label="t('common.type')" width="120" />
+            <el-table-column prop="estate_address" :label="t('otherAssets.colAddress')" min-width="200" />
+            <el-table-column prop="obtain_date" :label="t('otherAssets.colObtainDate')" width="120" />
+            <el-table-column :label="t('common.status')" width="100">
               <template #default="{ row }">
                 <StatusBadge :variant="estateStatusVariant(row.estate_status)">
                   {{ row.estate_status }}
                 </StatusBadge>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" align="center">
+            <el-table-column :label="t('common.actions')" width="180" align="center">
               <template #default="{ row }">
                 <RowActions @edit="openEditEstate(row)" @delete="handleDeleteEstate(row)" />
               </template>
@@ -253,13 +253,13 @@
       </el-tab-pane>
 
       <!-- ─── Insurances ─────────────────────────────────────── -->
-      <el-tab-pane label="保險" name="insurances">
+      <el-tab-pane :label="t('otherAssets.tabInsurances')" name="insurances">
         <section class="flex flex-col gap-4">
-          <SectionHeader title="保險合約">
+          <SectionHeader :title="t('otherAssets.insurancesSection')">
             <template #actions>
               <el-select
                 v-model="insurancesAssetId"
-                placeholder="選擇資產分類"
+                :placeholder="t('otherAssets.pickCategory')"
                 style="width: 240px"
                 :disabled="insuranceCategoryOptions.length === 0"
               >
@@ -277,7 +277,7 @@
                 :disabled="!insurancesAssetId"
                 @click="openCreateInsurance"
               >
-                新增
+                {{ t('common.add') }}
               </el-button>
             </template>
           </SectionHeader>
@@ -285,11 +285,11 @@
           <el-skeleton v-if="store.insurancesLoading" :rows="4" animated />
           <EmptyState
             v-else-if="!insurancesAssetId"
-            message="請先選擇資產分類"
+            :message="t('otherAssets.pickCategoryFirst')"
           />
           <EmptyState
             v-else-if="store.insurances.length === 0"
-            message="尚無保險合約"
+            :message="t('otherAssets.noInsurances')"
           />
           <el-table
             v-else
@@ -303,14 +303,14 @@
               <template #default="{ row }">
                 <div class="px-6 py-4 flex flex-col gap-3">
                   <div class="flex items-center justify-between">
-                    <span class="text-on-surface font-medium">繳費明細</span>
+                    <span class="text-on-surface font-medium">{{ t('otherAssets.insuranceDetailHeader') }}</span>
                     <el-button
                       type="primary"
                       :icon="Plus"
                       size="small"
                       @click="openCreateInsuranceDetail(row)"
                     >
-                      新增明細
+                      {{ t('otherAssets.addDetail') }}
                     </el-button>
                   </div>
                   <el-skeleton
@@ -320,7 +320,7 @@
                   />
                   <EmptyState
                     v-else-if="(insuranceDetailsByPolicy.get(row.insurance_id)?.length ?? 0) === 0"
-                    message="尚無繳費明細"
+                    :message="t('otherAssets.noInsuranceDetails')"
                   />
                   <el-table
                     v-else
@@ -328,19 +328,19 @@
                     border
                     size="small"
                   >
-                    <el-table-column prop="excute_date" label="日期" width="110" />
-                    <el-table-column prop="insurance_excute_type" label="類型" width="120" />
-                    <el-table-column label="金額" width="180" align="right">
+                    <el-table-column prop="excute_date" :label="t('common.date')" width="110" />
+                    <el-table-column prop="insurance_excute_type" :label="t('common.type')" width="120" />
+                    <el-table-column :label="t('common.amount')" width="180" align="right">
                       <template #default="{ row: d }">
                         <MoneyDisplay :amount="d.excute_price" size="sm" />
                       </template>
                     </el-table-column>
-                    <el-table-column prop="memo" label="備註" min-width="160">
+                    <el-table-column prop="memo" :label="t('common.note')" min-width="160">
                       <template #default="{ row: d }">
                         <span>{{ d.memo ?? '' }}</span>
                       </template>
                     </el-table-column>
-                    <el-table-column label="操作" width="180" align="center">
+                    <el-table-column :label="t('common.actions')" width="180" align="center">
                       <template #default="{ row: d }">
                         <RowActions
                           @edit="openEditInsuranceDetail(row, d)"
@@ -353,22 +353,22 @@
               </template>
             </el-table-column>
             <el-table-column prop="insurance_id" label="ID" width="140" />
-            <el-table-column prop="insurance_name" label="名稱" min-width="200" />
-            <el-table-column prop="pay_type" label="繳費頻率" width="120" />
-            <el-table-column prop="pay_day" label="繳款日" width="90" align="right" />
-            <el-table-column label="預計保費" width="180" align="right">
+            <el-table-column prop="insurance_name" :label="t('common.name')" min-width="200" />
+            <el-table-column prop="pay_type" :label="t('otherAssets.colPayType')" width="120" />
+            <el-table-column prop="pay_day" :label="t('otherAssets.colPayDay')" width="90" align="right" />
+            <el-table-column :label="t('otherAssets.colExpectedPremium')" width="180" align="right">
               <template #default="{ row }">
                 <MoneyDisplay :amount="row.expected_spend" size="sm" />
               </template>
             </el-table-column>
-            <el-table-column prop="start_date" label="起始" width="110" />
-            <el-table-column prop="end_date" label="終止" width="110" />
-            <el-table-column label="已結案" width="90">
+            <el-table-column prop="start_date" :label="t('otherAssets.colStartDate')" width="110" />
+            <el-table-column prop="end_date" :label="t('otherAssets.colEndDate')" width="110" />
+            <el-table-column :label="t('otherAssets.colHasClosed')" width="90">
               <template #default="{ row }">
                 <StatusBadge :value="row.has_closed" />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" align="center">
+            <el-table-column :label="t('common.actions')" width="180" align="center">
               <template #default="{ row }">
                 <RowActions @edit="openEditInsurance(row)" @delete="handleDeleteInsurance(row)" />
               </template>
@@ -378,18 +378,18 @@
       </el-tab-pane>
 
       <!-- ─── Loans ──────────────────────────────────────────── -->
-      <el-tab-pane label="貸款" name="loans">
+      <el-tab-pane :label="t('otherAssets.tabLoans')" name="loans">
         <section class="flex flex-col gap-4">
-          <SectionHeader title="貸款負債">
+          <SectionHeader :title="t('otherAssets.loansSection')">
             <template #actions>
               <el-button type="primary" :icon="Plus" size="small" @click="openCreateLoan">
-                新增
+                {{ t('common.add') }}
               </el-button>
             </template>
           </SectionHeader>
 
           <el-skeleton v-if="store.loansLoading" :rows="4" animated />
-          <EmptyState v-else-if="store.loans.length === 0" message="尚無貸款資料" />
+          <EmptyState v-else-if="store.loans.length === 0" :message="t('otherAssets.noLoans')" />
           <el-table
             v-else
             :data="store.loans"
@@ -402,14 +402,14 @@
               <template #default="{ row }">
                 <div class="px-6 py-4 flex flex-col gap-3">
                   <div class="flex items-center justify-between">
-                    <span class="text-on-surface font-medium">還款明細</span>
+                    <span class="text-on-surface font-medium">{{ t('otherAssets.loanDetailHeader') }}</span>
                     <el-button
                       type="primary"
                       :icon="Plus"
                       size="small"
                       @click="openCreateLoanDetail(row)"
                     >
-                      新增明細
+                      {{ t('otherAssets.addDetail') }}
                     </el-button>
                   </div>
                   <el-skeleton
@@ -419,7 +419,7 @@
                   />
                   <EmptyState
                     v-else-if="(loanDetailsByLoan.get(row.loan_id)?.length ?? 0) === 0"
-                    message="尚無還款明細"
+                    :message="t('otherAssets.noLoanDetails')"
                   />
                   <el-table
                     v-else
@@ -427,19 +427,19 @@
                     border
                     size="small"
                   >
-                    <el-table-column prop="excute_date" label="日期" width="110" />
-                    <el-table-column prop="loan_excute_type" label="類型" width="120" />
-                    <el-table-column label="金額" width="180" align="right">
+                    <el-table-column prop="excute_date" :label="t('common.date')" width="110" />
+                    <el-table-column prop="loan_excute_type" :label="t('common.type')" width="120" />
+                    <el-table-column :label="t('common.amount')" width="180" align="right">
                       <template #default="{ row: d }">
                         <MoneyDisplay :amount="d.excute_price" size="sm" />
                       </template>
                     </el-table-column>
-                    <el-table-column prop="memo" label="備註" min-width="160">
+                    <el-table-column prop="memo" :label="t('common.note')" min-width="160">
                       <template #default="{ row: d }">
                         <span>{{ d.memo ?? '' }}</span>
                       </template>
                     </el-table-column>
-                    <el-table-column label="操作" width="180" align="center">
+                    <el-table-column :label="t('common.actions')" width="180" align="center">
                       <template #default="{ row: d }">
                         <RowActions
                           @edit="openEditLoanDetail(row, d)"
@@ -452,32 +452,32 @@
               </template>
             </el-table-column>
             <el-table-column prop="loan_id" label="ID" width="120" />
-            <el-table-column prop="loan_name" label="名稱" min-width="160" />
-            <el-table-column prop="loan_type" label="類型" width="120" />
-            <el-table-column prop="account_name" label="還款帳戶" min-width="140" />
-            <el-table-column label="利率" width="100" align="right">
+            <el-table-column prop="loan_name" :label="t('common.name')" min-width="160" />
+            <el-table-column prop="loan_type" :label="t('common.type')" width="120" />
+            <el-table-column prop="account_name" :label="t('otherAssets.colRepayAccount')" min-width="140" />
+            <el-table-column :label="t('otherAssets.colInterestRate')" width="100" align="right">
               <template #default="{ row }">
                 {{ (row.interest_rate * 100).toFixed(2) }}%
               </template>
             </el-table-column>
-            <el-table-column prop="period" label="期數" width="80" align="right" />
-            <el-table-column label="本金" width="160" align="right">
+            <el-table-column prop="period" :label="t('otherAssets.colPeriod')" width="80" align="right" />
+            <el-table-column :label="t('otherAssets.colPrincipal')" width="160" align="right">
               <template #default="{ row }">
                 <MoneyDisplay :amount="row.amount" size="sm" />
               </template>
             </el-table-column>
-            <el-table-column label="已還" width="160" align="right">
+            <el-table-column :label="t('otherAssets.colRepayed')" width="160" align="right">
               <template #default="{ row }">
                 <MoneyDisplay :amount="row.repayed" size="sm" />
               </template>
             </el-table-column>
-            <el-table-column prop="apply_date" label="申貸日" width="110" />
-            <el-table-column label="寬限到期" width="120">
+            <el-table-column prop="apply_date" :label="t('otherAssets.colApplyDate')" width="110" />
+            <el-table-column :label="t('otherAssets.colGraceExpire')" width="120">
               <template #default="{ row }">
                 <span>{{ row.grace_expire_date ?? '-' }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" align="center">
+            <el-table-column :label="t('common.actions')" width="180" align="center">
               <template #default="{ row }">
                 <RowActions @edit="openEditLoan(row)" @delete="handleDeleteLoan(row)" />
               </template>
@@ -487,9 +487,9 @@
       </el-tab-pane>
 
       <!-- ─── Other-Assets ───────────────────────────────────── -->
-      <el-tab-pane label="其他資產" name="other">
+      <el-tab-pane :label="t('otherAssets.tabOther')" name="other">
         <section class="flex flex-col gap-4">
-          <SectionHeader title="資產分類">
+          <SectionHeader :title="t('otherAssets.categoriesSection')">
             <template #actions>
               <el-button
                 type="primary"
@@ -497,7 +497,7 @@
                 size="small"
                 @click="openCreateOtherAsset"
               >
-                新增
+                {{ t('common.add') }}
               </el-button>
             </template>
           </SectionHeader>
@@ -505,19 +505,19 @@
           <el-skeleton v-if="store.otherAssetsLoading" :rows="4" animated />
           <EmptyState
             v-else-if="otherAssetsSorted.length === 0"
-            message="尚無資產分類"
+            :message="t('otherAssets.noCategories')"
           />
           <el-table v-else :data="otherAssetsSorted" stripe border style="width: 100%">
-            <el-table-column prop="asset_index" label="排序" width="80" align="right" />
+            <el-table-column prop="asset_index" :label="t('otherAssets.colSortIndex')" width="80" align="right" />
             <el-table-column prop="asset_id" label="ID" width="160" />
-            <el-table-column prop="asset_name" label="名稱" min-width="200" />
-            <el-table-column prop="asset_type" label="類型" width="140" />
-            <el-table-column label="啟用" width="90">
+            <el-table-column prop="asset_name" :label="t('common.name')" min-width="200" />
+            <el-table-column prop="asset_type" :label="t('common.type')" width="140" />
+            <el-table-column :label="t('otherAssets.enabled')" width="90">
               <template #default="{ row }">
                 <StatusBadge :value="row.in_use" />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" align="center">
+            <el-table-column :label="t('common.actions')" width="180" align="center">
               <template #default="{ row }">
                 <RowActions @edit="openEditOtherAsset(row)" @delete="handleDeleteOtherAsset(row)" />
               </template>
@@ -530,7 +530,7 @@
     <!-- ─── Stock Create / Edit Dialog ─────────────────────────────────────── -->
     <FormDialog
       v-model="stockDialogVisible"
-      :title="stockFormMode === 'create' ? '新增股票持有' : '編輯股票持有'"
+      :title="stockFormMode === 'create' ? t('otherAssets.createStock') : t('otherAssets.editStock')"
       :loading="stockSubmitting"
       width="520px"
       @submit="submitStock"
@@ -541,26 +541,26 @@
         :rules="stockFormRules"
         label-width="110px"
       >
-        <el-form-item label="持有 ID" prop="stock_id">
+        <el-form-item :label="t('otherAssets.colStockId')" prop="stock_id">
           <el-input
             v-model="stockForm.stock_id"
-            placeholder="例如 STK-H-001"
+            :placeholder="t('otherAssets.stockIdPlaceholder')"
             :disabled="stockFormMode === 'edit'"
           />
         </el-form-item>
-        <el-form-item label="代號" prop="stock_code">
-          <el-input v-model="stockForm.stock_code" placeholder="例如 AAPL" />
+        <el-form-item :label="t('otherAssets.colCode')" prop="stock_code">
+          <el-input v-model="stockForm.stock_code" :placeholder="t('otherAssets.stockCodePlaceholder')" />
         </el-form-item>
-        <el-form-item label="名稱" prop="stock_name">
-          <el-input v-model="stockForm.stock_name" placeholder="例如 Apple Inc." />
+        <el-form-item :label="t('common.name')" prop="stock_name">
+          <el-input v-model="stockForm.stock_name" :placeholder="t('otherAssets.stockNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="資產分類">
+        <el-form-item :label="t('otherAssets.assetCategory')">
           <el-input :model-value="stockForm.asset_id" disabled />
         </el-form-item>
-        <el-form-item label="分類">
+        <el-form-item :label="t('otherAssets.colAllocation')">
           <el-select
             v-model="stockCategoryIdModel"
-            placeholder="(可選) 選擇成長型 / 債券 / 類現金"
+            :placeholder="t('otherAssets.allocationPlaceholder')"
             clearable
             style="width: 100%"
           >
@@ -572,7 +572,7 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="預計投入" prop="expected_spend">
+        <el-form-item :label="t('otherAssets.colExpectedSpend')" prop="expected_spend">
           <el-input-number
             v-model="stockForm.expected_spend"
             :precision="2"
@@ -588,7 +588,7 @@
     <!-- ─── Stock Detail Create / Edit Dialog ──────────────────────────────── -->
     <FormDialog
       v-model="stockDetailDialogVisible"
-      :title="stockDetailFormMode === 'create' ? '新增股票明細' : '編輯股票明細'"
+      :title="stockDetailFormMode === 'create' ? t('otherAssets.createStockDetail') : t('otherAssets.editStockDetail')"
       :loading="stockDetailSubmitting"
       width="560px"
       @submit="submitStockDetail"
@@ -610,7 +610,7 @@
     <!-- ─── Estate Create / Edit Dialog ────────────────────────────────────── -->
     <FormDialog
       v-model="estateDialogVisible"
-      :title="estateFormMode === 'create' ? '新增房產' : '編輯房產'"
+      :title="estateFormMode === 'create' ? t('otherAssets.createEstate') : t('otherAssets.editEstate')"
       :loading="estateSubmitting"
       width="560px"
       @submit="submitEstate"
@@ -621,38 +621,38 @@
         :rules="estateFormRules"
         label-width="110px"
       >
-        <el-form-item label="房產 ID" prop="estate_id">
+        <el-form-item :label="t('otherAssets.estateIdLabel')" prop="estate_id">
           <el-input
             v-model="estateForm.estate_id"
-            placeholder="例如 EST-001"
+            :placeholder="t('otherAssets.estateIdPlaceholder')"
             :disabled="estateFormMode === 'edit'"
           />
         </el-form-item>
-        <el-form-item label="名稱" prop="estate_name">
+        <el-form-item :label="t('common.name')" prop="estate_name">
           <el-input v-model="estateForm.estate_name" />
         </el-form-item>
-        <el-form-item label="類型" prop="estate_type">
-          <el-input v-model="estateForm.estate_type" placeholder="例如 residential" />
+        <el-form-item :label="t('common.type')" prop="estate_type">
+          <el-input v-model="estateForm.estate_type" :placeholder="t('otherAssets.estateTypePlaceholder')" />
         </el-form-item>
-        <el-form-item label="地址" prop="estate_address">
+        <el-form-item :label="t('otherAssets.colAddress')" prop="estate_address">
           <el-input v-model="estateForm.estate_address" />
         </el-form-item>
-        <el-form-item label="資產分類">
+        <el-form-item :label="t('otherAssets.assetCategory')">
           <el-input :model-value="estateForm.asset_id" disabled />
         </el-form-item>
-        <el-form-item label="幣別" prop="fx_code">
+        <el-form-item :label="t('otherAssets.fxCode')" prop="fx_code">
           <el-select v-model="estateForm.fx_code" style="width: 100%">
-            <el-option label="台幣 (TWD)" value="TWD" />
-            <el-option label="美金 (USD)" value="USD" />
-            <el-option label="日圓 (JPY)" value="JPY" />
-            <el-option label="歐元 (EUR)" value="EUR" />
-            <el-option label="人民幣 (CNY)" value="CNY" />
-            <el-option label="港幣 (HKD)" value="HKD" />
-            <el-option label="英鎊 (GBP)" value="GBP" />
-            <el-option label="澳幣 (AUD)" value="AUD" />
+            <el-option :label="t('otherAssets.fxTwd')" value="TWD" />
+            <el-option :label="t('otherAssets.fxUsd')" value="USD" />
+            <el-option :label="t('otherAssets.fxJpy')" value="JPY" />
+            <el-option :label="t('otherAssets.fxEur')" value="EUR" />
+            <el-option :label="t('otherAssets.fxCny')" value="CNY" />
+            <el-option :label="t('otherAssets.fxHkd')" value="HKD" />
+            <el-option :label="t('otherAssets.fxGbp')" value="GBP" />
+            <el-option :label="t('otherAssets.fxAud')" value="AUD" />
           </el-select>
         </el-form-item>
-        <el-form-item label="取得日期" prop="obtain_date">
+        <el-form-item :label="t('otherAssets.colObtainDate')" prop="obtain_date">
           <el-date-picker
             v-model="estateFormObtainDate"
             type="date"
@@ -661,29 +661,29 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="狀態" prop="estate_status">
+        <el-form-item :label="t('common.status')" prop="estate_status">
           <el-select v-model="estateForm.estate_status" style="width: 100%">
-            <el-option label="閒置 (idle)" value="idle" />
-            <el-option label="自住 (live)" value="live" />
-            <el-option label="出租 (rent)" value="rent" />
-            <el-option label="售出 (sold)" value="sold" />
+            <el-option :label="t('otherAssets.estateStatusIdle')" value="idle" />
+            <el-option :label="t('otherAssets.estateStatusLive')" value="live" />
+            <el-option :label="t('otherAssets.estateStatusRent')" value="rent" />
+            <el-option :label="t('otherAssets.estateStatusSold')" value="sold" />
           </el-select>
         </el-form-item>
-        <el-form-item label="地區">
+        <el-form-item :label="t('otherAssets.region')">
           <el-select
             v-model="estateForm.region"
             clearable
-            placeholder="預設全國（用於房價指數建議市值）"
+            :placeholder="t('otherAssets.regionPlaceholder')"
             style="width: 100%"
           >
             <el-option v-for="r in ESTATE_REGIONS" :key="r" :label="r" :value="r" />
           </el-select>
         </el-form-item>
-        <el-form-item label="關聯貸款">
-          <el-input v-model="estateLoanIdProxy" placeholder="(可選) 例如 LN-001" />
+        <el-form-item :label="t('otherAssets.linkedLoan')">
+          <el-input v-model="estateLoanIdProxy" :placeholder="t('otherAssets.linkedLoanPlaceholder')" />
         </el-form-item>
-        <el-form-item label="備註">
-          <el-input v-model="estateMemoProxy" type="textarea" :rows="2" placeholder="(可選)" />
+        <el-form-item :label="t('common.note')">
+          <el-input v-model="estateMemoProxy" type="textarea" :rows="2" :placeholder="t('common.optional')" />
         </el-form-item>
       </el-form>
     </FormDialog>
@@ -691,7 +691,7 @@
     <!-- ─── Insurance Create / Edit Dialog ─────────────────────────────────── -->
     <FormDialog
       v-model="insuranceDialogVisible"
-      :title="insuranceFormMode === 'create' ? '新增保險合約' : '編輯保險合約'"
+      :title="insuranceFormMode === 'create' ? t('otherAssets.createInsurance') : t('otherAssets.editInsurance')"
       :loading="insuranceSubmitting"
       width="560px"
       @submit="submitInsurance"
@@ -702,26 +702,26 @@
         :rules="insuranceFormRules"
         label-width="110px"
       >
-        <el-form-item label="保險 ID" prop="insurance_id">
+        <el-form-item :label="t('otherAssets.insuranceIdLabel')" prop="insurance_id">
           <el-input
             v-model="insuranceForm.insurance_id"
-            placeholder="例如 INS-001"
+            :placeholder="t('otherAssets.insuranceIdPlaceholder')"
             :disabled="insuranceFormMode === 'edit'"
           />
         </el-form-item>
-        <el-form-item label="名稱" prop="insurance_name">
+        <el-form-item :label="t('common.name')" prop="insurance_name">
           <el-input v-model="insuranceForm.insurance_name" />
         </el-form-item>
-        <el-form-item label="資產分類">
+        <el-form-item :label="t('otherAssets.assetCategory')">
           <el-input :model-value="insuranceForm.asset_id" disabled />
         </el-form-item>
-        <el-form-item label="繳費帳戶 ID" prop="in_account">
-          <el-input v-model="insuranceForm.in_account" placeholder="例如 BANK-CHASE-01" />
+        <el-form-item :label="t('otherAssets.inAccount')" prop="in_account">
+          <el-input v-model="insuranceForm.in_account" :placeholder="t('otherAssets.inAccountPlaceholder')" />
         </el-form-item>
-        <el-form-item label="領取帳戶 ID" prop="out_account">
+        <el-form-item :label="t('otherAssets.outAccount')" prop="out_account">
           <el-input v-model="insuranceForm.out_account" />
         </el-form-item>
-        <el-form-item label="起始日" prop="start_date">
+        <el-form-item :label="t('otherAssets.startDate')" prop="start_date">
           <el-date-picker
             v-model="insuranceFormStartDate"
             type="date"
@@ -730,7 +730,7 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="終止日" prop="end_date">
+        <el-form-item :label="t('otherAssets.endDate')" prop="end_date">
           <el-date-picker
             v-model="insuranceFormEndDate"
             type="date"
@@ -739,16 +739,16 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="繳費頻率" prop="pay_type">
-          <el-input v-model="insuranceForm.pay_type" placeholder="例如 annual / monthly" />
+        <el-form-item :label="t('otherAssets.payType')" prop="pay_type">
+          <el-input v-model="insuranceForm.pay_type" :placeholder="t('otherAssets.payTypePlaceholder')" />
         </el-form-item>
-        <el-form-item label="繳款日" prop="pay_day">
+        <el-form-item :label="t('otherAssets.payDay')" prop="pay_day">
           <el-input
             v-model="insuranceForm.pay_day"
-            placeholder="依繳費頻率,例如 01/19 或 15"
+            :placeholder="t('otherAssets.payDayPlaceholder')"
           />
         </el-form-item>
-        <el-form-item label="預計保費" prop="expected_spend">
+        <el-form-item :label="t('otherAssets.expectedPremium')" prop="expected_spend">
           <el-input-number
             v-model="insuranceForm.expected_spend"
             :precision="2"
@@ -758,10 +758,10 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="是否結案" prop="has_closed">
+        <el-form-item :label="t('otherAssets.isClosed')" prop="has_closed">
           <el-radio-group v-model="insuranceForm.has_closed">
-            <el-radio value="N">未結案</el-radio>
-            <el-radio value="Y">已結案</el-radio>
+            <el-radio value="N">{{ t('otherAssets.notClosed') }}</el-radio>
+            <el-radio value="Y">{{ t('otherAssets.closed') }}</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -770,7 +770,7 @@
     <!-- ─── Insurance Detail Create / Edit Dialog ──────────────────────────── -->
     <FormDialog
       v-model="insuranceDetailDialogVisible"
-      :title="insuranceDetailFormMode === 'create' ? '新增繳費明細' : '編輯繳費明細'"
+      :title="insuranceDetailFormMode === 'create' ? t('otherAssets.createInsuranceDetail') : t('otherAssets.editInsuranceDetail')"
       :loading="insuranceDetailSubmitting"
       width="520px"
       @submit="submitInsuranceDetail"
@@ -792,7 +792,7 @@
     <!-- ─── Other-Asset Create / Edit Dialog ───────────────────────────────── -->
     <FormDialog
       v-model="otherAssetDialogVisible"
-      :title="otherAssetFormMode === 'create' ? '新增資產分類' : '編輯資產分類'"
+      :title="otherAssetFormMode === 'create' ? t('otherAssets.createCategory') : t('otherAssets.editCategory')"
       :loading="otherAssetSubmitting"
       width="520px"
       @submit="submitOtherAsset"
@@ -806,29 +806,29 @@
         <el-form-item label="ID" prop="asset_id">
           <el-input
             v-model="otherAssetForm.asset_id"
-            placeholder="例如 AC-STK-001"
+            :placeholder="t('otherAssets.categoryIdPlaceholder')"
             :disabled="otherAssetFormMode === 'edit'"
           />
         </el-form-item>
-        <el-form-item label="名稱" prop="asset_name">
+        <el-form-item :label="t('common.name')" prop="asset_name">
           <el-input v-model="otherAssetForm.asset_name" />
         </el-form-item>
-        <el-form-item label="類型" prop="asset_type">
+        <el-form-item :label="t('common.type')" prop="asset_type">
           <el-select v-model="otherAssetForm.asset_type" style="width: 100%" allow-create filterable>
-            <el-option label="股票 (stock)" value="stock" />
-            <el-option label="房產 (estate)" value="estate" />
-            <el-option label="保險 (insurance)" value="insurance" />
-            <el-option label="貸款 (loan)" value="loan" />
-            <el-option label="其他 (other)" value="other" />
+            <el-option :label="t('otherAssets.assetTypeStock')" value="stock" />
+            <el-option :label="t('otherAssets.assetTypeEstate')" value="estate" />
+            <el-option :label="t('otherAssets.assetTypeInsurance')" value="insurance" />
+            <el-option :label="t('otherAssets.assetTypeLoan')" value="loan" />
+            <el-option :label="t('otherAssets.assetTypeOther')" value="other" />
           </el-select>
         </el-form-item>
-        <el-form-item label="啟用" prop="in_use">
+        <el-form-item :label="t('otherAssets.enabled')" prop="in_use">
           <el-radio-group v-model="otherAssetForm.in_use">
-            <el-radio value="Y">啟用</el-radio>
-            <el-radio value="N">停用</el-radio>
+            <el-radio value="Y">{{ t('otherAssets.enabled') }}</el-radio>
+            <el-radio value="N">{{ t('otherAssets.disabled') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="排序">
+        <el-form-item :label="t('otherAssets.sortIndex')">
           <el-input-number
             v-model="otherAssetIndexProxy"
             :min="0"
@@ -836,7 +836,7 @@
             style="width: 100%"
           />
           <p class="text-xs text-on-surface-variant mt-1">
-            留空時後端自動指派 max(asset_index)+1
+            {{ t('otherAssets.sortAutoHint') }}
           </p>
         </el-form-item>
       </el-form>
@@ -845,7 +845,7 @@
     <!-- ─── Loan Create / Edit Dialog ──────────────────────────────────────── -->
     <FormDialog
       v-model="loanDialogVisible"
-      :title="loanFormMode === 'create' ? '新增貸款' : '編輯貸款'"
+      :title="loanFormMode === 'create' ? t('otherAssets.createLoan') : t('otherAssets.editLoan')"
       :loading="loanSubmitting"
       width="600px"
       @submit="submitLoan"
@@ -856,26 +856,26 @@
         :rules="loanFormRules"
         label-width="120px"
       >
-        <el-form-item label="貸款 ID" prop="loan_id">
+        <el-form-item :label="t('otherAssets.loanIdLabel')" prop="loan_id">
           <el-input
             v-model="loanForm.loan_id"
-            placeholder="例如 LN-001"
+            :placeholder="t('otherAssets.loanIdPlaceholder')"
             :disabled="loanFormMode === 'edit'"
           />
         </el-form-item>
-        <el-form-item label="名稱" prop="loan_name">
+        <el-form-item :label="t('common.name')" prop="loan_name">
           <el-input v-model="loanForm.loan_name" />
         </el-form-item>
-        <el-form-item label="類型" prop="loan_type">
-          <el-input v-model="loanForm.loan_type" placeholder="例如 mortgage / car" />
+        <el-form-item :label="t('common.type')" prop="loan_type">
+          <el-input v-model="loanForm.loan_type" :placeholder="t('otherAssets.loanTypePlaceholder')" />
         </el-form-item>
-        <el-form-item label="還款帳戶 ID" prop="account_id">
+        <el-form-item :label="t('otherAssets.repayAccountId')" prop="account_id">
           <el-input v-model="loanForm.account_id" />
         </el-form-item>
-        <el-form-item label="還款帳戶名稱" prop="account_name">
+        <el-form-item :label="t('otherAssets.repayAccountName')" prop="account_name">
           <el-input v-model="loanForm.account_name" />
         </el-form-item>
-        <el-form-item label="年利率" prop="interest_rate">
+        <el-form-item :label="t('otherAssets.annualRate')" prop="interest_rate">
           <el-input-number
             v-model="loanForm.interest_rate"
             :precision="4"
@@ -884,9 +884,9 @@
             controls-position="right"
             style="width: 100%"
           />
-          <p class="text-xs text-on-surface-variant mt-1">小數表示,例如 0.035 = 3.5%</p>
+          <p class="text-xs text-on-surface-variant mt-1">{{ t('otherAssets.annualRateHint') }}</p>
         </el-form-item>
-        <el-form-item label="期數 (月)" prop="period">
+        <el-form-item :label="t('otherAssets.periodMonths')" prop="period">
           <el-input-number
             v-model="loanForm.period"
             :min="1"
@@ -894,7 +894,7 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="申貸日" prop="apply_date">
+        <el-form-item :label="t('otherAssets.colApplyDate')" prop="apply_date">
           <el-date-picker
             v-model="loanFormApplyDate"
             type="date"
@@ -903,16 +903,16 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="寬限到期">
+        <el-form-item :label="t('otherAssets.graceExpire')">
           <el-date-picker
             v-model="loanFormGraceDate"
             type="date"
             format="YYYY/MM/DD"
-            placeholder="(可選)"
+            :placeholder="t('common.optional')"
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="繳款日" prop="pay_day">
+        <el-form-item :label="t('otherAssets.payDay')" prop="pay_day">
           <el-input-number
             v-model="loanForm.pay_day"
             :min="1"
@@ -921,7 +921,7 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="本金" prop="amount">
+        <el-form-item :label="t('otherAssets.colPrincipal')" prop="amount">
           <el-input-number
             v-model="loanForm.amount"
             :precision="2"
@@ -931,7 +931,7 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="已還本金" prop="repayed">
+        <el-form-item :label="t('otherAssets.repayedPrincipal')" prop="repayed">
           <el-input-number
             v-model="loanForm.repayed"
             :precision="2"
@@ -942,10 +942,10 @@
             style="width: 100%"
           />
           <span v-if="loanFormMode === 'edit'" class="text-xs text-on-surface-muted ml-2">
-            由還款明細自動計算
+            {{ t('otherAssets.repayedAuto') }}
           </span>
         </el-form-item>
-        <el-form-item label="排序" prop="loan_index">
+        <el-form-item :label="t('otherAssets.sortIndex')" prop="loan_index">
           <el-input-number
             v-model="loanForm.loan_index"
             :min="0"
@@ -959,7 +959,7 @@
     <!-- ─── Loan Detail Create / Edit Dialog ───────────────────────────────── -->
     <FormDialog
       v-model="loanDetailDialogVisible"
-      :title="loanDetailFormMode === 'create' ? '新增還款明細' : '編輯還款明細'"
+      :title="loanDetailFormMode === 'create' ? t('otherAssets.createLoanDetail') : t('otherAssets.editLoanDetail')"
       :loading="loanDetailSubmitting"
       width="520px"
       @submit="submitLoanDetail"
@@ -970,10 +970,10 @@
         :rules="loanDetailFormRules"
         label-width="110px"
       >
-        <el-form-item label="貸款 ID">
+        <el-form-item :label="t('otherAssets.loanIdLabel')">
           <el-input :model-value="loanDetailForm.loan_id" disabled />
         </el-form-item>
-        <el-form-item label="日期" prop="excute_date">
+        <el-form-item :label="t('common.date')" prop="excute_date">
           <el-date-picker
             v-model="loanDetailFormDate"
             type="date"
@@ -982,15 +982,15 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="類型" prop="loan_excute_type">
+        <el-form-item :label="t('common.type')" prop="loan_excute_type">
           <el-select v-model="loanDetailForm.loan_excute_type" style="width: 100%">
-            <el-option label="本金 (principal)" value="principal" />
-            <el-option label="利息 (interest)" value="interest" />
-            <el-option label="增貸 (increment)" value="increment" />
-            <el-option label="手續費 (fee)" value="fee" />
+            <el-option :label="t('otherAssets.loanExTypePrincipal')" value="principal" />
+            <el-option :label="t('otherAssets.loanExTypeInterest')" value="interest" />
+            <el-option :label="t('otherAssets.loanExTypeIncrement')" value="increment" />
+            <el-option :label="t('otherAssets.loanExTypeFee')" value="fee" />
           </el-select>
         </el-form-item>
-        <el-form-item label="金額" prop="excute_price">
+        <el-form-item :label="t('common.amount')" prop="excute_price">
           <el-input-number
             v-model="loanDetailForm.excute_price"
             :precision="2"
@@ -999,12 +999,12 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="備註">
+        <el-form-item :label="t('common.note')">
           <el-input
             v-model="loanDetailMemoProxy"
             type="textarea"
             :rows="2"
-            placeholder="(可選)"
+            :placeholder="t('common.optional')"
           />
         </el-form-item>
       </el-form>
@@ -1013,7 +1013,7 @@
     <!-- ─── Estate Detail Create / Edit Dialog ─────────────────────────────── -->
     <FormDialog
       v-model="estateDetailDialogVisible"
-      :title="estateDetailFormMode === 'create' ? '新增房產明細' : '編輯房產明細'"
+      :title="estateDetailFormMode === 'create' ? t('otherAssets.createEstateDetail') : t('otherAssets.editEstateDetail')"
       :loading="estateDetailSubmitting"
       width="520px"
       @submit="submitEstateDetail"
@@ -1047,13 +1047,13 @@ import FormDialog from '@/components/ui/FormDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import RowActions from '@/components/ui/RowActions.vue'
 import StockDetailFormFields, {
-  STOCK_DETAIL_FULL_RULES,
+  stockDetailFullRules,
 } from '@/components/forms/StockDetailFormFields.vue'
 import InsuranceDetailFormFields, {
-  INSURANCE_DETAIL_FULL_RULES,
+  insuranceDetailFullRules,
 } from '@/components/forms/InsuranceDetailFormFields.vue'
 import EstateDetailFormFields, {
-  ESTATE_DETAIL_FULL_RULES,
+  estateDetailFullRules,
 } from '@/components/forms/EstateDetailFormFields.vue'
 import { useCrudDialog } from '@/composables/useCrudDialog'
 import { useOtherAssetsStore } from '@/stores/otherAssets'
@@ -1114,6 +1114,7 @@ import type {
 
 const store = useOtherAssetsStore()
 const settingStore = useSettingStore()
+const { t } = useI18n()
 
 const activeTab = ref<string>('stocks')
 
@@ -1173,12 +1174,12 @@ function emptyStockForm(): StockFormState {
   }
 }
 
-const stockFormRules: FormRules = {
-  stock_id: [{ required: true, message: '請輸入持有 ID', trigger: 'blur' }],
-  stock_code: [{ required: true, message: '請輸入代號', trigger: 'blur' }],
-  stock_name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
-  expected_spend: [{ required: true, message: '請輸入預計投入金額', trigger: 'blur' }],
-}
+const stockFormRules = computed<FormRules>(() => ({
+  stock_id: [{ required: true, message: t('otherAssets.enterStockId'), trigger: 'blur' }],
+  stock_code: [{ required: true, message: t('validation.enterCode'), trigger: 'blur' }],
+  stock_name: [{ required: true, message: t('otherAssets.enterName'), trigger: 'blur' }],
+  expected_spend: [{ required: true, message: t('otherAssets.enterExpectedSpend'), trigger: 'blur' }],
+}))
 
 const {
   dialogVisible: stockDialogVisible,
@@ -1215,8 +1216,8 @@ const {
     if (stocksAssetId.value) return fetchStocks(stocksAssetId.value)
   },
   confirmDelete: (row) => ({
-    title: '刪除股票持有',
-    message: `確定要刪除「${row.stock_name}」(${row.stock_code})?`,
+    title: t('otherAssets.deleteStockTitle'),
+    message: t('otherAssets.deleteStockMsg', { name: row.stock_name, code: row.stock_code }),
   }),
   onAfterDelete: (row) => {
     stockDetailsByStock.delete(row.stock_id)
@@ -1271,7 +1272,7 @@ function emptyStockDetailForm(stockId: string): StockDetailFormState {
   }
 }
 
-const stockDetailFormRules: FormRules = STOCK_DETAIL_FULL_RULES
+const stockDetailFormRules = computed(() => stockDetailFullRules(t))
 
 function stockDetailPayload(form: StockDetailFormState): StockJournalCreate {
   return {
@@ -1315,8 +1316,11 @@ const {
   remove: (id) => deleteStockDetail(id as number),
   refetch: () => fetchStockDetails(stockDetailParent.value!.stock_id),
   confirmDelete: (detail) => ({
-    title: '刪除股票明細',
-    message: `確定要刪除這筆 ${detail.excute_date} ${detail.excute_type} 紀錄?`,
+    title: t('otherAssets.deleteStockDetailTitle'),
+    message: t('otherAssets.deleteStockDetailMsg', {
+      date: detail.excute_date,
+      type: detail.excute_type,
+    }),
   }),
 })
 
@@ -1389,14 +1393,14 @@ function emptyEstateForm(): EstateAssetCreate {
   }
 }
 
-const estateFormRules: FormRules = {
-  estate_id: [{ required: true, message: '請輸入房產 ID', trigger: 'blur' }],
-  estate_name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
-  estate_type: [{ required: true, message: '請輸入類型', trigger: 'blur' }],
-  estate_address: [{ required: true, message: '請輸入地址', trigger: 'blur' }],
-  obtain_date: [{ required: true, message: '請選擇取得日期', trigger: 'change' }],
-  estate_status: [{ required: true, message: '請選擇狀態', trigger: 'change' }],
-}
+const estateFormRules = computed<FormRules>(() => ({
+  estate_id: [{ required: true, message: t('otherAssets.enterEstateId'), trigger: 'blur' }],
+  estate_name: [{ required: true, message: t('otherAssets.enterName'), trigger: 'blur' }],
+  estate_type: [{ required: true, message: t('otherAssets.enterType'), trigger: 'blur' }],
+  estate_address: [{ required: true, message: t('otherAssets.enterAddress'), trigger: 'blur' }],
+  obtain_date: [{ required: true, message: t('otherAssets.pickObtainDate'), trigger: 'change' }],
+  estate_status: [{ required: true, message: t('otherAssets.pickStatus'), trigger: 'change' }],
+}))
 
 const {
   dialogVisible: estateDialogVisible,
@@ -1442,7 +1446,10 @@ const {
   refetch: () => {
     if (estatesAssetId.value) return store.fetchEstates(estatesAssetId.value)
   },
-  confirmDelete: (row) => ({ title: '刪除房產', message: `確定要刪除「${row.estate_name}」?` }),
+  confirmDelete: (row) => ({
+    title: t('otherAssets.deleteEstateTitle'),
+    message: t('otherAssets.deleteEstateMsg', { name: row.estate_name }),
+  }),
   onAfterDelete: (row) => {
     estateDetailsByEstate.delete(row.estate_id)
   },
@@ -1509,7 +1516,7 @@ function emptyEstateDetailForm(estateId: string): EstateDetailFormState {
   }
 }
 
-const estateDetailFormRules: FormRules = ESTATE_DETAIL_FULL_RULES
+const estateDetailFormRules = computed(() => estateDetailFullRules(t))
 
 function estateDetailPayload(form: EstateDetailFormState): EstateJournalCreate {
   return {
@@ -1547,8 +1554,11 @@ const {
   remove: (id) => deleteEstateDetail(id as number),
   refetch: () => fetchEstateDetails(estateDetailParent.value!.estate_id),
   confirmDelete: (detail) => ({
-    title: '刪除房產明細',
-    message: `確定要刪除這筆 ${detail.excute_date} ${detail.estate_excute_type} 紀錄?`,
+    title: t('otherAssets.deleteEstateDetailTitle'),
+    message: t('otherAssets.deleteEstateDetailMsg', {
+      date: detail.excute_date,
+      type: detail.estate_excute_type,
+    }),
   }),
 })
 
@@ -1604,18 +1614,18 @@ function emptyInsuranceForm(): InsuranceAssetCreate {
   }
 }
 
-const insuranceFormRules: FormRules = {
-  insurance_id: [{ required: true, message: '請輸入保險 ID', trigger: 'blur' }],
-  insurance_name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
-  in_account: [{ required: true, message: '請輸入繳費帳戶', trigger: 'blur' }],
-  out_account: [{ required: true, message: '請輸入領取帳戶', trigger: 'blur' }],
-  start_date: [{ required: true, message: '請選擇起始日', trigger: 'change' }],
-  end_date: [{ required: true, message: '請選擇終止日', trigger: 'change' }],
-  pay_type: [{ required: true, message: '請輸入繳費頻率', trigger: 'blur' }],
-  pay_day: [{ required: true, message: '請輸入繳款日', trigger: 'blur' }],
-  expected_spend: [{ required: true, message: '請輸入預計保費', trigger: 'blur' }],
-  has_closed: [{ required: true, message: '請選擇結案狀態', trigger: 'change' }],
-}
+const insuranceFormRules = computed<FormRules>(() => ({
+  insurance_id: [{ required: true, message: t('otherAssets.enterInsuranceId'), trigger: 'blur' }],
+  insurance_name: [{ required: true, message: t('otherAssets.enterName'), trigger: 'blur' }],
+  in_account: [{ required: true, message: t('otherAssets.enterInAccount'), trigger: 'blur' }],
+  out_account: [{ required: true, message: t('otherAssets.enterOutAccount'), trigger: 'blur' }],
+  start_date: [{ required: true, message: t('otherAssets.pickStartDate'), trigger: 'change' }],
+  end_date: [{ required: true, message: t('otherAssets.pickEndDate'), trigger: 'change' }],
+  pay_type: [{ required: true, message: t('otherAssets.enterPayType'), trigger: 'blur' }],
+  pay_day: [{ required: true, message: t('otherAssets.enterPayDay'), trigger: 'blur' }],
+  expected_spend: [{ required: true, message: t('otherAssets.enterExpectedPremium'), trigger: 'blur' }],
+  has_closed: [{ required: true, message: t('otherAssets.pickClosedStatus'), trigger: 'change' }],
+}))
 
 const {
   dialogVisible: insuranceDialogVisible,
@@ -1653,7 +1663,10 @@ const {
   refetch: () => {
     if (insurancesAssetId.value) return store.fetchInsurances(insurancesAssetId.value)
   },
-  confirmDelete: (row) => ({ title: '刪除保險合約', message: `確定要刪除「${row.insurance_name}」?` }),
+  confirmDelete: (row) => ({
+    title: t('otherAssets.deleteInsuranceTitle'),
+    message: t('otherAssets.deleteInsuranceMsg', { name: row.insurance_name }),
+  }),
   onAfterDelete: (row) => {
     insuranceDetailsByPolicy.delete(row.insurance_id)
   },
@@ -1716,7 +1729,7 @@ function emptyInsuranceDetailForm(insuranceId: string): InsuranceDetailFormState
   }
 }
 
-const insuranceDetailFormRules: FormRules = INSURANCE_DETAIL_FULL_RULES
+const insuranceDetailFormRules = computed(() => insuranceDetailFullRules(t))
 
 function insuranceDetailPayload(form: InsuranceDetailFormState): InsuranceJournalCreate {
   return {
@@ -1754,8 +1767,11 @@ const {
   remove: (id) => deleteInsuranceDetail(id as number),
   refetch: () => fetchInsuranceDetails(insuranceDetailParent.value!.insurance_id),
   confirmDelete: (detail) => ({
-    title: '刪除繳費明細',
-    message: `確定要刪除這筆 ${detail.excute_date} ${detail.insurance_excute_type} 紀錄?`,
+    title: t('otherAssets.deleteInsuranceDetailTitle'),
+    message: t('otherAssets.deleteInsuranceDetailMsg', {
+      date: detail.excute_date,
+      type: detail.insurance_excute_type,
+    }),
   }),
 })
 
@@ -1795,20 +1811,20 @@ function emptyLoanForm(): LoanAssetCreate {
   }
 }
 
-const loanFormRules: FormRules = {
-  loan_id: [{ required: true, message: '請輸入貸款 ID', trigger: 'blur' }],
-  loan_name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
-  loan_type: [{ required: true, message: '請輸入類型', trigger: 'blur' }],
-  account_id: [{ required: true, message: '請輸入帳戶 ID', trigger: 'blur' }],
-  account_name: [{ required: true, message: '請輸入帳戶名稱', trigger: 'blur' }],
-  interest_rate: [{ required: true, message: '請輸入年利率', trigger: 'blur' }],
-  period: [{ required: true, message: '請輸入期數', trigger: 'blur' }],
-  apply_date: [{ required: true, message: '請選擇申貸日', trigger: 'change' }],
-  pay_day: [{ required: true, message: '請輸入繳款日', trigger: 'blur' }],
-  amount: [{ required: true, message: '請輸入本金', trigger: 'blur' }],
-  repayed: [{ required: true, message: '請輸入已還本金', trigger: 'blur' }],
-  loan_index: [{ required: true, message: '請輸入排序', trigger: 'blur' }],
-}
+const loanFormRules = computed<FormRules>(() => ({
+  loan_id: [{ required: true, message: t('otherAssets.enterLoanId'), trigger: 'blur' }],
+  loan_name: [{ required: true, message: t('otherAssets.enterName'), trigger: 'blur' }],
+  loan_type: [{ required: true, message: t('otherAssets.enterType'), trigger: 'blur' }],
+  account_id: [{ required: true, message: t('validation.enterAccountId'), trigger: 'blur' }],
+  account_name: [{ required: true, message: t('validation.enterAccountName'), trigger: 'blur' }],
+  interest_rate: [{ required: true, message: t('otherAssets.enterAnnualRate'), trigger: 'blur' }],
+  period: [{ required: true, message: t('otherAssets.enterPeriod'), trigger: 'blur' }],
+  apply_date: [{ required: true, message: t('otherAssets.pickApplyDate'), trigger: 'change' }],
+  pay_day: [{ required: true, message: t('otherAssets.enterPayDay'), trigger: 'blur' }],
+  amount: [{ required: true, message: t('otherAssets.enterPrincipal'), trigger: 'blur' }],
+  repayed: [{ required: true, message: t('otherAssets.enterRepayed'), trigger: 'blur' }],
+  loan_index: [{ required: true, message: t('otherAssets.enterSortIndex'), trigger: 'blur' }],
+}))
 
 const {
   dialogVisible: loanDialogVisible,
@@ -1846,7 +1862,10 @@ const {
   },
   remove: (id) => deleteLoan(id as string),
   refetch: () => store.fetchLoans(),
-  confirmDelete: (row) => ({ title: '刪除貸款', message: `確定要刪除「${row.loan_name}」?` }),
+  confirmDelete: (row) => ({
+    title: t('otherAssets.deleteLoanTitle'),
+    message: t('otherAssets.deleteLoanMsg', { name: row.loan_name }),
+  }),
   onAfterDelete: (row) => {
     loanDetailsByLoan.delete(row.loan_id)
   },
@@ -1907,11 +1926,11 @@ function emptyLoanDetailForm(loanId: string): LoanDetailFormState {
   }
 }
 
-const loanDetailFormRules: FormRules = {
-  excute_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
-  loan_excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
-  excute_price: [{ required: true, message: '請輸入金額', trigger: 'blur' }],
-}
+const loanDetailFormRules = computed<FormRules>(() => ({
+  excute_date: [{ required: true, message: t('validation.pickDate'), trigger: 'change' }],
+  loan_excute_type: [{ required: true, message: t('validation.pickType'), trigger: 'change' }],
+  excute_price: [{ required: true, message: t('validation.enterAmount'), trigger: 'blur' }],
+}))
 
 function loanDetailPayload(form: LoanDetailFormState): LoanJournalCreate {
   return {
@@ -1949,8 +1968,11 @@ const {
   remove: (id) => deleteLoanDetail(id as number),
   refetch: () => fetchLoanDetails(loanDetailParent.value!.loan_id),
   confirmDelete: (detail) => ({
-    title: '刪除還款明細',
-    message: `確定要刪除這筆 ${detail.excute_date} ${detail.loan_excute_type} 紀錄?`,
+    title: t('otherAssets.deleteLoanDetailTitle'),
+    message: t('otherAssets.deleteLoanDetailMsg', {
+      date: detail.excute_date,
+      type: detail.loan_excute_type,
+    }),
   }),
 })
 
@@ -2003,12 +2025,12 @@ function emptyOtherAssetForm(): OtherAssetCreate {
   }
 }
 
-const otherAssetFormRules: FormRules = {
-  asset_id: [{ required: true, message: '請輸入 ID', trigger: 'blur' }],
-  asset_name: [{ required: true, message: '請輸入名稱', trigger: 'blur' }],
-  asset_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
-  in_use: [{ required: true, message: '請選擇啟用狀態', trigger: 'change' }],
-}
+const otherAssetFormRules = computed<FormRules>(() => ({
+  asset_id: [{ required: true, message: t('otherAssets.enterId'), trigger: 'blur' }],
+  asset_name: [{ required: true, message: t('otherAssets.enterName'), trigger: 'blur' }],
+  asset_type: [{ required: true, message: t('validation.pickType'), trigger: 'change' }],
+  in_use: [{ required: true, message: t('otherAssets.pickEnabledStatus'), trigger: 'change' }],
+}))
 
 const {
   dialogVisible: otherAssetDialogVisible,
@@ -2039,8 +2061,8 @@ const {
   remove: (id) => deleteOtherAsset(id as string),
   refetch: () => store.fetchOtherAssets(),
   confirmDelete: (row) => ({
-    title: '刪除資產分類',
-    message: `確定要刪除「${row.asset_name}」(${row.asset_id})?`,
+    title: t('otherAssets.deleteCategoryTitle'),
+    message: t('otherAssets.deleteCategoryMsg', { name: row.asset_name, id: row.asset_id }),
   }),
 })
 

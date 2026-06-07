@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col gap-8">
-    <PageHeader title="資產負債表" :subtitle="`${store.selectedYear} 年`">
+    <PageHeader :title="t('balanceSheet.title')" :subtitle="t('common.yearLabel', { year: store.selectedYear })">
       <template #actions>
         <el-date-picker
           v-model="selectedYearDate"
           type="year"
-          placeholder="選擇年份"
+          :placeholder="t('common.pickYear')"
           format="YYYY"
           :clearable="false"
         />
@@ -13,26 +13,26 @@
     </PageHeader>
 
     <el-skeleton v-if="store.balanceLoading" :rows="6" animated />
-    <EmptyState v-else-if="!store.balanceReport" message="尚無資產負債資料" />
+    <EmptyState v-else-if="!store.balanceReport" :message="t('balanceSheet.empty')" />
     <template v-else>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <MetricCard label="總資產" :amount="totalAssets" />
-        <MetricCard label="總負債" :amount="totalLiabilities" tone="rose" />
+        <MetricCard :label="t('balanceSheet.totalAssets')" :amount="totalAssets" />
+        <MetricCard :label="t('balanceSheet.totalLiabilities')" :amount="totalLiabilities" tone="rose" />
         <MetricCard
-          label="淨資產"
+          :label="t('balanceSheet.netAssets')"
           :amount="store.balanceReport.net_worth"
           :tone="store.balanceReport.net_worth < 0 ? 'rose' : 'primary'"
         />
       </div>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="類別總覽" />
+        <SectionHeader :title="t('balanceSheet.categoryOverview')" />
         <BarChart :x-data="categoryChart.xData" :series="categoryChart.series" height="320px" />
       </section>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section class="flex flex-col gap-4">
-          <SectionHeader title="資產明細" />
+          <SectionHeader :title="t('balanceSheet.assetDetail')" />
           <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
             <el-table
               :data="assetTree"
@@ -41,13 +41,13 @@
               border
               style="width: 100%"
             >
-              <el-table-column prop="label" label="項目" min-width="200" />
-              <el-table-column label="金額" width="160" align="right">
+              <el-table-column prop="label" :label="t('common.item')" min-width="200" />
+              <el-table-column :label="t('common.amount')" width="160" align="right">
                 <template #default="{ row }">
                   <MoneyDisplay :amount="row.amount" currency="TWD" :positive="true" size="sm" />
                 </template>
               </el-table-column>
-              <el-table-column label="原幣" width="140" align="right">
+              <el-table-column :label="t('balanceSheet.originalCurrency')" width="140" align="right">
                 <template #default="{ row }">
                   <MoneyDisplay
                     v-if="row.originalCurrency && row.originalCurrency !== 'TWD'"
@@ -58,7 +58,7 @@
                   <span v-else class="text-on-surface-variant/40">—</span>
                 </template>
               </el-table-column>
-              <el-table-column label="佔比" width="84" align="right">
+              <el-table-column :label="t('balanceSheet.share')" width="84" align="right">
                 <template #default="{ row }">
                   <span
                     v-if="row.share != null"
@@ -74,7 +74,7 @@
         </section>
 
         <section class="flex flex-col gap-4">
-          <SectionHeader title="負債明細" />
+          <SectionHeader :title="t('balanceSheet.liabilityDetail')" />
           <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
             <el-table
               :data="liabilityTree"
@@ -83,8 +83,8 @@
               border
               style="width: 100%"
             >
-              <el-table-column prop="label" label="項目" min-width="200" />
-              <el-table-column label="金額" width="160" align="right">
+              <el-table-column prop="label" :label="t('common.item')" min-width="200" />
+              <el-table-column :label="t('common.amount')" width="160" align="right">
                 <template #default="{ row }">
                   <MoneyDisplay
                     :amount="Math.abs(row.amount)"
@@ -94,7 +94,7 @@
                   />
                 </template>
               </el-table-column>
-              <el-table-column label="原幣" width="140" align="right">
+              <el-table-column :label="t('balanceSheet.originalCurrency')" width="140" align="right">
                 <template #default="{ row }">
                   <MoneyDisplay
                     v-if="row.originalCurrency && row.originalCurrency !== 'TWD'"
@@ -106,7 +106,7 @@
                   <span v-else class="text-on-surface-variant/40">—</span>
                 </template>
               </el-table-column>
-              <el-table-column label="佔比" width="84" align="right">
+              <el-table-column :label="t('balanceSheet.share')" width="84" align="right">
                 <template #default="{ row }">
                   <span
                     v-if="row.share != null"
@@ -142,6 +142,7 @@ import {
 } from './balanceTree'
 
 const store = useYearReportStore()
+const { t } = useI18n()
 
 const selectedYearDate = ref<Date>(new Date(store.selectedYear, 0, 1))
 
@@ -182,6 +183,6 @@ const categoryChart = computed(() => {
     ...assetTree.value.map((n) => n.amount),
     ...liabilityTree.value.map((n) => Math.abs(n.amount)),
   ]
-  return { xData, series: [{ name: '金額', data }] }
+  return { xData, series: [{ name: t('common.amount'), data }] }
 })
 </script>

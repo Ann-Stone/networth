@@ -13,9 +13,9 @@
         <div class="flex items-center gap-2 min-w-0">
           <span
             class="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-on-surface-variant/10 text-on-surface-variant"
-            :title="a.recurrence === 'Y' ? '每年循環' : '每月循環'"
+            :title="a.recurrence === 'Y' ? t('alarm.recurYearlyTitle') : t('alarm.recurMonthlyTitle')"
           >
-            🔁 {{ a.recurrence === 'Y' ? '每年' : '每月' }}
+            🔁 {{ a.recurrence === 'Y' ? t('alarm.yearly') : t('alarm.monthly') }}
           </span>
           <p class="text-on-surface text-sm truncate">{{ a.content }}</p>
         </div>
@@ -43,6 +43,8 @@ const props = defineProps<{
   alarms: AlarmWithMeta[]
 }>()
 
+const { t } = useI18n()
+
 const titleColor = computed(() => {
   if (props.tone === 'error') return 'text-error'
   if (props.tone === 'secondary') return 'text-secondary'
@@ -56,9 +58,9 @@ const chipColor = computed(() => {
 })
 
 function relativeText(days: number): string {
-  if (days < 0) return `逾期 ${Math.abs(days)} 天`
-  if (days === 0) return '今天'
-  if (days === 1) return '明天'
-  return `剩 ${days} 天`
+  if (days < 0) return t('alarm.overdue', { n: Math.abs(days) })
+  if (days === 0) return t('alarm.today')
+  if (days === 1) return t('alarm.tomorrow')
+  return t('alarm.daysLeft', { n: days })
 }
 </script>

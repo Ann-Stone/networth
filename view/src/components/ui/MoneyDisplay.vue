@@ -6,6 +6,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useMoney } from '@/composables/useMoney'
 
 const props = withDefaults(
   defineProps<{
@@ -21,16 +22,14 @@ const props = withDefaults(
   },
 )
 
+const { format } = useMoney()
+
 const formatted = computed(() => {
   const value = Number(props.amount ?? 0)
   if (Number.isNaN(value)) return '-'
   const sign = value < 0 ? '-' : ''
   const abs = Math.abs(value)
-  const formattedNumber = new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(abs)
-  return `${sign}${props.currency} ${formattedNumber}`
+  return `${sign}${props.currency} ${format(abs)}`
 })
 
 const colorClass = computed(() => {

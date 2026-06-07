@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col gap-8">
-    <PageHeader title="損益表" :subtitle="`${store.selectedYear} 年 · 本業 / 投資 / 綜合`">
+    <PageHeader :title="t('incomeStatement.title')" :subtitle="t('incomeStatement.subtitle', { year: store.selectedYear })">
       <template #actions>
         <el-date-picker
           v-model="selectedYearDate"
           type="year"
-          placeholder="選擇年份"
+          :placeholder="t('common.pickYear')"
           format="YYYY"
           :clearable="false"
         />
@@ -13,50 +13,50 @@
     </PageHeader>
 
     <el-tabs v-model="activeType" @tab-change="handleTypeChange">
-      <el-tab-pane label="月度" name="monthly" />
-      <el-tab-pane label="年度" name="yearly" />
+      <el-tab-pane :label="t('incomeStatement.tabMonthly')" name="monthly" />
+      <el-tab-pane :label="t('incomeStatement.tabYearly')" name="yearly" />
     </el-tabs>
 
     <el-skeleton v-if="store.incomeStatementLoading" :rows="6" animated />
-    <EmptyState v-else-if="!hasData" message="暫無損益資料" />
+    <EmptyState v-else-if="!hasData" :message="t('incomeStatement.empty')" />
     <template v-else>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard
-          label="本業淨額"
+          :label="t('incomeStatement.operatingNet')"
           :amount="summary.operating_net"
           :tone="summary.operating_net < 0 ? 'rose' : 'primary'"
-          tooltip="本業收入（薪資等）− 生活支出（固定＋變動）"
+          :tooltip="t('incomeStatement.operatingTooltip')"
         />
         <MetricCard
-          label="投資損益"
+          :label="t('incomeStatement.investmentNet')"
           :amount="summary.investment_net"
           :tone="summary.investment_net < 0 ? 'rose' : 'primary'"
-          tooltip="孳息（股息/利息）＋ 已實現資本利得 ＋ 未實現市值變動"
+          :tooltip="t('incomeStatement.investmentTooltip')"
         />
         <MetricCard
-          label="綜合損益"
+          :label="t('incomeStatement.comprehensiveNet')"
           :amount="summary.comprehensive_net"
           :tone="summary.comprehensive_net < 0 ? 'rose' : 'primary'"
-          tooltip="本業淨額 ＋ 投資損益"
+          :tooltip="t('incomeStatement.comprehensiveTooltip')"
         />
       </div>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="損益構成（本業 → 投資 → 綜合）" />
+        <SectionHeader :title="t('incomeStatement.composition')" />
         <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
-          <WaterfallChart :items="waterfallItems" total-label="綜合損益" height="320px" />
+          <WaterfallChart :items="waterfallItems" :total-label="t('incomeStatement.comprehensiveNet')" height="320px" />
         </div>
       </section>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="逐期損益" />
+        <SectionHeader :title="t('incomeStatement.byPeriod')" />
         <BarChart :x-data="chart.xData" :series="chart.series" height="360px" />
       </section>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="損益明細" />
+        <SectionHeader :title="t('incomeStatement.detail')" />
         <p class="text-on-surface-variant/70 text-sm -mt-2">
-          孳息（被動收入）歸於「投資損益」，與「年度支出」頁將其計入收入的口徑不同——兩者刻意分流，並非錯誤。
+          {{ t('incomeStatement.detailNote') }}
         </p>
         <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
           <el-table
@@ -67,8 +67,8 @@
             border
             style="width: 100%"
           >
-            <el-table-column prop="label" label="項目" min-width="220" />
-            <el-table-column label="金額" width="200" align="right">
+            <el-table-column prop="label" :label="t('common.item')" min-width="220" />
+            <el-table-column :label="t('common.amount')" width="200" align="right">
               <template #default="{ row }">
                 <MoneyDisplay
                   :amount="row.amount"
@@ -97,6 +97,7 @@ import WaterfallChart from '@/components/charts/WaterfallChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'
 
 const store = useYearReportStore()
+const { t } = useI18n()
 
 const activeType = ref<'monthly' | 'yearly'>('monthly')
 const selectedYearDate = ref<Date>(new Date(store.selectedYear, 0, 1))
@@ -146,10 +147,10 @@ const chart = computed(() => {
     xData: report.points.map((p) => p.period),
     series: [
       // 本業淨額 and 投資損益 stack into 綜合損益; the line traces the total.
-      { name: '本業淨額', data: report.points.map((p) => p.operating_net), stack: 'pnl' },
-      { name: '投資損益', data: report.points.map((p) => p.investment_net), stack: 'pnl' },
+      { name: t('incomeStatement.operatingNet'), data: report.points.map((p) => p.operating_net), stack: 'pnl' },
+      { name: t('incomeStatement.investmentNet'), data: report.points.map((p) => p.investment_net), stack: 'pnl' },
       {
-        name: '綜合損益',
+        name: t('incomeStatement.comprehensiveNet'),
         data: report.points.map((p) => p.comprehensive_net),
         type: 'line' as const,
       },
@@ -158,8 +159,8 @@ const chart = computed(() => {
 })
 
 const waterfallItems = computed(() => [
-  { name: '本業淨額', value: summary.value.operating_net },
-  { name: '投資損益', value: summary.value.investment_net },
+  { name: t('incomeStatement.operatingNet'), value: summary.value.operating_net },
+  { name: t('incomeStatement.investmentNet'), value: summary.value.investment_net },
 ])
 
 const breakdownTree = computed(() => {
@@ -167,25 +168,25 @@ const breakdownTree = computed(() => {
   return [
     {
       key: 'operating',
-      label: '本業損益',
+      label: t('incomeStatement.operatingPnl'),
       amount: s.operating_net,
       children: [
-        { key: 'active', label: '本業收入', amount: s.active_income },
-        { key: 'fixed', label: '固定支出', amount: -s.fixed },
-        { key: 'floating', label: '變動支出', amount: -s.floating },
+        { key: 'active', label: t('incomeStatement.activeIncome'), amount: s.active_income },
+        { key: 'fixed', label: t('incomeStatement.fixedExpense'), amount: -s.fixed },
+        { key: 'floating', label: t('incomeStatement.floatingExpense'), amount: -s.floating },
       ],
     },
     {
       key: 'investment',
-      label: '投資損益',
+      label: t('incomeStatement.investmentNet'),
       amount: s.investment_net,
       children: [
-        { key: 'dividend', label: '孳息（股息/利息）', amount: s.dividend },
-        { key: 'realized', label: '已實現資本利得', amount: s.realized },
-        { key: 'unrealized', label: '未實現市值變動', amount: s.unrealized },
+        { key: 'dividend', label: t('incomeStatement.dividend'), amount: s.dividend },
+        { key: 'realized', label: t('incomeStatement.realized'), amount: s.realized },
+        { key: 'unrealized', label: t('incomeStatement.unrealized'), amount: s.unrealized },
       ],
     },
-    { key: 'comprehensive', label: '綜合損益', amount: s.comprehensive_net },
+    { key: 'comprehensive', label: t('incomeStatement.comprehensiveNet'), amount: s.comprehensive_net },
   ]
 })
 </script>

@@ -21,6 +21,7 @@ import {
 } from 'echarts/components'
 import VChart from 'vue-echarts'
 import { useAppStore } from '@/stores/app'
+import { useMoney } from '@/composables/useMoney'
 import { getChartColors } from '@/utils/chartTheme'
 import type { DashboardSummaryPoint } from '@/types/models'
 
@@ -35,19 +36,18 @@ use([
 
 interface AssetCategory {
   key: string
-  label: string
+  labelKey: string
 }
 
 // Stacked-area order: positive assets first (top of legend), then liabilities.
 const CATEGORIES: AssetCategory[] = [
-  { key: 'insurances', label: '保險' },
-  { key: 'estates', label: '不動產' },
-  { key: 'stocks', label: '股票' },
-  { key: 'accounts', label: '現金' },
-  { key: 'cards', label: '信用卡' },
-  { key: 'loans', label: '貸款' },
+  { key: 'insurances', labelKey: 'chart.catInsurance' },
+  { key: 'estates', labelKey: 'chart.catEstate' },
+  { key: 'stocks', labelKey: 'chart.catStock' },
+  { key: 'accounts', labelKey: 'chart.catCash' },
+  { key: 'cards', labelKey: 'chart.catCard' },
+  { key: 'loans', labelKey: 'chart.catLoan' },
 ]
-const NET_WORTH_LABEL = '淨值'
 
 const props = withDefaults(
   defineProps<{
@@ -58,6 +58,9 @@ const props = withDefaults(
 )
 
 const appStore = useAppStore()
+const { t } = useI18n()
+const { format: formatMoney } = useMoney()
+const moneyFmt = (v: number) => formatMoney(v, { maximumFractionDigits: 0 })
 
 type ChartMode = 'stack' | 'line'
 const chartMode = ref<ChartMode>('stack')
@@ -69,11 +72,6 @@ function formatYYYYMM(period: string): string {
   if (period.length !== 6) return period
   return `${period.slice(0, 4)}/${period.slice(4)}`
 }
-
-const moneyFormatter = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-})
 
 function netWorthLineColor(): string {
   if (typeof document === 'undefined') return '#000000'
@@ -92,7 +90,7 @@ const option = computed(() => {
   const isStack = chartMode.value === 'stack' && !isLog // disable stacking on log scale to prevent mathematical distortion
   
   const stackedSeries = CATEGORIES.map((cat) => ({
-    name: cat.label,
+    name: t(cat.labelKey),
     type: 'line' as const,
     ...(isStack ? { stack: 'asset', areaStyle: {} } : {}),
     smooth: false,
@@ -105,7 +103,7 @@ const option = computed(() => {
   }))
 
   const netWorthSeries = {
-    name: NET_WORTH_LABEL,
+    name: t('chart.netWorth'),
     type: 'line' as const,
     symbol: 'none' as const,
     lineStyle: { width: 2, color: netWorthLineColor() },
@@ -137,14 +135,14 @@ const option = computed(() => {
               seriesName: string
               value: number
             }
-            return `${marker}${seriesName}: ${moneyFormatter.format(value ?? 0)}`
+            return `${marker}${seriesName}: ${moneyFmt(value ?? 0)}`
           })
           .join('<br/>')
         return `${header}<br/>${lines}`
       },
     },
     legend: {
-      data: [...CATEGORIES.map((c) => c.label), NET_WORTH_LABEL],
+      data: [...CATEGORIES.map((c) => t(c.labelKey)), t('chart.netWorth')],
       textStyle: { color: textColor },
       bottom: 0,
     },
@@ -152,7 +150,7 @@ const option = computed(() => {
       feature: {
         myStack: {
           show: !isLog, // only show stack option when not on log scale
-          title: '切換為堆疊面積圖',
+          title: t('chart.toStackedArea'),
           icon: 'path://M432 928H160c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h272c17.7 0 32 14.3 32 32v736c0 17.7-14.3 32-32 32zm224 0H544c-17.7 0-32-14.3-32-32V416c0-17.7 14.3-32 32-32h112c17.7 0 32 14.3 32 32v480c0 17.7-14.3 32-32 32zm208 0H768c-17.7 0-32-14.3-32-32V608c0-17.7 14.3-32 32-32h96c17.7 0 32 14.3 32 32v288c0 17.7-14.3 32-32 32z',
           iconStyle: {
             borderColor: chartMode.value === 'stack' ? '#5470c6' : '#666',
@@ -163,7 +161,7 @@ const option = computed(() => {
         },
         myLine: {
           show: true,
-          title: '切換為折線圖',
+          title: t('chart.toLine'),
           icon: 'path://M880 144H144c-17.7 0-32 14.3-32 32v672c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V176c0-17.7-14.3-32-32-32zM208 832V272l192 320 224-256 256 352V832H208z',
           iconStyle: {
             borderColor: chartMode.value === 'line' ? '#5470c6' : '#666',
@@ -174,7 +172,7 @@ const option = computed(() => {
         },
         myLinear: {
           show: true,
-          title: '切換為線性軸 (等差級距)',
+          title: t('chart.toLinearAxis'),
           icon: 'path://M100 200h800v50H100zm0 200h800v50H100zm0 200h800v50H100zm0 200h800v50H100z',
           iconStyle: {
             borderColor: yAxisType.value === 'value' ? '#5470c6' : '#666',
@@ -185,7 +183,7 @@ const option = computed(() => {
         },
         myLog: {
           show: true,
-          title: '切換為對數軸 (等比級距)',
+          title: t('chart.toLogAxis'),
           icon: 'path://M100 100h800v50H100zm0 150h800v50H100zm0 250h800v50H100zm0 380h800v50H100z',
           iconStyle: {
             borderColor: yAxisType.value === 'log' ? '#5470c6' : '#666',
@@ -209,7 +207,7 @@ const option = computed(() => {
       type: yAxisType.value,
       axisLabel: {
         color: textColor,
-        formatter: (value: number) => moneyFormatter.format(value),
+        formatter: (value: number) => moneyFmt(value),
       },
       splitLine: { lineStyle: { color: lineColor } },
     },

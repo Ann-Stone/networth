@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { watch } from 'vue'
+import { i18n } from '@/i18n'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,78 +17,78 @@ const router = createRouter({
           path: 'dashboard',
           name: 'Dashboard',
           component: () => import('@/views/DashboardView.vue'),
-          meta: { title: '儀表板' },
+          meta: { titleKey: 'route.dashboard' },
         },
         // Monthly Report
         {
           path: 'monthly-report/cash-flow',
           name: 'CashFlow',
           component: () => import('@/views/monthly-report/CashFlowView.vue'),
-          meta: { title: '月度帳務', breadcrumb: ['月度帳務'] },
+          meta: { titleKey: 'route.cashFlow', breadcrumbKeys: ['route.cashFlow'] },
         },
         // Year Report
         {
           path: 'year-report/balance-sheet',
           name: 'BalanceSheet',
           component: () => import('@/views/year-report/BalanceSheetView.vue'),
-          meta: { title: '資產負債表', breadcrumb: ['財務報表', '資產負債表'] },
+          meta: { titleKey: 'route.balanceSheet', breadcrumbKeys: ['route.reports', 'route.balanceSheet'] },
         },
         {
           path: 'year-report/income-statement',
           name: 'IncomeStatement',
           component: () => import('@/views/year-report/IncomeStatementView.vue'),
-          meta: { title: '損益表', breadcrumb: ['財務報表', '損益表'] },
+          meta: { titleKey: 'route.incomeStatement', breadcrumbKeys: ['route.reports', 'route.incomeStatement'] },
         },
         {
           path: 'year-report/cash-flow-statement',
           name: 'CashFlowStatement',
           component: () => import('@/views/year-report/CashFlowStatementView.vue'),
-          meta: { title: '現金流量表', breadcrumb: ['財務報表', '現金流量表'] },
+          meta: { titleKey: 'route.cashFlowStatement', breadcrumbKeys: ['route.reports', 'route.cashFlowStatement'] },
         },
         {
           path: 'year-report/spending',
           name: 'Spending',
           component: () => import('@/views/year-report/SpendingView.vue'),
-          meta: { title: '年度支出', breadcrumb: ['財務報表', '年度支出'] },
+          meta: { titleKey: 'route.spending', breadcrumbKeys: ['route.reports', 'route.spending'] },
         },
         {
           path: 'year-report/assets',
           name: 'Assets',
           component: () => import('@/views/year-report/AssetView.vue'),
-          meta: { title: '資產概覽', breadcrumb: ['財務報表', '資產概覽'] },
+          meta: { titleKey: 'route.assets', breadcrumbKeys: ['route.reports', 'route.assets'] },
         },
         // Other Assets & Liabilities
         {
           path: 'other-assets',
           name: 'OtherAssets',
           component: () => import('@/views/other-assets/OtherAssetsView.vue'),
-          meta: { title: '資產負債管理' },
+          meta: { titleKey: 'route.otherAssets' },
         },
         // Settings
         {
           path: 'setting/menu',
           name: 'SettingMenu',
           component: () => import('@/views/setting/MenuSettingView.vue'),
-          meta: { title: '選單設定', breadcrumb: ['設定', '選單'] },
+          meta: { titleKey: 'route.settingMenu', breadcrumbKeys: ['route.settings', 'route.settingMenuLeaf'] },
         },
         {
           path: 'setting/budget',
           name: 'SettingBudget',
           component: () => import('@/views/setting/BudgetSettingView.vue'),
-          meta: { title: '預算設定', breadcrumb: ['設定', '預算'] },
+          meta: { titleKey: 'route.settingBudget', breadcrumbKeys: ['route.settings', 'route.settingBudgetLeaf'] },
         },
         {
           path: 'setting/remind',
           name: 'SettingRemind',
           component: () => import('@/views/setting/RemindSettingView.vue'),
-          meta: { title: '提醒設定', breadcrumb: ['設定', '提醒'] },
+          meta: { titleKey: 'route.settingRemind', breadcrumbKeys: ['route.settings', 'route.settingRemindLeaf'] },
         },
         // Utilities
         {
           path: 'utilities/import',
           name: 'UtilitiesImport',
           component: () => import('@/views/utilities/ImportView.vue'),
-          meta: { title: '資料匯入', breadcrumb: ['工具', '資料匯入'] },
+          meta: { titleKey: 'route.import', breadcrumbKeys: ['route.utilities', 'route.import'] },
         },
       ],
     },
@@ -98,10 +100,14 @@ const router = createRouter({
   ],
 })
 
-// Update document title on route change
-router.afterEach((to) => {
-  const title = to.meta?.title as string
-  document.title = title ? `${title} — Balance Sheet` : 'Balance Sheet'
-})
+// Update document title on route change and re-translate when the locale changes.
+function applyTitle(to = router.currentRoute.value) {
+  const key = (to.meta as { titleKey?: string }).titleKey
+  const appName = i18n.global.t('route.appName')
+  document.title = key ? `${i18n.global.t(key)} — ${appName}` : appName
+}
+
+router.afterEach((to) => applyTitle(to))
+watch(i18n.global.locale, () => applyTitle())
 
 export default router

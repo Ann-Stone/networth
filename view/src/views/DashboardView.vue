@@ -4,8 +4,8 @@
       class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-outline-variant shrink-0"
     >
       <el-radio-group v-model="viewMode" size="default">
-        <el-radio-button label="月" value="month" />
-        <el-radio-button label="年" value="year" />
+        <el-radio-button :label="t('dashboard.viewMonth')" value="month" />
+        <el-radio-button :label="t('dashboard.viewYear')" value="year" />
       </el-radio-group>
 
       <el-date-picker
@@ -36,16 +36,16 @@
       />
       <MetricCard
         v-else-if="store.viewMode === 'month'"
-        label="資產淨值"
+        :label="t('dashboard.netWorth')"
         :amount="latestNetWorth"
         :points="store.summaries.asset_debt_trend?.points ?? []"
       />
       <MetricCard
         v-else
-        label="資產淨值"
+        :label="t('dashboard.netWorth')"
         :amount="latestNetWorth"
         :delta-percent="netWorthYoYDelta"
-        delta-label="vs 去年"
+        :delta-label="t('dashboard.vsLastYear')"
       />
 
       <el-skeleton
@@ -55,7 +55,7 @@
       />
       <MetricCard
         v-else-if="store.viewMode === 'month'"
-        label="財務自由度"
+        :label="t('dashboard.freedomRatio')"
         format="percent"
         :amount="freedomPercentValue"
         :points="freedomRatioPercentPoints"
@@ -63,11 +63,11 @@
       />
       <MetricCard
         v-else
-        label="財務自由度"
+        :label="t('dashboard.freedomRatio')"
         format="percent"
         :amount="freedomPercentValue"
         :delta-percent="freedomYoYDelta"
-        delta-label="vs 去年"
+        :delta-label="t('dashboard.vsLastYear')"
         :tooltip="freedomRatioTooltip"
       />
 
@@ -78,7 +78,7 @@
       />
       <MetricCard
         v-else-if="store.viewMode === 'month'"
-        label="工作自由度"
+        :label="t('dashboard.workFreedomRatio')"
         format="percent"
         :amount="workFreedomPercentValue"
         :points="workFreedomRatioPercentPoints"
@@ -86,11 +86,11 @@
       />
       <MetricCard
         v-else
-        label="工作自由度"
+        :label="t('dashboard.workFreedomRatio')"
         format="percent"
         :amount="workFreedomPercentValue"
         :delta-percent="workFreedomYoYDelta"
-        delta-label="vs 去年"
+        :delta-label="t('dashboard.vsLastYear')"
         :tooltip="workFreedomRatioTooltip"
       />
     </section>
@@ -119,7 +119,7 @@
         />
         <MetricCard
           v-if="!store.budgetLoading && hasEventBudget"
-          label="年度事件信封"
+          :label="t('dashboard.eventEnvelope')"
           format="percent"
           :amount="eventUsagePct"
           :delta-label="eventUsageDeltaLabel"
@@ -128,10 +128,10 @@
         <el-skeleton v-if="store.giftsLoading" :rows="3" animated class="flex-1" />
         <EmptyState
           v-else-if="store.gifts.length === 0"
-          :message="`${store.anchorYear} 年尚無贈與紀錄`"
+          :message="t('dashboard.noGifts', { year: store.anchorYear })"
           class="flex-1 min-h-0"
         />
-        <DataListCard v-else :title="`本年贈與 (${store.anchorYear})`" class="md:flex-1 md:min-h-0">
+        <DataListCard v-else :title="t('dashboard.giftsTitle', { year: store.anchorYear })" class="md:flex-1 md:min-h-0">
           <div
             v-for="(g, idx) in store.gifts"
             :key="`${g.owner}-${idx}`"
@@ -153,7 +153,7 @@
     </section>
 
     <section class="flex flex-col gap-3 md:grow-[2] md:basis-0 md:min-h-0">
-      <SectionHeader title="追蹤事項" class="shrink-0">
+      <SectionHeader :title="t('dashboard.trackingTitle')" class="shrink-0">
         <template #actions>
           <div class="flex items-center gap-2">
             <el-button
@@ -162,28 +162,28 @@
               size="small"
               @click="archiveDialogVisible = true"
             >
-              已歸檔 ({{ archivedTargets.length }})
+              {{ t('dashboard.archivedCount', { count: archivedTargets.length }) }}
             </el-button>
             <el-button type="primary" :icon="Plus" size="small" @click="openTargetCreate">
-              新增
+              {{ t('common.add') }}
             </el-button>
           </div>
         </template>
       </SectionHeader>
       <el-skeleton v-if="store.targetsLoading" :rows="3" animated class="md:flex-1" />
-      <EmptyState v-else-if="activeTargets.length === 0" message="尚無追蹤事項" class="md:flex-1 md:min-h-0" />
+      <EmptyState v-else-if="activeTargets.length === 0" :message="t('dashboard.noTracking')" class="md:flex-1 md:min-h-0" />
       <DataListCard v-else class="md:flex-1 md:min-h-0">
         <div
-          v-for="t in activeTargets"
-          :key="t.distinct_number"
+          v-for="target in activeTargets"
+          :key="target.distinct_number"
           class="flex items-center justify-between px-5 py-3"
         >
           <div class="flex flex-col gap-1 min-w-0 flex-1 pr-4">
             <p class="text-on-surface text-sm font-semibold">
-              {{ t.setting_value }}
+              {{ target.setting_value }}
             </p>
             <p class="text-on-surface-variant text-xs">
-              {{ t.target_year }} 年度 · 編號 {{ t.distinct_number }}
+              {{ t('dashboard.targetMeta', { year: target.target_year, num: target.distinct_number }) }}
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -191,15 +191,15 @@
               :icon="Check"
               size="small"
               class="btn-complete"
-              title="標記完成"
-              @click="markTargetDone(t)"
+              :title="t('dashboard.markDone')"
+              @click="markTargetDone(target)"
             />
-            <el-button :icon="Edit" size="small" text @click="openTargetEdit(t)" />
+            <el-button :icon="Edit" size="small" text @click="openTargetEdit(target)" />
             <el-popconfirm
-              title="確定刪除?"
-              confirm-button-text="刪除"
-              cancel-button-text="取消"
-              @confirm="handleDeleteTarget(t.distinct_number)"
+              :title="t('common.confirmDelete')"
+              :confirm-button-text="t('common.delete')"
+              :cancel-button-text="t('common.cancel')"
+              @confirm="handleDeleteTarget(target.distinct_number)"
             >
               <template #reference>
                 <el-button :icon="Delete" size="small" text type="danger" />
@@ -211,25 +211,25 @@
 
       <el-dialog
         v-model="archiveDialogVisible"
-        title="已歸檔事項"
+        :title="t('dashboard.archivedTitle')"
         width="560"
       >
         <el-empty
           v-if="archivedTargets.length === 0"
-          description="尚無已歸檔事項"
+          :description="t('dashboard.noArchived')"
         />
         <ul v-else class="flex flex-col divide-y divide-outline-variant/30 rounded-lg bg-surface-container-low pl-0 list-none">
           <li
-            v-for="t in archivedTargets"
-            :key="t.distinct_number"
+            v-for="target in archivedTargets"
+            :key="target.distinct_number"
             class="flex items-center justify-between px-4 py-3"
           >
             <div class="flex flex-col gap-1 min-w-0 flex-1 pr-4">
               <p class="text-on-surface text-sm font-semibold truncate">
-                {{ t.setting_value }}
+                {{ target.setting_value }}
               </p>
               <p class="text-on-surface-variant text-xs truncate">
-                {{ t.target_year }} 年度 · 編號 {{ t.distinct_number }}
+                {{ t('dashboard.targetMeta', { year: target.target_year, num: target.distinct_number }) }}
               </p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
@@ -237,14 +237,14 @@
                 :icon="RefreshLeft"
                 size="small"
                 text
-                title="回復為進行中"
-                @click="markTargetUndone(t)"
+                :title="t('dashboard.restoreActive')"
+                @click="markTargetUndone(target)"
               />
               <el-popconfirm
-                title="確定刪除?"
-                confirm-button-text="刪除"
-                cancel-button-text="取消"
-                @confirm="handleDeleteTarget(t.distinct_number)"
+                :title="t('common.confirmDelete')"
+                :confirm-button-text="t('common.delete')"
+                :cancel-button-text="t('common.cancel')"
+                @confirm="handleDeleteTarget(target.distinct_number)"
               >
                 <template #reference>
                   <el-button :icon="Delete" size="small" text type="danger" />
@@ -257,21 +257,21 @@
 
       <FormDialog
         v-model="targetDialogVisible"
-        :title="editingTarget ? '編輯事項' : '新增事項'"
+        :title="editingTarget ? t('dashboard.editTarget') : t('dashboard.addTarget')"
         :loading="targetSubmitting"
         @submit="submitTarget"
       >
         <el-form ref="targetFormRef" :model="targetForm" :rules="targetRules" label-width="100px">
-          <el-form-item v-if="editingTarget" label="編號">
+          <el-form-item v-if="editingTarget" :label="t('dashboard.fieldNumber')">
             <span class="text-on-surface-variant text-sm">{{ editingTarget.distinct_number }}</span>
           </el-form-item>
-          <el-form-item label="年度" prop="target_year">
+          <el-form-item :label="t('dashboard.fieldYear')" prop="target_year">
             <el-input v-model="targetForm.target_year" placeholder="YYYY" maxlength="4" />
           </el-form-item>
-          <el-form-item label="內容" prop="setting_value">
-            <el-input v-model="targetForm.setting_value" maxlength="45" show-word-limit placeholder="想完成的事項" />
+          <el-form-item :label="t('dashboard.fieldContent')" prop="setting_value">
+            <el-input v-model="targetForm.setting_value" maxlength="45" show-word-limit :placeholder="t('dashboard.contentPlaceholder')" />
           </el-form-item>
-          <el-form-item label="完成狀態">
+          <el-form-item :label="t('dashboard.fieldStatus')">
             <el-switch v-model="targetForm.is_done" active-value="Y" inactive-value="N" />
           </el-form-item>
         </el-form>
@@ -286,6 +286,7 @@ import dayjs from 'dayjs'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Edit, Delete, Check, FolderOpened, RefreshLeft } from '@element-plus/icons-vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
+import { useMoney } from '@/composables/useMoney'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import DataListCard from '@/components/ui/DataListCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -299,6 +300,7 @@ import type { TargetSetting } from '@/types/models'
 
 const store = useDashboardStore()
 const appStore = useAppStore()
+const { t } = useI18n()
 
 // View-mode + anchor controls -------------------------------------------------
 // Local refs bound to the radio/picker. Whenever the user changes a control, we
@@ -361,21 +363,9 @@ const netWorthYoYDelta = computed<number | undefined>(() => {
 })
 
 // Freedom / work-freedom percent values --------------------------------------
-const freedomRatioTooltip = [
-  '<b>財務自由度</b>',
-  '公式：(總收入 − 固定支出) ÷ 總收入',
-  '月視角：近 12 個月滾動加總',
-  '年視角：當年累計',
-  '代表收入扣除固定開支後剩餘比例，越高越能負擔意外支出',
-].join('<br/>')
+const freedomRatioTooltip = computed(() => t('dashboard.freedomTooltip'))
 
-const workFreedomRatioTooltip = [
-  '<b>工作自由度</b>',
-  '公式：被動收入 ÷ (被動收入 + 主動收入)',
-  '月視角：近 12 個月滾動加總',
-  '年視角：當年累計',
-  '代表收入有多少來自被動來源，越高越接近不需主動工作',
-].join('<br/>')
+const workFreedomRatioTooltip = computed(() => t('dashboard.workFreedomTooltip'))
 
 const freedomPercentValue = computed(
   () => Math.round(store.freedomRatioCurrent * 1000) / 10,
@@ -428,10 +418,10 @@ const targetForm = reactive({
   setting_value: '',
   is_done: 'N',
 })
-const targetRules: FormRules = {
-  target_year: [{ required: true, pattern: /^\d{4}$/, message: '請輸入 YYYY', trigger: 'blur' }],
-  setting_value: [{ required: true, message: '請輸入內容', trigger: 'blur' }],
-}
+const targetRules = computed<FormRules>(() => ({
+  target_year: [{ required: true, pattern: /^\d{4}$/, message: t('validation.yearFormat'), trigger: 'blur' }],
+  setting_value: [{ required: true, message: t('validation.enterContent'), trigger: 'blur' }],
+}))
 
 function resetTargetForm() {
   targetForm.target_year = dayjs().format('YYYY')
@@ -465,14 +455,14 @@ async function submitTarget() {
         setting_value: targetForm.setting_value,
         is_done: targetForm.is_done,
       })
-      ElMessage.success('已更新')
+      ElMessage.success(t('toast.updated'))
     } else {
       await createTarget({
         target_year: targetForm.target_year,
         setting_value: targetForm.setting_value,
         is_done: targetForm.is_done,
       })
-      ElMessage.success('已新增')
+      ElMessage.success(t('toast.created'))
     }
     targetDialogVisible.value = false
     await store.fetchTargets()
@@ -483,17 +473,17 @@ async function submitTarget() {
 
 async function handleDeleteTarget(targetId: string) {
   await deleteTarget(targetId)
-  ElMessage.success('已刪除')
+  ElMessage.success(t('toast.deleted'))
   await store.fetchTargets()
 }
 
-async function setTargetDone(t: TargetSetting, isDone: 'Y' | 'N') {
-  await updateTarget(t.distinct_number, {
-    target_year: t.target_year,
-    setting_value: t.setting_value,
+async function setTargetDone(target: TargetSetting, isDone: 'Y' | 'N') {
+  await updateTarget(target.distinct_number, {
+    target_year: target.target_year,
+    setting_value: target.setting_value,
     is_done: isDone,
   })
-  ElMessage.success(isDone === 'Y' ? '已標記完成' : '已恢復進行中')
+  ElMessage.success(isDone === 'Y' ? t('toast.markedDone') : t('toast.restored'))
   await store.fetchTargets()
 }
 
@@ -501,12 +491,10 @@ const markTargetDone = (t: TargetSetting) => setTargetDone(t, 'Y')
 const markTargetUndone = (t: TargetSetting) => setTargetDone(t, 'N')
 
 // Budget ---------------------------------------------------------------------
-const moneyFormatter = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-})
+const { format: formatMoney } = useMoney()
+const moneyFmt = (v: number) => formatMoney(v, { maximumFractionDigits: 0 })
 
-const budgetCardLabel = '預算使用率'
+const budgetCardLabel = computed(() => t('dashboard.budgetUsage'))
 
 const budgetUsagePct = computed(() => {
   const b = store.budget
@@ -517,9 +505,12 @@ const budgetUsagePct = computed(() => {
 const budgetUsageDeltaLabel = computed(() => {
   const b = store.budget
   if (!b || !b.total_planned) {
-    return store.viewMode === 'month' ? '本月尚無預算' : '本年尚無預算'
+    return store.viewMode === 'month' ? t('dashboard.noBudgetMonth') : t('dashboard.noBudgetYear')
   }
-  return `實際 ${moneyFormatter.format(b.total_actual)} / 預算 ${moneyFormatter.format(b.total_planned)}`
+  return t('dashboard.budgetActualVsPlan', {
+    actual: moneyFmt(b.total_actual),
+    planned: moneyFmt(b.total_planned),
+  })
 })
 
 const hasEventBudget = computed(() => {
@@ -535,9 +526,13 @@ const eventUsagePct = computed(() => {
 
 const eventUsageDeltaLabel = computed(() => {
   const b = store.budget
-  if (!b || !b.event_total_planned) return '尚無年度事件額度'
-  const ytd = store.viewMode === 'month' ? '年初至今' : '全年'
-  return `${ytd} ${moneyFormatter.format(b.event_total_actual)} / 額度 ${moneyFormatter.format(b.event_total_planned)}`
+  if (!b || !b.event_total_planned) return t('dashboard.noEventBudget')
+  const ytd = store.viewMode === 'month' ? t('dashboard.eventYtdMonth') : t('dashboard.eventYtdYear')
+  return t('dashboard.eventActualVsPlan', {
+    ytd,
+    actual: moneyFmt(b.event_total_actual),
+    planned: moneyFmt(b.event_total_planned),
+  })
 })
 
 function giftRateClass(rate: number): string {

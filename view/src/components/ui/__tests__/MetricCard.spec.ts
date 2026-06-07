@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import TrendBadge from '@/components/ui/TrendBadge.vue'
+import { testI18n } from '@/test/i18n'
 
 const stubs = {
   'el-icon': { template: '<span><slot /></span>' },
@@ -18,7 +19,7 @@ describe('MetricCard', () => {
   it('renders both MoM and YoY badges given 13+ points', () => {
     const wrapper = mount(MetricCard, {
       props: { label: 'Net Worth', amount: 1000, points: makePoints(13) },
-      global: { stubs },
+      global: { stubs, plugins: [testI18n()] },
     })
     const badges = wrapper.findAllComponents(TrendBadge)
     expect(badges).toHaveLength(2)
@@ -29,7 +30,7 @@ describe('MetricCard', () => {
   it('renders only MoM when given 2 points', () => {
     const wrapper = mount(MetricCard, {
       props: { label: 'Net Worth', amount: 1000, points: makePoints(2) },
-      global: { stubs },
+      global: { stubs, plugins: [testI18n()] },
     })
     const badges = wrapper.findAllComponents(TrendBadge)
     expect(badges).toHaveLength(1)
@@ -40,7 +41,7 @@ describe('MetricCard', () => {
   it('renders no badge with 1 point', () => {
     const wrapper = mount(MetricCard, {
       props: { label: 'Net Worth', amount: 1000, points: makePoints(1) },
-      global: { stubs },
+      global: { stubs, plugins: [testI18n()] },
     })
     expect(wrapper.findAllComponents(TrendBadge)).toHaveLength(0)
   })
@@ -55,7 +56,7 @@ describe('MetricCard', () => {
           { period: '202505', value: 50 },
         ],
       },
-      global: { stubs },
+      global: { stubs, plugins: [testI18n()] },
     })
     expect(wrapper.findAllComponents(TrendBadge)).toHaveLength(0)
   })
@@ -68,7 +69,7 @@ describe('MetricCard', () => {
         deltaPercent: 5.7,
         deltaLabel: '較上期',
       },
-      global: { stubs },
+      global: { stubs, plugins: [testI18n()] },
     })
     const badges = wrapper.findAllComponents(TrendBadge)
     expect(badges).toHaveLength(1)
@@ -83,7 +84,7 @@ describe('MetricCard', () => {
         amount: 25.5,
         format: 'percent',
       },
-      global: { stubs },
+      global: { stubs, plugins: [testI18n()] },
     })
     expect(wrapper.text()).toContain('25.5%')
     expect(wrapper.text()).not.toContain('TWD')
@@ -92,7 +93,7 @@ describe('MetricCard', () => {
   it('format=currency (default) keeps MoneyDisplay output', () => {
     const wrapper = mount(MetricCard, {
       props: { label: 'Net Worth', amount: 1234567 },
-      global: { stubs },
+      global: { stubs, plugins: [testI18n()] },
     })
     expect(wrapper.text()).toContain('TWD')
   })

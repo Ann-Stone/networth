@@ -9,17 +9,19 @@
  * Legacy data uses inconsistent table naming (`CreditCard` vs `Credit_Card`),
  * so the lookup tolerates either form.
  */
+import { i18n } from '@/i18n'
+
 export interface FinancialBehavior {
   key: string
   table: string
-  label: string
+  labelKey: string
 }
 
 export const FINANCIAL_BEHAVIORS: FinancialBehavior[] = [
-  { key: 'Transfer', table: 'Account', label: '轉帳' },
-  { key: 'CreditCardRepayment', table: 'Credit_Card', label: '繳信用卡款' },
-  { key: 'LoanRepayment', table: 'Loan', label: '繳貸款' },
-  { key: 'Premiums', table: 'Insurance', label: '繳保費' },
+  { key: 'Transfer', table: 'Account', labelKey: 'financialBehavior.transfer' },
+  { key: 'CreditCardRepayment', table: 'Credit_Card', labelKey: 'financialBehavior.creditCardRepayment' },
+  { key: 'LoanRepayment', table: 'Loan', labelKey: 'financialBehavior.loanRepayment' },
+  { key: 'Premiums', table: 'Insurance', labelKey: 'financialBehavior.premiums' },
 ]
 
 function normalizeTable(table?: string | null): string {
@@ -32,7 +34,8 @@ export function getFinancialBehaviorLabel(
 ): string | undefined {
   if (!key) return undefined
   const t = normalizeTable(table)
-  return FINANCIAL_BEHAVIORS.find(
+  const behavior = FINANCIAL_BEHAVIORS.find(
     (b) => b.key === key && normalizeTable(b.table) === t,
-  )?.label
+  )
+  return behavior ? i18n.global.t(behavior.labelKey) : undefined
 }

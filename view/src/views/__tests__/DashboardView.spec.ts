@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createTestingPinia } from '@pinia/testing'
+import { testI18n } from '@/test/i18n'
 
 // Stub vue-echarts so jsdom-incompatible canvas paths never execute.
 vi.mock('vue-echarts', () => ({
@@ -88,6 +89,7 @@ describe('DashboardView', () => {
               },
             },
           }),
+          testI18n(),
         ],
         stubs: elementPlusStubs(),
       },

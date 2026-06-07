@@ -1,5 +1,5 @@
 <template>
-  <el-empty :description="message ?? '暫無資料'" class="custom-empty">
+  <el-empty :description="message ?? t('common.empty')" class="custom-empty">
     <template #image>
       <svg
         class="w-24 h-24 mx-auto"
@@ -53,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+const { t } = useI18n()
 defineProps<{ message?: string }>()
 </script>
 

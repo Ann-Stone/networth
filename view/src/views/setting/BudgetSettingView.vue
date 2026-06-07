@@ -1,10 +1,10 @@
 <template>
   <div class="flex flex-col gap-6">
-    <PageHeader title="預算設定" subtitle="逐月編輯類別預算">
+    <PageHeader :title="t('settingBudget.title')" :subtitle="t('settingBudget.subtitle')">
       <template #actions>
         <el-select
           v-model="selectedYear"
-          placeholder="選擇年度"
+          :placeholder="t('settingBudget.pickYear')"
           style="width: 140px"
           @change="reload"
         >
@@ -16,10 +16,10 @@
           />
         </el-select>
         <el-button :loading="suggesting" @click="handleSuggest">
-          智慧產生
+          {{ t('settingBudget.suggest') }}
         </el-button>
         <el-button type="primary" :loading="saving" @click="handleSave">
-          儲存
+          {{ t('common.save') }}
         </el-button>
       </template>
     </PageHeader>
@@ -29,22 +29,22 @@
       type="info"
       :closable="false"
       show-icon
-      title="目前顯示的是建議值,尚未儲存。請確認各月份(特別是年度事件的全年額度)後按「儲存」。"
+      :title="t('settingBudget.previewDirty')"
     />
 
-    <DataListCard :title="`${selectedYear} 年預算 (TWD)`">
+    <DataListCard :title="t('settingBudget.budgetCardTitle', { year: selectedYear })">
       <div class="p-4">
         <el-table
           :data="ordinaryBudgets"
           v-loading="store.budgetsLoading"
           border
           stripe
-          empty-text="尚無預算資料"
+          :empty-text="t('settingBudget.empty')"
           max-height="640"
         >
           <el-table-column
             prop="category_name"
-            label="類別"
+            :label="t('common.category')"
             width="180"
             fixed="left"
           >
@@ -58,7 +58,7 @@
           <el-table-column
             v-for="m in MONTH_KEYS"
             :key="m.key"
-            :label="m.label"
+            :label="t('settingBudget.monthLabel', { n: m.month })"
             min-width="120"
           >
             <template #default="{ row }">
@@ -79,11 +79,11 @@
 
     <DataListCard
       v-if="eventBudgets.length"
-      :title="`${selectedYear} 年度事件信封 (全年一筆)`"
+      :title="t('settingBudget.eventCardTitle', { year: selectedYear })"
     >
       <div class="p-4">
         <el-table :data="eventBudgets" border stripe max-height="400">
-          <el-table-column prop="category_name" label="類別" min-width="180">
+          <el-table-column prop="category_name" :label="t('common.category')" min-width="180">
             <template #default="{ row }">
               <div class="flex flex-col">
                 <span class="font-semibold text-on-surface">{{ row.category_name }}</span>
@@ -91,7 +91,7 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="全年額度" min-width="220">
+          <el-table-column :label="t('settingBudget.annualAmount')" min-width="220">
             <template #default="{ row }">
               <el-input-number
                 v-model="row.annual_amount"
@@ -106,7 +106,7 @@
           </el-table-column>
         </el-table>
         <p class="mt-2 text-xs text-on-surface-muted">
-          年度事件以全年一筆額度管理,不分攤到各月。儀表板以「年初至今 vs 全年額度」呈現,因此不會影響每月超支判讀。
+          {{ t('settingBudget.eventHint') }}
         </p>
       </div>
     </DataListCard>
@@ -122,20 +122,21 @@ import { useSettingStore } from '@/stores/setting'
 import { applyBudget, getCodes, suggestBudget } from '@/api/setting'
 
 const MONTH_KEYS = [
-  { key: 'expected01', label: '1 月' },
-  { key: 'expected02', label: '2 月' },
-  { key: 'expected03', label: '3 月' },
-  { key: 'expected04', label: '4 月' },
-  { key: 'expected05', label: '5 月' },
-  { key: 'expected06', label: '6 月' },
-  { key: 'expected07', label: '7 月' },
-  { key: 'expected08', label: '8 月' },
-  { key: 'expected09', label: '9 月' },
-  { key: 'expected10', label: '10 月' },
-  { key: 'expected11', label: '11 月' },
-  { key: 'expected12', label: '12 月' },
+  { key: 'expected01', month: 1 },
+  { key: 'expected02', month: 2 },
+  { key: 'expected03', month: 3 },
+  { key: 'expected04', month: 4 },
+  { key: 'expected05', month: 5 },
+  { key: 'expected06', month: 6 },
+  { key: 'expected07', month: 7 },
+  { key: 'expected08', month: 8 },
+  { key: 'expected09', month: 9 },
+  { key: 'expected10', month: 10 },
+  { key: 'expected11', month: 11 },
+  { key: 'expected12', month: 12 },
 ] as const
 
+const { t } = useI18n()
 const store = useSettingStore()
 const selectedYear = ref<string>(String(new Date().getFullYear()))
 const saving = ref(false)
@@ -175,7 +176,7 @@ async function handleSuggest() {
   try {
     store.budgets = await suggestBudget(Number(selectedYear.value))
     previewDirty.value = true
-    ElMessage.success('已套用建議值,確認後請按儲存')
+    ElMessage.success(t('settingBudget.suggestApplied'))
   } finally {
     suggesting.value = false
   }
@@ -185,7 +186,7 @@ async function handleSave() {
   saving.value = true
   try {
     await applyBudget(Number(selectedYear.value), store.budgets)
-    ElMessage.success('儲存成功')
+    ElMessage.success(t('settingBudget.saveSuccess'))
     await reload()
   } finally {
     saving.value = false

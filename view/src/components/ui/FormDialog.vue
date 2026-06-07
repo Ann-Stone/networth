@@ -12,9 +12,9 @@
 
     <template #footer>
       <slot name="footer">
-        <el-button @click="onCancel">{{ cancelText }}</el-button>
+        <el-button @click="onCancel">{{ cancelLabel }}</el-button>
         <el-button type="primary" :loading="loading" @click="onSubmit">
-          {{ submitText }}
+          {{ submitLabel }}
         </el-button>
       </slot>
     </template>
@@ -22,6 +22,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+
 const props = withDefaults(
   defineProps<{
     modelValue: boolean
@@ -33,8 +35,6 @@ const props = withDefaults(
   }>(),
   {
     loading: false,
-    submitText: '確認',
-    cancelText: '取消',
     width: '520px',
   },
 )
@@ -45,11 +45,15 @@ const emit = defineEmits<{
   (e: 'cancel'): void
 }>()
 
+const { t } = useI18n()
+
+// Default to the shared common.* labels; callers can still override.
+const submitLabel = computed(() => props.submitText ?? t('common.submit'))
+const cancelLabel = computed(() => props.cancelText ?? t('common.cancel'))
+
 const onSubmit = () => emit('submit')
 const onCancel = () => {
   emit('cancel')
   emit('update:modelValue', false)
 }
-
-void props
 </script>

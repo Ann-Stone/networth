@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col gap-8">
-    <PageHeader title="年度支出" :subtitle="`${store.selectedYear} 年`">
+    <PageHeader :title="t('spending.title')" :subtitle="t('common.yearLabel', { year: store.selectedYear })">
       <template #actions>
         <el-date-picker
           v-model="selectedYearDate"
           type="year"
-          placeholder="選擇年份"
+          :placeholder="t('common.pickYear')"
           format="YYYY"
           :clearable="false"
         />
@@ -13,62 +13,62 @@
     </PageHeader>
 
     <el-tabs v-model="activeType" @tab-change="handleTypeChange">
-      <el-tab-pane label="月度" name="monthly" />
-      <el-tab-pane label="年度" name="yearly" />
+      <el-tab-pane :label="t('common.monthly')" name="monthly" />
+      <el-tab-pane :label="t('common.yearly')" name="yearly" />
     </el-tabs>
 
     <el-skeleton v-if="store.incomeExpenseLoading" :rows="6" animated />
-    <EmptyState v-else-if="!hasData" message="暫無收支資料" />
+    <EmptyState v-else-if="!hasData" :message="t('spending.empty')" />
     <template v-else>
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <MetricCard label="總收入" :amount="summary.total_income" />
-        <MetricCard label="總支出" :amount="summary.total_expense" tone="rose" />
+        <MetricCard :label="t('spending.totalIncome')" :amount="summary.total_income" />
+        <MetricCard :label="t('spending.totalExpense')" :amount="summary.total_expense" tone="rose" />
         <MetricCard
-          label="淨結餘"
+          :label="t('spending.netBalance')"
           :amount="summary.net"
           :tone="summary.net < 0 ? 'rose' : 'primary'"
         />
         <MetricCard
-          label="儲蓄率"
+          :label="t('spending.savingsRate')"
           :amount="savingsRatePct"
           format="percent"
           signed
           :tone="summary.net < 0 ? 'rose' : 'primary'"
-          tooltip="儲蓄率 = (收入 − 支出) / 收入"
+          :tooltip="t('spending.savingsRateTooltip')"
         />
       </div>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="收支對比" />
+        <SectionHeader :title="t('spending.incomeVsExpense')" />
         <BarChart :x-data="chart.xData" :series="chart.series" height="360px" />
       </section>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="支出結構" />
+        <SectionHeader :title="t('spending.expenseStructure')" />
         <el-skeleton v-if="store.compositionLoading" :rows="5" animated />
         <EmptyState
           v-else-if="!composition || composition.categories.length === 0"
-          message="暫無支出明細"
+          :message="t('spending.noExpenseDetail')"
         />
         <template v-else>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <MetricCard
-              label="固定支出（燒錢底線）"
+              :label="t('spending.fixedExpenseCard')"
               :amount="composition.fixed_total"
-              :delta-label="`佔支出 ${fixedShare.toFixed(0)}%`"
-              tooltip="每月幾乎跑不掉的底線：房租/房貸、保險、訂閱等"
+              :delta-label="t('spending.shareOfExpense', { pct: fixedShare.toFixed(0) })"
+              :tooltip="t('spending.fixedTooltip')"
             />
             <MetricCard
-              label="變動支出"
+              :label="t('spending.floatingExpense')"
               :amount="composition.floating_total"
-              :delta-label="`佔支出 ${floatingShare.toFixed(0)}%`"
+              :delta-label="t('spending.shareOfExpense', { pct: floatingShare.toFixed(0) })"
             />
             <MetricCard
-              label="固定佔收入"
+              :label="t('spending.fixedToIncome')"
               :amount="fixedToIncomePct"
               format="percent"
               :tone="fixedToIncomePct > 50 ? 'rose' : 'primary'"
-              tooltip="固定支出 ÷ 收入，你的「生存門檻」——越低代表收入掉了也越撐得住"
+              :tooltip="t('spending.fixedToIncomeTooltip')"
             />
           </div>
           <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
@@ -79,7 +79,7 @@
               border
               style="width: 100%"
             >
-              <el-table-column prop="label" label="項目" min-width="200">
+              <el-table-column prop="label" :label="t('common.item')" min-width="200">
                 <template #default="{ row }">
                   <span>{{ row.label }}</span>
                   <el-tag
@@ -93,12 +93,12 @@
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="金額" width="160" align="right">
+              <el-table-column :label="t('common.amount')" width="160" align="right">
                 <template #default="{ row }">
                   <MoneyDisplay :amount="row.amount" currency="TWD" :positive="true" size="sm" />
                 </template>
               </el-table-column>
-              <el-table-column label="佔比" width="84" align="right">
+              <el-table-column :label="t('spending.share')" width="84" align="right">
                 <template #default="{ row }">
                   <span
                     v-if="row.share != null"
@@ -115,27 +115,27 @@
       </section>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="預算 vs 實際" />
+        <SectionHeader :title="t('spending.budgetVsActual')" />
         <el-skeleton v-if="store.budgetLoading" :rows="4" animated />
         <EmptyState
           v-else-if="!budget || budget.rows.length === 0"
-          message="尚無預算資料"
+          :message="t('spending.noBudget')"
         />
         <template v-else>
           <div class="flex flex-wrap items-center gap-x-8 gap-y-2 text-sm">
             <div class="flex items-center gap-2">
-              <span class="text-on-surface-variant">年度預算</span>
+              <span class="text-on-surface-variant">{{ t('spending.annualBudget') }}</span>
               <MoneyDisplay :amount="budget.summary.total_expected" currency="TWD" size="sm" />
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-on-surface-variant">實際</span>
+              <span class="text-on-surface-variant">{{ t('spending.actual') }}</span>
               <MoneyDisplay :amount="budget.summary.total_actual" currency="TWD" size="sm" />
               <span class="text-on-surface-variant/70 tabular-nums">
                 {{ (budget.summary.usage_rate * 100).toFixed(0) }}%
               </span>
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-on-surface-variant">預估全年</span>
+              <span class="text-on-surface-variant">{{ t('spending.projectedFull') }}</span>
               <MoneyDisplay
                 :amount="budget.summary.projected_total"
                 currency="TWD"
@@ -146,13 +146,13 @@
                 v-if="budget.summary.elapsed_months > 0 && budget.summary.elapsed_months < 12"
                 class="text-on-surface-variant/60 text-xs"
               >
-                （依 {{ budget.summary.elapsed_months }} 個月進度推估）
+                {{ t('spending.projectedHint', { months: budget.summary.elapsed_months }) }}
               </span>
             </div>
           </div>
           <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
             <el-table :data="budget.rows" row-key="code" border style="width: 100%">
-              <el-table-column prop="name" label="類別" min-width="160">
+              <el-table-column prop="name" :label="t('common.category')" min-width="160">
                 <template #default="{ row }">
                   <span>{{ row.name }}</span>
                   <el-tag
@@ -166,22 +166,22 @@
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="預算" width="130" align="right">
+              <el-table-column :label="t('spending.colBudget')" width="130" align="right">
                 <template #default="{ row }">
                   <MoneyDisplay :amount="row.expected" currency="TWD" size="sm" />
                 </template>
               </el-table-column>
-              <el-table-column label="實際" width="130" align="right">
+              <el-table-column :label="t('spending.actual')" width="130" align="right">
                 <template #default="{ row }">
                   <MoneyDisplay :amount="row.actual" currency="TWD" size="sm" />
                 </template>
               </el-table-column>
-              <el-table-column label="差異" width="130" align="right">
+              <el-table-column :label="t('spending.colDiff')" width="130" align="right">
                 <template #default="{ row }">
                   <MoneyDisplay :amount="row.diff" currency="TWD" size="sm" :positive="row.diff <= 0" />
                 </template>
               </el-table-column>
-              <el-table-column label="達成率" min-width="170">
+              <el-table-column :label="t('spending.colUsage')" min-width="170">
                 <template #default="{ row }">
                   <div class="flex items-center gap-2">
                     <el-progress
@@ -206,9 +206,9 @@
       </section>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="現金流量（生活／投資／債務）" />
+        <SectionHeader :title="t('spending.cashFlowSection')" />
         <el-skeleton v-if="store.cashFlowLoading" :rows="4" animated />
-        <EmptyState v-else-if="!cashFlow" message="暫無現金流資料" />
+        <EmptyState v-else-if="!cashFlow" :message="t('spending.noCashFlow')" />
         <template v-else>
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <MetricCard
@@ -220,27 +220,27 @@
               :tooltip="cfTooltip(act)"
             />
             <MetricCard
-              label="淨現金變化"
+              :label="t('spending.netCashChange')"
               :amount="cashFlow.summary.net_change"
               :tone="cashFlow.summary.net_change < 0 ? 'rose' : 'primary'"
             />
           </div>
           <div class="rounded-xl border border-outline-variant bg-surface-container p-4">
-            <WaterfallChart :items="waterfallItems" total-label="淨變化" height="320px" />
+            <WaterfallChart :items="waterfallItems" :total-label="t('spending.netChangeLabel')" height="320px" />
           </div>
         </template>
       </section>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="年增率（YoY）" />
+        <SectionHeader :title="t('spending.yoySection')" />
         <el-skeleton v-if="store.insightsLoading" :rows="3" animated />
         <EmptyState
           v-else-if="!insights || insights.yoy.length === 0"
-          message="暫無年度比較資料"
+          :message="t('spending.noYoy')"
         />
         <div v-else class="rounded-xl border border-outline-variant bg-surface-container p-4">
           <el-table :data="insights.yoy" row-key="code" border style="width: 100%">
-            <el-table-column prop="name" label="類別" min-width="140">
+            <el-table-column prop="name" :label="t('common.category')" min-width="140">
               <template #default="{ row }">
                 <span>{{ row.name }}</span>
                 <el-tag
@@ -254,22 +254,22 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="今年" width="130" align="right">
+            <el-table-column :label="t('spending.colCurrent')" width="130" align="right">
               <template #default="{ row }">
                 <MoneyDisplay :amount="row.current" currency="TWD" size="sm" />
               </template>
             </el-table-column>
-            <el-table-column label="去年" width="130" align="right">
+            <el-table-column :label="t('spending.colPrevious')" width="130" align="right">
               <template #default="{ row }">
                 <MoneyDisplay :amount="row.previous" currency="TWD" size="sm" />
               </template>
             </el-table-column>
-            <el-table-column label="增減" width="130" align="right">
+            <el-table-column :label="t('spending.colDelta')" width="130" align="right">
               <template #default="{ row }">
                 <MoneyDisplay :amount="row.delta" currency="TWD" size="sm" :positive="row.delta <= 0" />
               </template>
             </el-table-column>
-            <el-table-column label="年增率" width="100" align="right">
+            <el-table-column :label="t('spending.colYoyRate')" width="100" align="right">
               <template #default="{ row }">
                 <span class="tabular-nums text-sm" :class="yoyClass(row.delta)">
                   {{ yoyRateText(row) }}
@@ -281,25 +281,25 @@
       </section>
 
       <section class="flex flex-col gap-4">
-        <SectionHeader title="大額支出 Top 10" />
+        <SectionHeader :title="t('spending.topSpending')" />
         <el-skeleton v-if="store.insightsLoading" :rows="3" animated />
         <EmptyState
           v-else-if="!insights || insights.largest.length === 0"
-          message="暫無交易明細"
+          :message="t('spending.noTransactions')"
         />
         <div v-else class="rounded-xl border border-outline-variant bg-surface-container p-4">
           <el-table :data="insights.largest" border style="width: 100%">
-            <el-table-column label="日期" width="120">
+            <el-table-column :label="t('spending.colDate')" width="120">
               <template #default="{ row }">{{ fmtDate(row.date) }}</template>
             </el-table-column>
-            <el-table-column prop="category" label="類別" min-width="100" />
-            <el-table-column label="金額" width="140" align="right">
+            <el-table-column prop="category" :label="t('common.category')" min-width="100" />
+            <el-table-column :label="t('common.amount')" width="140" align="right">
               <template #default="{ row }">
                 <MoneyDisplay :amount="row.amount" currency="TWD" size="sm" />
               </template>
             </el-table-column>
-            <el-table-column prop="pay_way" label="支付方式" min-width="120" />
-            <el-table-column label="備註" min-width="140">
+            <el-table-column prop="pay_way" :label="t('spending.colPayWay')" min-width="120" />
+            <el-table-column :label="t('common.note')" min-width="140">
               <template #default="{ row }">
                 <span :class="row.note ? '' : 'text-on-surface-variant/40'">{{ row.note || '—' }}</span>
               </template>
@@ -321,10 +321,13 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import WaterfallChart from '@/components/charts/WaterfallChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'
+import { useMoney } from '@/composables/useMoney'
 import { buildExpenditureTree } from './expenditureTree'
 import type { CashFlowActivity } from '@/types/models'
 
 const store = useYearReportStore()
+const { t } = useI18n()
+const { format: formatMoney } = useMoney()
 
 const activeType = ref<'monthly' | 'yearly'>('monthly')
 const selectedYearDate = ref<Date>(new Date(store.selectedYear, 0, 1))
@@ -374,13 +377,13 @@ const chart = computed(() => {
   return {
     xData: report.points.map((p) => p.period),
     series: [
-      { name: '收入', data: report.points.map((p) => p.income) },
+      { name: t('spending.seriesIncome'), data: report.points.map((p) => p.income) },
       // Fixed (the burn floor) at the bottom, variable stacked on top, so each
       // month's bar shows the locked-in floor vs the flexible part.
-      { name: '固定支出', data: report.points.map((p) => p.fixed), stack: 'expense' },
-      { name: '變動支出', data: report.points.map((p) => p.floating), stack: 'expense' },
+      { name: t('spending.seriesFixed'), data: report.points.map((p) => p.fixed), stack: 'expense' },
+      { name: t('spending.floatingExpense'), data: report.points.map((p) => p.floating), stack: 'expense' },
       {
-        name: '淨結餘',
+        name: t('spending.seriesNet'),
         data: report.points.map((p) => p.net),
         type: 'line' as const,
       },
@@ -429,7 +432,7 @@ const waterfallItems = computed(() =>
 
 function cfTooltip(act: CashFlowActivity): string {
   return act.items
-    .map((i) => `${i.label}：${i.amount < 0 ? '−' : '+'}${Math.abs(i.amount).toLocaleString('en-US')}`)
+    .map((i) => `${i.label}：${i.amount < 0 ? '−' : '+'}${formatMoney(Math.abs(i.amount))}`)
     .join('<br/>')
 }
 
@@ -451,8 +454,8 @@ function yoyClass(delta: number): string {
   return 'text-on-surface-variant'
 }
 
-function typeLabel(t: string): string {
-  return t.toLowerCase() === 'fixed' ? '固定' : '變動'
+function typeLabel(type: string): string {
+  return type.toLowerCase() === 'fixed' ? t('spending.typeFixed') : t('spending.typeFloating')
 }
 
 function typeTagType(t: string): 'info' | 'warning' {

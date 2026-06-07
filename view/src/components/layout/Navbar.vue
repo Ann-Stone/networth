@@ -10,7 +10,7 @@
 
     <!-- Breadcrumb -->
     <el-breadcrumb separator="/">
-      <el-breadcrumb-item :to="{ path: '/dashboard' }">首頁</el-breadcrumb-item>
+      <el-breadcrumb-item :to="{ path: '/dashboard' }">{{ t('route.home') }}</el-breadcrumb-item>
       <el-breadcrumb-item
         v-for="crumb in breadcrumbs"
         :key="crumb"
@@ -46,7 +46,7 @@
 
     <!-- Font size selector -->
     <el-dropdown trigger="click" @command="appStore.setFontScale($event)">
-      <el-button size="small" title="調整字級">
+      <el-button size="small" :title="t('nav.adjustFontSize')">
         <span class="font-semibold leading-none">A<span class="text-[0.7em] align-baseline">A</span></span>
       </el-button>
       <template #dropdown>
@@ -58,7 +58,7 @@
             :class="{ 'is-active-scale': appStore.fontScale === opt.value }"
           >
             <span :class="{ 'font-semibold': appStore.fontScale === opt.value }">
-              {{ opt.label }}
+              {{ t(opt.labelKey) }}
             </span>
           </el-dropdown-item>
         </el-dropdown-menu>
@@ -84,24 +84,25 @@ import { useAlarmStore } from '@/stores/alarms'
 import { Expand, Fold, Sunny, Moon } from '@element-plus/icons-vue'
 import AlarmPill from './AlarmPill.vue'
 
-const fontScaleOptions: { value: FontScale; label: string }[] = [
-  { value: 'xs', label: '極小 (85%)' },
-  { value: 'sm', label: '小 (92%)' },
-  { value: 'md', label: '標準 (100%)' },
-  { value: 'lg', label: '大 (110%)' },
-  { value: 'xl', label: '極大 (120%)' },
+const fontScaleOptions: { value: FontScale; labelKey: string }[] = [
+  { value: 'xs', labelKey: 'nav.fontXS' },
+  { value: 'sm', labelKey: 'nav.fontSM' },
+  { value: 'md', labelKey: 'nav.fontMD' },
+  { value: 'lg', labelKey: 'nav.fontLG' },
+  { value: 'xl', labelKey: 'nav.fontXL' },
 ]
 
 const appStore = useAppStore()
 const alarmStore = useAlarmStore()
 const route = useRoute()
+const { t } = useI18n()
 
 if (alarmStore.alarms.length === 0) {
   alarmStore.fetchAlarms()
 }
 
 const breadcrumbs = computed<string[]>(() => {
-  const meta = route.meta as { breadcrumb?: string[] }
-  return meta.breadcrumb ?? []
+  const meta = route.meta as { breadcrumbKeys?: string[] }
+  return (meta.breadcrumbKeys ?? []).map((k) => t(k))
 })
 </script>

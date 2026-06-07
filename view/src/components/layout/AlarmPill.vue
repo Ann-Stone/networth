@@ -14,7 +14,7 @@
       ({{ relativeText(urgent.daysUntil) }})
     </span>
     <span class="shrink-0 text-xs opacity-70 pl-2 border-l border-current/30">
-      查看全部 {{ store.decorated.length }} →
+      {{ t('alarm.viewAll', { n: store.decorated.length }) }}
     </span>
   </button>
 
@@ -27,6 +27,7 @@ import { useAlarmStore } from '@/stores/alarms'
 import AlarmListDialog from './AlarmListDialog.vue'
 
 const store = useAlarmStore()
+const { t } = useI18n()
 const dialogVisible = ref(false)
 
 const urgent = computed(() => store.mostUrgent)
@@ -48,9 +49,9 @@ const icon = computed(() => {
 })
 
 function relativeText(days: number): string {
-  if (days < 0) return `逾期 ${Math.abs(days)} 天`
-  if (days === 0) return '今天'
-  if (days === 1) return '明天'
-  return `剩 ${days} 天`
+  if (days < 0) return t('alarm.overdue', { n: Math.abs(days) })
+  if (days === 0) return t('alarm.today')
+  if (days === 1) return t('alarm.tomorrow')
+  return t('alarm.daysLeft', { n: days })
 }
 </script>

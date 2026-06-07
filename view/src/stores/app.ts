@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
+import { i18n, readStoredLocale, LOCALE_STORAGE_KEY, type AppLocale } from '@/i18n'
 
 const THEME_STORAGE_KEY = 'networth-theme'
 const FONT_SCALE_STORAGE_KEY = 'networth-font-scale'
@@ -47,14 +48,31 @@ function applyFontScale(scale: FontScale) {
   )
 }
 
+function applyHtmlLang(locale: AppLocale) {
+  if (typeof document === 'undefined') return
+  document.documentElement.lang = locale
+}
+
 export const useAppStore = defineStore('app', () => {
   // Sidebar state
   const sidebarCollapsed = ref(false)
   const isMobile = ref(false)
   const sidebarDrawerVisible = ref(false)
 
-  // Language
-  const locale = ref<'zh-TW' | 'en'>('zh-TW')
+  // Language — store is authoritative: it persists and drives vue-i18n.
+  const locale = ref<AppLocale>(readStoredLocale())
+  if (i18n.global.locale.value !== locale.value) {
+    i18n.global.locale.value = locale.value
+  }
+  applyHtmlLang(locale.value)
+
+  watch(locale, (next) => {
+    i18n.global.locale.value = next
+    applyHtmlLang(next)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, next)
+    }
+  })
 
   // Theme
   const theme = ref<Theme>(readStoredTheme())
@@ -94,7 +112,7 @@ export const useAppStore = defineStore('app', () => {
     isMobile.value = val
   }
 
-  const setLocale = (lang: 'zh-TW' | 'en') => {
+  const setLocale = (lang: AppLocale) => {
     locale.value = lang
   }
 

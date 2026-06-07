@@ -32,6 +32,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: InsuranceDetailFormState): void
 }>()
 
+const { t } = useI18n()
+
 const form = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
@@ -54,11 +56,11 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
 </script>
 
 <template>
-  <el-form-item v-if="showInsuranceIdInput" label="保險 ID">
+  <el-form-item v-if="showInsuranceIdInput" :label="t('forms.insuranceId')">
     <el-input :model-value="form.insurance_id" disabled />
   </el-form-item>
 
-  <el-form-item v-if="!isCashflow" label="日期" prop="excute_date">
+  <el-form-item v-if="!isCashflow" :label="t('common.date')" prop="excute_date">
     <el-date-picker
       v-model="formDate"
       type="date"
@@ -68,16 +70,16 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
     />
   </el-form-item>
 
-  <el-form-item label="類型" prop="insurance_excute_type">
+  <el-form-item :label="t('common.type')" prop="insurance_excute_type">
     <el-select v-model="form.insurance_excute_type" style="width: 100%">
-      <el-option label="繳費 (pay)" value="pay" />
-      <el-option label="現金回饋 (cash)" value="cash" />
-      <el-option label="退費 (return)" value="return" />
-      <el-option label="預期 (expect)" value="expect" />
+      <el-option :label="t('forms.insurancePay')" value="pay" />
+      <el-option :label="t('forms.insuranceCash')" value="cash" />
+      <el-option :label="t('forms.insuranceReturn')" value="return" />
+      <el-option :label="t('forms.insuranceExpect')" value="expect" />
     </el-select>
   </el-form-item>
 
-  <el-form-item v-if="!isCashflow" label="金額" prop="excute_price">
+  <el-form-item v-if="!isCashflow" :label="t('common.amount')" prop="excute_price">
     <el-input-number
       v-model="form.excute_price"
       :precision="2"
@@ -87,15 +89,15 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
     />
   </el-form-item>
   <p v-else class="text-xs text-on-surface-variant mt-1">
-    金額會自動帶入主表單的金額（含正負號）
+    {{ t('forms.amountAutoHint') }}
   </p>
 
-  <el-form-item v-if="!isCashflow" label="備註">
+  <el-form-item v-if="!isCashflow" :label="t('common.note')">
     <el-input
       v-model="form.memo"
       type="textarea"
       :rows="2"
-      placeholder="(可選)"
+      :placeholder="t('common.optional')"
     />
   </el-form-item>
 </template>
@@ -103,15 +105,22 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
 <script lang="ts">
 import type { FormRules } from 'element-plus'
 
-// Validation rules — exported so parents that compose this component into a
-// larger form can spread the relevant subset into their own rules object.
-export const INSURANCE_DETAIL_FULL_RULES: FormRules = {
-  excute_date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
-  insurance_excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
-  excute_price: [{ required: true, message: '請輸入金額', trigger: 'blur' }],
+type TranslateFn = (key: string) => string
+
+// Validation rules — exported as factory functions so parents can build them
+// with their own i18n `t` (messages re-evaluate on locale switch when the
+// caller wraps these in a `computed`).
+export function insuranceDetailFullRules(t: TranslateFn): FormRules {
+  return {
+    excute_date: [{ required: true, message: t('validation.pickDate'), trigger: 'change' }],
+    insurance_excute_type: [{ required: true, message: t('validation.pickType'), trigger: 'change' }],
+    excute_price: [{ required: true, message: t('validation.enterAmount'), trigger: 'blur' }],
+  }
 }
 
-export const INSURANCE_DETAIL_CASHFLOW_RULES: FormRules = {
-  insurance_excute_type: [{ required: true, message: '請選擇類型', trigger: 'change' }],
+export function insuranceDetailCashflowRules(t: TranslateFn): FormRules {
+  return {
+    insurance_excute_type: [{ required: true, message: t('validation.pickType'), trigger: 'change' }],
+  }
 }
 </script>

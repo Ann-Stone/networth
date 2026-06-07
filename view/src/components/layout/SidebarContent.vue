@@ -16,13 +16,13 @@
           v-if="!collapsed && item.type === 'group'"
           class="px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
         >
-          {{ item.label }}
+          {{ t(item.labelKey) }}
         </div>
 
         <!-- Nav item with children -->
         <template v-if="item.children">
           <SidebarNavButton
-            :label="item.label"
+            :label="t(item.labelKey)"
             :icon="item.icon"
             :expanded="openGroups.has(item.name)"
             :collapsed="collapsed"
@@ -42,7 +42,7 @@
               @click="onNavClick"
             >
               <span class="w-1.5 h-1.5 rounded-full bg-current shrink-0" />
-              {{ child.label }}
+              {{ t(child.labelKey) }}
             </router-link>
           </div>
         </template>
@@ -63,7 +63,7 @@
           <el-icon class="shrink-0 text-base">
             <component :is="item.icon" />
           </el-icon>
-          <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
+          <span v-if="!collapsed" class="truncate">{{ t(item.labelKey) }}</span>
         </router-link>
       </template>
     </nav>
@@ -88,61 +88,62 @@ defineProps<{ collapsed: boolean }>()
 
 const route = useRoute()
 const appStore = useAppStore()
+const { t } = useI18n()
 const openGroups = ref<Set<string>>(new Set(['reports', 'setting', 'utilities']))
 
 const menuItems = [
   {
     type: 'link',
     name: 'dashboard',
-    label: '儀表板',
+    labelKey: 'nav.dashboard',
     path: '/dashboard',
     icon: Odometer,
   },
   {
     type: 'link',
     name: 'cashFlow',
-    label: '月度帳務',
+    labelKey: 'nav.cashFlow',
     path: '/monthly-report/cash-flow',
     icon: Notebook,
   },
   {
     type: 'link',
     name: 'otherAssets',
-    label: '資產管理',
+    labelKey: 'nav.otherAssets',
     path: '/other-assets',
     icon: Coin,
   },
   {
     type: 'group',
     name: 'reports',
-    label: '財務報表',
+    labelKey: 'nav.reports',
     icon: Document,
     children: [
-      { name: 'balanceSheet', label: '資產負債表', path: '/year-report/balance-sheet' },
-      { name: 'incomeStatement', label: '損益表', path: '/year-report/income-statement' },
-      { name: 'cashFlowStatement', label: '現金流量表', path: '/year-report/cash-flow-statement' },
-      { name: 'spending', label: '年度支出', path: '/year-report/spending' },
-      { name: 'assets', label: '資產概覽', path: '/year-report/assets' },
+      { name: 'balanceSheet', labelKey: 'nav.balanceSheet', path: '/year-report/balance-sheet' },
+      { name: 'incomeStatement', labelKey: 'nav.incomeStatement', path: '/year-report/income-statement' },
+      { name: 'cashFlowStatement', labelKey: 'nav.cashFlowStatement', path: '/year-report/cash-flow-statement' },
+      { name: 'spending', labelKey: 'nav.spending', path: '/year-report/spending' },
+      { name: 'assets', labelKey: 'nav.assets', path: '/year-report/assets' },
     ],
   },
   {
     type: 'group',
     name: 'setting',
-    label: '設定',
+    labelKey: 'nav.settings',
     icon: Setting,
     children: [
-      { name: 'settingMenu', label: '選單設定', path: '/setting/menu' },
-      { name: 'settingBudget', label: '預算設定', path: '/setting/budget' },
-      { name: 'settingRemind', label: '提醒設定', path: '/setting/remind' },
+      { name: 'settingMenu', labelKey: 'nav.settingMenu', path: '/setting/menu' },
+      { name: 'settingBudget', labelKey: 'nav.settingBudget', path: '/setting/budget' },
+      { name: 'settingRemind', labelKey: 'nav.settingRemind', path: '/setting/remind' },
     ],
   },
   {
     type: 'group',
     name: 'utilities',
-    label: '工具',
+    labelKey: 'nav.utilities',
     icon: Tools,
     children: [
-      { name: 'utilitiesImport', label: '資料匯入', path: '/utilities/import' },
+      { name: 'utilitiesImport', labelKey: 'nav.import', path: '/utilities/import' },
     ],
   },
 ]
