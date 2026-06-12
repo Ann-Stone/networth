@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import dayjs from 'dayjs'
+import { useFetchState } from '@/composables/useFetchState'
 import {
   getDashboardBudget,
   getDashboardGifts,
@@ -8,7 +9,6 @@ import {
   getTargets,
 } from '@/api/dashboard'
 import type {
-  DashboardBudget,
   DashboardGift,
   DashboardSummary,
   TargetSetting,
@@ -190,51 +190,29 @@ export const useDashboardStore = defineStore('dashboard', () => {
   })
 
   // Targets -------------------------------------------------------------------
-  const targets = ref<TargetSetting[]>([])
-  const targetsLoading = ref(false)
-  async function fetchTargets() {
-    targetsLoading.value = true
-    try {
-      targets.value = await getTargets()
-    } finally {
-      targetsLoading.value = false
-    }
-  }
+  const targetsState = useFetchState(() => getTargets(), [] as TargetSetting[])
 
   // Budget --------------------------------------------------------------------
-  const budget = ref<DashboardBudget | null>(null)
-  const budgetLoading = ref(false)
-  async function fetchBudget(params: DashboardBudgetParams) {
-    budgetLoading.value = true
-    try {
-      budget.value = await getDashboardBudget(params)
-    } finally {
-      budgetLoading.value = false
-    }
-  }
+  const budgetState = useFetchState((params: DashboardBudgetParams) =>
+    getDashboardBudget(params),
+  )
 
   async function fetchBudgetForView() {
     if (viewMode.value === 'month') {
-      await fetchBudget({ type: 'monthly', period: anchor.value })
+      await budgetState.fetch({ type: 'monthly', period: anchor.value })
     } else {
-      await fetchBudget({ type: 'yearly', period: anchor.value })
+      await budgetState.fetch({ type: 'yearly', period: anchor.value })
     }
   }
 
   // Gifts ---------------------------------------------------------------------
-  const gifts = ref<DashboardGift[]>([])
-  const giftsLoading = ref(false)
-  async function fetchGifts(year: number | string) {
-    giftsLoading.value = true
-    try {
-      gifts.value = await getDashboardGifts(year)
-    } finally {
-      giftsLoading.value = false
-    }
-  }
+  const giftsState = useFetchState(
+    (year: number | string) => getDashboardGifts(year),
+    [] as DashboardGift[],
+  )
 
   async function fetchGiftsForView() {
-    await fetchGifts(anchorYear.value)
+    await giftsState.fetch(anchorYear.value)
   }
 
   // Combined refetch ----------------------------------------------------------
@@ -267,18 +245,18 @@ export const useDashboardStore = defineStore('dashboard', () => {
     freedomRatioPrevYear,
     workFreedomRatioPrevYear,
     // Targets
-    targets,
-    targetsLoading,
-    fetchTargets,
+    targets: targetsState.data,
+    targetsLoading: targetsState.loading,
+    fetchTargets: targetsState.fetch,
     // Budget
-    budget,
-    budgetLoading,
-    fetchBudget,
+    budget: budgetState.data,
+    budgetLoading: budgetState.loading,
+    fetchBudget: budgetState.fetch,
     fetchBudgetForView,
     // Gifts
-    gifts,
-    giftsLoading,
-    fetchGifts,
+    gifts: giftsState.data,
+    giftsLoading: giftsState.loading,
+    fetchGifts: giftsState.fetch,
     fetchGiftsForView,
     // Combined
     refetchAllForView,

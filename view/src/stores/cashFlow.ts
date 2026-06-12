@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import dayjs from 'dayjs'
+import { useFetchState } from '@/composables/useFetchState'
 import {
   getEstateValues,
   getEstateValueSuggestions,
@@ -19,128 +20,57 @@ import type {
   IndexRefreshResult,
   InsuranceValueMonth,
   Journal,
-  JournalExpenditureBudget,
-  JournalExpenditureRatio,
-  JournalInvestRatio,
-  JournalLiability,
   StockPriceRead,
 } from '@/types/models'
 
 export const useCashFlowStore = defineStore('cashFlow', () => {
   const selectedMonth = ref<string>(dayjs().format('YYYYMM'))
 
-  // Journals
-  const journals = ref<Journal[]>([])
-  const journalsLoading = ref(false)
+  function anchorMonth(month?: string): string {
+    return month ?? selectedMonth.value
+  }
+
+  // Journals — the response also carries the month's realized gain/loss.
   const journalsGainLoss = ref<number>(0)
-  async function fetchJournals(month?: string) {
-    const m = month ?? selectedMonth.value
-    journalsLoading.value = true
-    try {
-      const res = await getJournals(m)
-      journals.value = res.items
-      journalsGainLoss.value = res.gain_loss
-    } finally {
-      journalsLoading.value = false
-    }
-  }
+  const journalsState = useFetchState(async (month?: string) => {
+    const res = await getJournals(anchorMonth(month))
+    journalsGainLoss.value = res.gain_loss
+    return res.items
+  }, [] as Journal[])
 
-  // Expenditure budget
-  const expenditureBudget = ref<JournalExpenditureBudget | null>(null)
-  const expenditureBudgetLoading = ref(false)
-  async function fetchExpenditureBudget(month?: string) {
-    const m = month ?? selectedMonth.value
-    expenditureBudgetLoading.value = true
-    try {
-      expenditureBudget.value = await getExpenditureBudget(m)
-    } finally {
-      expenditureBudgetLoading.value = false
-    }
-  }
+  const expenditureBudget = useFetchState((month?: string) =>
+    getExpenditureBudget(anchorMonth(month)),
+  )
 
-  // Expenditure ratio
-  const expenditureRatio = ref<JournalExpenditureRatio | null>(null)
-  const expenditureRatioLoading = ref(false)
-  async function fetchExpenditureRatio(month?: string) {
-    const m = month ?? selectedMonth.value
-    expenditureRatioLoading.value = true
-    try {
-      expenditureRatio.value = await getExpenditureRatio(m)
-    } finally {
-      expenditureRatioLoading.value = false
-    }
-  }
+  const expenditureRatio = useFetchState((month?: string) =>
+    getExpenditureRatio(anchorMonth(month)),
+  )
 
-  // Invest ratio
-  const investRatio = ref<JournalInvestRatio | null>(null)
-  const investRatioLoading = ref(false)
-  async function fetchInvestRatio(month?: string) {
-    const m = month ?? selectedMonth.value
-    investRatioLoading.value = true
-    try {
-      investRatio.value = await getInvestRatio(m)
-    } finally {
-      investRatioLoading.value = false
-    }
-  }
+  const investRatio = useFetchState((month?: string) => getInvestRatio(anchorMonth(month)))
 
-  // Liability
-  const liability = ref<JournalLiability | null>(null)
-  const liabilityLoading = ref(false)
-  async function fetchLiability(month?: string) {
-    const m = month ?? selectedMonth.value
-    liabilityLoading.value = true
-    try {
-      liability.value = await getLiability(m)
-    } finally {
-      liabilityLoading.value = false
-    }
-  }
+  const liability = useFetchState((month?: string) => getLiability(anchorMonth(month)))
 
-  // Stock prices
-  const stockPrices = ref<StockPriceRead[]>([])
-  const stockPricesLoading = ref(false)
-  async function fetchStockPrices(month?: string) {
-    const m = month ?? selectedMonth.value
-    stockPricesLoading.value = true
-    try {
-      stockPrices.value = await getStockPrices(m)
-    } finally {
-      stockPricesLoading.value = false
-    }
-  }
+  const stockPrices = useFetchState(
+    (month?: string) => getStockPrices(anchorMonth(month)),
+    [] as StockPriceRead[],
+  )
 
   // Insurance surrender values (解約金)
-  const insuranceValues = ref<InsuranceValueMonth[]>([])
-  const insuranceValuesLoading = ref(false)
-  async function fetchInsuranceValues(month?: string) {
-    const m = month ?? selectedMonth.value
-    insuranceValuesLoading.value = true
-    try {
-      insuranceValues.value = await getInsuranceValues(m)
-    } finally {
-      insuranceValuesLoading.value = false
-    }
-  }
+  const insuranceValues = useFetchState(
+    (month?: string) => getInsuranceValues(anchorMonth(month)),
+    [] as InsuranceValueMonth[],
+  )
 
   // Estate market values (估值)
-  const estateValues = ref<EstateValueMonth[]>([])
-  const estateValuesLoading = ref(false)
-  async function fetchEstateValues(month?: string) {
-    const m = month ?? selectedMonth.value
-    estateValuesLoading.value = true
-    try {
-      estateValues.value = await getEstateValues(m)
-    } finally {
-      estateValuesLoading.value = false
-    }
-  }
+  const estateValues = useFetchState(
+    (month?: string) => getEstateValues(anchorMonth(month)),
+    [] as EstateValueMonth[],
+  )
 
-  // Index-based suggested market values (P3)
+  // Index-based suggested market values (P3) — no loading flag by design.
   const estateSuggestions = ref<EstateValueSuggestion[]>([])
   async function fetchEstateSuggestions(month?: string) {
-    const m = month ?? selectedMonth.value
-    estateSuggestions.value = await getEstateValueSuggestions(m)
+    estateSuggestions.value = await getEstateValueSuggestions(anchorMonth(month))
   }
   async function refreshEstateIndex(): Promise<IndexRefreshResult> {
     const res = await refreshHousePriceIndex()
@@ -150,31 +80,31 @@ export const useCashFlowStore = defineStore('cashFlow', () => {
 
   return {
     selectedMonth,
-    journals,
-    journalsLoading,
+    journals: journalsState.data,
+    journalsLoading: journalsState.loading,
     journalsGainLoss,
-    fetchJournals,
-    expenditureBudget,
-    expenditureBudgetLoading,
-    fetchExpenditureBudget,
-    expenditureRatio,
-    expenditureRatioLoading,
-    fetchExpenditureRatio,
-    investRatio,
-    investRatioLoading,
-    fetchInvestRatio,
-    liability,
-    liabilityLoading,
-    fetchLiability,
-    stockPrices,
-    stockPricesLoading,
-    fetchStockPrices,
-    insuranceValues,
-    insuranceValuesLoading,
-    fetchInsuranceValues,
-    estateValues,
-    estateValuesLoading,
-    fetchEstateValues,
+    fetchJournals: journalsState.fetch,
+    expenditureBudget: expenditureBudget.data,
+    expenditureBudgetLoading: expenditureBudget.loading,
+    fetchExpenditureBudget: expenditureBudget.fetch,
+    expenditureRatio: expenditureRatio.data,
+    expenditureRatioLoading: expenditureRatio.loading,
+    fetchExpenditureRatio: expenditureRatio.fetch,
+    investRatio: investRatio.data,
+    investRatioLoading: investRatio.loading,
+    fetchInvestRatio: investRatio.fetch,
+    liability: liability.data,
+    liabilityLoading: liability.loading,
+    fetchLiability: liability.fetch,
+    stockPrices: stockPrices.data,
+    stockPricesLoading: stockPrices.loading,
+    fetchStockPrices: stockPrices.fetch,
+    insuranceValues: insuranceValues.data,
+    insuranceValuesLoading: insuranceValues.loading,
+    fetchInsuranceValues: insuranceValues.fetch,
+    estateValues: estateValues.data,
+    estateValuesLoading: estateValues.loading,
+    fetchEstateValues: estateValues.fetch,
     estateSuggestions,
     fetchEstateSuggestions,
     refreshEstateIndex,

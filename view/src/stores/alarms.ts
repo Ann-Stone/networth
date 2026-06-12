@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import dayjs from 'dayjs'
+import { useFetchState } from '@/composables/useFetchState'
 import { getDashboardAlarms } from '@/api/dashboard'
 import type { AlarmType, DashboardAlarm } from '@/types/models'
 
@@ -24,17 +25,8 @@ function classify(daysUntil: number): Urgency {
 }
 
 export const useAlarmStore = defineStore('alarms', () => {
-  const alarms = ref<DashboardAlarm[]>([])
-  const loading = ref(false)
-
-  async function fetchAlarms() {
-    loading.value = true
-    try {
-      alarms.value = await getDashboardAlarms()
-    } finally {
-      loading.value = false
-    }
-  }
+  const alarmsState = useFetchState(() => getDashboardAlarms(), [] as DashboardAlarm[])
+  const alarms = alarmsState.data
 
   // Decorated + sorted ascending by date.
   const decorated = computed<AlarmWithMeta[]>(() => {
@@ -67,8 +59,8 @@ export const useAlarmStore = defineStore('alarms', () => {
 
   return {
     alarms,
-    loading,
-    fetchAlarms,
+    loading: alarmsState.loading,
+    fetchAlarms: alarmsState.fetch,
     decorated,
     mostUrgent,
     grouped,
