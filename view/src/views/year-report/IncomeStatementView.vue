@@ -96,6 +96,7 @@ import BarChart from '@/components/charts/BarChart.vue'
 import WaterfallChart from '@/components/charts/WaterfallChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'
 import { useYearDatePicker } from '@/composables/useYearDatePicker'
+import { buildIncomeStatementTree } from './incomeStatementTree'
 
 const store = useYearReportStore()
 const { t } = useI18n()
@@ -162,30 +163,5 @@ const waterfallItems = computed(() => [
   { name: t('incomeStatement.investmentNet'), value: summary.value.investment_net },
 ])
 
-const breakdownTree = computed(() => {
-  const s = summary.value
-  return [
-    {
-      key: 'operating',
-      label: t('incomeStatement.operatingPnl'),
-      amount: s.operating_net,
-      children: [
-        { key: 'active', label: t('incomeStatement.activeIncome'), amount: s.active_income },
-        { key: 'fixed', label: t('incomeStatement.fixedExpense'), amount: -s.fixed },
-        { key: 'floating', label: t('incomeStatement.floatingExpense'), amount: -s.floating },
-      ],
-    },
-    {
-      key: 'investment',
-      label: t('incomeStatement.investmentNet'),
-      amount: s.investment_net,
-      children: [
-        { key: 'dividend', label: t('incomeStatement.dividend'), amount: s.dividend },
-        { key: 'realized', label: t('incomeStatement.realized'), amount: s.realized },
-        { key: 'unrealized', label: t('incomeStatement.unrealized'), amount: s.unrealized },
-      ],
-    },
-    { key: 'comprehensive', label: t('incomeStatement.comprehensiveNet'), amount: s.comprehensive_net },
-  ]
-})
+const breakdownTree = computed(() => buildIncomeStatementTree(summary.value, t))
 </script>
