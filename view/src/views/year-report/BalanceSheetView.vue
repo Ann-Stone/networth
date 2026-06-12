@@ -126,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
@@ -134,6 +134,7 @@ import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'
+import { useYearDatePicker } from '@/composables/useYearDatePicker'
 import {
   buildAssetTree,
   buildLiabilityTree,
@@ -144,14 +145,9 @@ import {
 const store = useYearReportStore()
 const { t } = useI18n()
 
-const selectedYearDate = ref<Date>(new Date(store.selectedYear, 0, 1))
-
-watch(selectedYearDate, (date) => {
-  if (!date) return
-  const year = date.getFullYear()
-  if (year !== store.selectedYear) {
-    void store.fetchBalanceReport(year)
-  }
+const { selectedYearDate } = useYearDatePicker({
+  current: () => store.selectedYear,
+  onChange: (year) => void store.fetchBalanceReport(year),
 })
 
 onMounted(() => {

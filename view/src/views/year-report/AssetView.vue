@@ -76,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
@@ -85,6 +85,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import DonutChart from '@/components/charts/DonutChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'
 import { useMoney } from '@/composables/useMoney'
+import { useYearDatePicker } from '@/composables/useYearDatePicker'
 
 const store = useYearReportStore()
 const { t } = useI18n()
@@ -103,14 +104,9 @@ function assetTypeLabel(type: string): string {
   return key ? t(key) : type
 }
 
-const selectedYearDate = ref<Date>(new Date(store.selectedYear, 0, 1))
-
-watch(selectedYearDate, (date) => {
-  if (!date) return
-  const year = date.getFullYear()
-  if (year !== store.selectedYear) {
-    void store.fetchAssetsReport(year)
-  }
+const { selectedYearDate } = useYearDatePicker({
+  current: () => store.selectedYear,
+  onChange: (year) => void store.fetchAssetsReport(year),
 })
 
 onMounted(() => {

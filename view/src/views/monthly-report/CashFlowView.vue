@@ -567,7 +567,6 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import dayjs from 'dayjs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, Edit, Delete, TrendCharts, Wallet, House, Refresh } from '@element-plus/icons-vue'
@@ -588,6 +587,7 @@ import EstateDetailFormFields, {
   type EstateDetailFormState,
 } from '@/components/forms/EstateDetailFormFields.vue'
 import { useDateStringModel } from '@/composables/useDateStringModel'
+import { useMonthDatePicker } from '@/composables/useMonthDatePicker'
 import { formatYyyymmddDisplay, todayYyyymmdd } from '@/utils/dateFormat'
 import { useCashFlowStore } from '@/stores/cashFlow'
 import {
@@ -630,14 +630,12 @@ const { t } = useI18n()
 // YYYYMMDD → YYYY-MM-DD for display.
 const formatDate = formatYyyymmddDisplay
 
-const selectedMonthDate = ref<Date>(dayjs(store.selectedMonth, 'YYYYMM').toDate())
-
-watch(selectedMonthDate, (date) => {
-  if (!date) return
-  const next = dayjs(date).format('YYYYMM')
-  if (next === store.selectedMonth) return
-  store.selectedMonth = next
-  store.fetchJournals()
+const { selectedMonthDate } = useMonthDatePicker({
+  current: () => store.selectedMonth,
+  onChange: (month) => {
+    store.selectedMonth = month
+    store.fetchJournals()
+  },
 })
 
 const totalIncome = computed(() =>
