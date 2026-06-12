@@ -39,6 +39,7 @@ from app.models.settings.budget import Budget
 from app.models.settings.code_data import CodeData
 from app.models.settings.credit_card import CreditCard
 from app.services.expense_netting import floor_expense, floor_income
+from app.services.month_utils import month_end
 
 BASE_CURRENCY = "TWD"
 
@@ -80,10 +81,6 @@ def normalize_spend_date(value: str) -> str:
     return parsed.strftime("%Y%m%d")
 
 
-def _month_end(vesting_month: str) -> str:
-    return f"{vesting_month}31"
-
-
 def list_journals_by_month(session: Session, vesting_month: str) -> list[Journal]:
     statement = (
         select(Journal)
@@ -99,7 +96,7 @@ def _latest_fx_rate(session: Session, fx_code: str, vesting_month: str) -> float
     statement = (
         select(FXRate)
         .where(FXRate.code == fx_code)
-        .where(FXRate.import_date <= _month_end(vesting_month))
+        .where(FXRate.import_date <= month_end(vesting_month))
         .order_by(FXRate.import_date.desc())
     )
     row = session.exec(statement).first()

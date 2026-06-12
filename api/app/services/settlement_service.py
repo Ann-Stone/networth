@@ -32,22 +32,11 @@ from app.models.settings.account import Account
 from app.models.settings.credit_card import CreditCard
 from app.services.estate_value_service import select_month_market_value
 from app.services.insurance_value_service import select_month_surrender_value
+from app.services.month_utils import month_end, previous_month
 from app.services.stock_service import select_month_close_price
 
 
 BASE_CURRENCY = "TWD"
-
-
-def _month_end(vesting_month: str) -> str:
-    return f"{vesting_month}31"
-
-
-def _previous_month(vesting_month: str) -> str:
-    year = int(vesting_month[:4])
-    month = int(vesting_month[4:])
-    if month == 1:
-        return f"{year - 1}12"
-    return f"{year}{month - 1:02d}"
 
 
 # ---------- Helpers ----------
@@ -91,7 +80,7 @@ def select_fx_rate_for_month(
     in_window = (
         select(FXRate)
         .where(FXRate.code == fx_code)
-        .where(FXRate.import_date <= _month_end(vesting_month))
+        .where(FXRate.import_date <= month_end(vesting_month))
         .order_by(FXRate.import_date.desc())
     )
     row = session.exec(in_window).first()
@@ -121,7 +110,7 @@ def run_estate_step(session: Session, vesting_month: str) -> int:
         cost_rows = session.exec(
             select(EstateJournal)
             .where(EstateJournal.estate_id == estate.estate_id)
-            .where(EstateJournal.excute_date <= _month_end(vesting_month))
+            .where(EstateJournal.excute_date <= month_end(vesting_month))
         ).all()
         cost = sum(r.excute_price for r in cost_rows)
         # Prefer a user-recorded appraisal (估值) for the month; only fall back to
@@ -162,7 +151,7 @@ def run_insurance_step(session: Session, vesting_month: str) -> int:
         rows = session.exec(
             select(InsuranceJournal)
             .where(InsuranceJournal.insurance_id == policy.insurance_id)
-            .where(InsuranceJournal.excute_date <= _month_end(vesting_month))
+            .where(InsuranceJournal.excute_date <= month_end(vesting_month))
         ).all()
         cost = 0.0
         surrender = 0.0
@@ -211,7 +200,7 @@ def run_loan_step(session: Session, vesting_month: str) -> int:
         rows = session.exec(
             select(LoanJournal)
             .where(LoanJournal.loan_id == loan.loan_id)
-            .where(LoanJournal.excute_date <= _month_end(vesting_month))
+            .where(LoanJournal.excute_date <= month_end(vesting_month))
         ).all()
         principal = sum(
             r.excute_price for r in rows if r.loan_excute_type == "principal"
@@ -254,7 +243,7 @@ def run_stock_step(session: Session, vesting_month: str) -> int:
         rows = session.exec(
             select(StockDetail)
             .where(StockDetail.stock_id == h.stock_id)
-            .where(StockDetail.excute_date <= _month_end(vesting_month))
+            .where(StockDetail.excute_date <= month_end(vesting_month))
         ).all()
         positive_amount = sum(r.excute_amount for r in rows if r.excute_amount > 0)
         negative_amount = sum(r.excute_amount for r in rows if r.excute_amount < 0)
@@ -316,7 +305,7 @@ def run_account_balance_step(session: Session, vesting_month: str) -> int:
         ).all()
     )
 
-    prev_month = _previous_month(vesting_month)
+    prev_month = previous_month(vesting_month)
     inserted = 0
     for account in accounts:
         prev = session.exec(
@@ -371,7 +360,7 @@ def run_credit_card_balance_step(session: Session, vesting_month: str) -> int:
             select(Journal).where(Journal.vesting_month == vesting_month)
         ).all()
     )
-    prev_month = _previous_month(vesting_month)
+    prev_month = previous_month(vesting_month)
     inserted = 0
     for card in cards:
         prev = session.exec(

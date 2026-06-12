@@ -15,14 +15,7 @@ from app.models.monthly_report.stock_price import (
     StockPriceCreate,
     StockPriceMonthRead,
 )
-
-
-def _month_end(vesting_month: str) -> str:
-    return f"{vesting_month}31"
-
-
-def _month_start(vesting_month: str) -> str:
-    return f"{vesting_month}01"
+from app.services.month_utils import month_end, month_start
 
 
 def select_in_month_close_price(
@@ -37,8 +30,8 @@ def select_in_month_close_price(
     stmt = (
         select(StockPriceHistory)
         .where(StockPriceHistory.stock_code == stock_code)
-        .where(StockPriceHistory.fetch_date >= _month_start(vesting_month))
-        .where(StockPriceHistory.fetch_date <= _month_end(vesting_month))
+        .where(StockPriceHistory.fetch_date >= month_start(vesting_month))
+        .where(StockPriceHistory.fetch_date <= month_end(vesting_month))
         .order_by(StockPriceHistory.fetch_date.desc())
     )
     return session.exec(stmt).first()
@@ -55,7 +48,7 @@ def select_month_close_price(
     in_month = (
         select(StockPriceHistory)
         .where(StockPriceHistory.stock_code == stock_code)
-        .where(StockPriceHistory.fetch_date <= _month_end(vesting_month))
+        .where(StockPriceHistory.fetch_date <= month_end(vesting_month))
         .order_by(StockPriceHistory.fetch_date.desc())
     )
     row = session.exec(in_month).first()

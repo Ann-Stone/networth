@@ -35,6 +35,7 @@ from app.services.expense_netting import (
     floor_expense,
     floor_income,
 )
+from app.services.month_utils import iter_months
 from app.services.report_service import journal_amount_twd
 
 GIFT_THRESHOLD = 2_200_000
@@ -59,25 +60,12 @@ def parse_summary_period(period: str) -> tuple[str, str]:
     return start, end
 
 
-def _iter_months(start: str, end: str) -> list[str]:
-    months: list[str] = []
-    cur_year, cur_month = int(start[:4]), int(start[4:])
-    end_year, end_month = int(end[:4]), int(end[4:])
-    while (cur_year, cur_month) <= (end_year, end_month):
-        months.append(f"{cur_year:04d}{cur_month:02d}")
-        cur_month += 1
-        if cur_month > 12:
-            cur_month = 1
-            cur_year += 1
-    return months
-
-
 # ---------- Summary services ----------
 
 
 def get_spending_summary(session: Session, period: str) -> SummaryRead:
     start, end = parse_summary_period(period)
-    months = _iter_months(start, end)
+    months = iter_months(start, end)
     journals = list(
         session.exec(
             select(Journal)
@@ -106,7 +94,7 @@ def get_spending_summary(session: Session, period: str) -> SummaryRead:
 
 def get_freedom_ratio_summary(session: Session, period: str) -> SummaryRead:
     start, end = parse_summary_period(period)
-    months = _iter_months(start, end)
+    months = iter_months(start, end)
     fixed_codes = {
         c.code_id
         for c in session.exec(select(CodeData).where(CodeData.code_type == "Fixed")).all()
@@ -151,7 +139,7 @@ def get_freedom_ratio_summary(session: Session, period: str) -> SummaryRead:
 
 def get_work_freedom_ratio_summary(session: Session, period: str) -> SummaryRead:
     start, end = parse_summary_period(period)
-    months = _iter_months(start, end)
+    months = iter_months(start, end)
     journals = list(
         session.exec(
             select(Journal)
@@ -205,7 +193,7 @@ def _latest_per_entity_at(rows, vesting_month: str, key):
 
 def get_asset_debt_trend(session: Session, period: str) -> SummaryRead:
     start, end = parse_summary_period(period)
-    months = _iter_months(start, end)
+    months = iter_months(start, end)
 
     accounts = list(session.exec(select(AccountBalance)).all())
     stocks = list(session.exec(select(StockNetValueHistory)).all())

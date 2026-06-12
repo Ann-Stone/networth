@@ -75,6 +75,7 @@ from app.services.expense_netting import (
     floor_expense,
     floor_income,
 )
+from app.services.month_utils import month_end, shift_month
 
 BASE_CURRENCY = "TWD"
 
@@ -109,10 +110,6 @@ def _norm_type(action_main_type: str | None) -> str:
     return (action_main_type or "").strip().lower()
 
 
-def _month_end(yyyymm: str) -> str:
-    return f"{yyyymm}31"
-
-
 def get_latest_fx_rate(session: Session, currency: str, as_of_month: str) -> float:
     """Return latest ``FXRate.buy_rate`` with ``import_date <= month-end(as_of_month)``.
 
@@ -124,7 +121,7 @@ def get_latest_fx_rate(session: Session, currency: str, as_of_month: str) -> flo
     in_window = (
         select(FXRate)
         .where(FXRate.code == currency)
-        .where(FXRate.import_date <= _month_end(as_of_month))
+        .where(FXRate.import_date <= month_end(as_of_month))
         .order_by(FXRate.import_date.desc())
     )
     row = session.exec(in_window).first()
@@ -232,18 +229,6 @@ def get_balance_sheet(session: Session) -> BalanceSheetRead:
     )
 
 
-def _shift_month(yyyymm: str, delta: int) -> str:
-    year = int(yyyymm[:4])
-    month = int(yyyymm[4:]) + delta
-    while month <= 0:
-        month += 12
-        year -= 1
-    while month > 12:
-        month -= 12
-        year += 1
-    return f"{year:04d}{month:02d}"
-
-
 def _account_fx_code(session: Session, spend_way: str) -> str | None:
     """Resolve an Account's fx_code from Journal.spend_way (stringified Account.id)."""
     try:
@@ -323,7 +308,7 @@ def _period_window(
     logic lives in one place.
     """
     if type == "monthly":
-        periods = [_shift_month(vesting_month, -i) for i in range(11, -1, -1)]
+        periods = [shift_month(vesting_month, -i) for i in range(11, -1, -1)]
         return periods, (lambda vm: vm), periods[0], periods[-1]
     end_year = int(vesting_month[:4])
     years = [str(y) for y in range(end_year - 9, end_year + 1)]
@@ -480,7 +465,7 @@ def _unrealized_by_period(
 
     if type == "monthly":
         anchors = list(periods)
-        prev_anchor = _shift_month(periods[0], -1)
+        prev_anchor = shift_month(periods[0], -1)
     else:
         anchors = [f"{y}12" for y in periods]
         prev_anchor = f"{int(periods[0]) - 1}12"
