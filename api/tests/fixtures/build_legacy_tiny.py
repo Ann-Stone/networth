@@ -5,10 +5,13 @@ Why this exists
 The BE-005 data migrator must be exercised without touching the real
 ``ledger.db``. This script writes a deterministic SQLite file containing
 the legacy schema (sourced verbatim from
-``account-book-API/data/create_db.sql``) plus two synthetic rows per
-retained table, one ``Account`` and one ``Credit_Card`` row with a
-``carrier_no`` value (to prove the drop), and a single ``Initial_Setting``
-row (to prove the skip).
+``account-book-API/data/create_db.sql``) plus a handful of synthetic rows
+per retained table mirroring real-world value shapes: 'MM/DD' alarm
+anchors, percent-form loan rates, datetime-string card expiries,
+``marketValue``/``expect`` appraisal journal rows (to prove the
+value-history diversion), a ``spend_way_type='Credit_Card'`` journal,
+one ``Account``/``Credit_Card`` row with a ``carrier_no`` value (to prove
+the drop), and a single ``Initial_Setting`` row (to prove the skip).
 
 The file lives at ``api/tests/fixtures/legacy_tiny.db`` and is committed
 to the repo so CI does not need to regenerate it. Re-run this script
@@ -80,12 +83,13 @@ def _insert_code_data(conn: sqlite3.Connection) -> None:
 
 def _insert_credit_card(conn: sqlite3.Connection) -> None:
     rows = [
-        # Row 1: carrier_no set.
-        (1, "Fake Visa", "4111-XXXX-XXXX-1111", "25", "15", "20", "Cash",
+        # Row 1: carrier_no set; limit_date in the common 'YYYY/MM' shape.
+        (1, "Fake Visa", "4111-XXXX-XXXX-1111", "25", "15", "2026/08", "Cash",
          "USD", "Y", 1, "DROP-CC-1", "primary"),
-        # Row 2: carrier_no NULL.
-        (2, "Fake Master", "5500-XXXX-XXXX-2222", "20", "10", "15", "Point",
-         "TWD", "Y", 2, None, None),
+        # Row 2: carrier_no NULL; limit_date as a datetime string (real
+        # legacy rows hold both shapes).
+        (2, "Fake Master", "5500-XXXX-XXXX-2222", "20", "10",
+         "2022-07-30 16:00:00.000000", "Point", "TWD", "Y", 2, None, None),
     ]
     conn.executemany(
         "INSERT INTO Credit_Card (credit_card_id, card_name, card_no, last_day, "
@@ -112,8 +116,9 @@ def _insert_budget(conn: sqlite3.Connection) -> None:
 
 def _insert_alarm(conn: sqlite3.Connection) -> None:
     rows = [
-        (1, "cc", "20260615", "CC due", "2026-06-25"),
-        (2, "ins", "20260701", "Insurance", None),
+        # Real legacy shape: 'MM/DD' anchor + datetime-string due_date.
+        (1, "Y", "05/31", "報稅", "2022-07-30 16:00:00.000000"),
+        (2, "M", "06/15", "Monthly bill", None),
     ]
     conn.executemany(
         "INSERT INTO Alarm (alarm_id, alarm_type, alarm_date, content, due_date) "
@@ -136,10 +141,11 @@ def _insert_other_asset(conn: sqlite3.Connection) -> None:
 
 def _insert_loan(conn: sqlite3.Connection) -> None:
     rows = [
-        # account_id = 1 references Account.id = 1 (FAKE-ACCT-01)
-        (1, "Fake Mortgage", "mortgage", 1, "Fake Bank", 0.035, 360,
+        # account_id = 1 references Account.id = 1 (FAKE-ACCT-01).
+        # interest_rate uses the legacy percent form (1.31 = 1.31%).
+        (1, "Fake Mortgage", "mortgage", 1, "Fake Bank", 1.31, 360,
          "2020-01-01", "2020-04-01", "01", 250000.0, "N", 1),
-        (2, "Fake Auto", "unsecured", 2, "Fake Cash", 0.045, 60,
+        (2, "Fake Auto", "unsecured", 2, "Fake Cash", 2.5, 60,
          "2023-03-01", None, "10", 20000.0, "N", 2),
     ]
     conn.executemany(
@@ -216,11 +222,13 @@ def _insert_stock_net_value_history(conn: sqlite3.Connection) -> None:
 
 def _insert_insurance(conn: sqlite3.Connection) -> None:
     rows = [
-        # in_account_id=1, out_account_id=1 → FAKE-ACCT-01
+        # in_account_id=1, out_account_id=1 → FAKE-ACCT-01.
+        # pay_type uses legacy cadence words ('year'/'month') to exercise
+        # the annual/monthly remap.
         (1, "Fake Whole Life", 1, 1, "Fake Bank", 1, "Fake Bank",
-         "2020-01-01", "2050-01-01", "year", "15", 1200, "N"),
+         "2020-01-01", "2050-01-01", "year", "01/15", 1200, "N"),
         (2, "Fake Term Life", 1, 2, "Fake Cash", 2, "Fake Cash",
-         "2010-01-01", "2024-01-01", "year", "20", 800, "Y"),
+         "2010-01-01", "2024-01-01", "month", "20", 800, "Y"),
     ]
     conn.executemany(
         "INSERT INTO Insurance (insurance_id, insurance_name, asset_id, "
@@ -235,6 +243,8 @@ def _insert_insurance_journal(conn: sqlite3.Connection) -> None:
     rows = [
         (1, 1, "pay", 1200.0, "2025-01-15", "2025 premium"),
         (2, 1, "pay", 1200.0, "2026-01-15", "2026 premium"),
+        # 'expect' (預期價值) rows divert to Insurance_Value_History.
+        (3, 1, "expect", 26000.0, "2026-02-01", "預期價值"),
     ]
     conn.executemany(
         "INSERT INTO Insurance_Journal (distinct_number, insurance_id, "
@@ -276,6 +286,10 @@ def _insert_estate_journal(conn: sqlite3.Connection) -> None:
     rows = [
         (1, 1, "tax", 5000.0, "2025-01-01", "Property tax"),
         (2, 1, "fix", 2500.0, "2025-06-01", "Maintenance"),
+        # Two same-month 'marketValue' appraisal rows divert to
+        # Estate_Value_History; the later excute_date must win.
+        (3, 1, "marketValue", 480000.0, "2025-03-10", "older appraisal"),
+        (4, 1, "marketValue", 500000.0, "2025-03-20", "newer appraisal"),
     ]
     conn.executemany(
         "INSERT INTO Estate_Journal (distinct_number, estate_id, "
@@ -303,7 +317,8 @@ def _insert_journal(conn: sqlite3.Connection) -> None:
         (1, "202604", "2026-04-18", "FAKE-ACCT-01", "account", "Account",
          "1", "Floating", "Code_Data", "", "", "", -123.45,
          "AB12345678", "Lunch"),
-        (2, "202604", "2026-04-19", "1", "credit_card", "Credit_Card",
+        # Real legacy rows capitalize the credit-card discriminator.
+        (2, "202604", "2026-04-19", "1", "Credit_Card", "Credit_Card",
          "2", "Income", "Code_Data", "", "", "", 5000.0,
          None, "Pay day"),
     ]
@@ -385,9 +400,10 @@ def _insert_initial_setting(conn: sqlite3.Connection) -> None:
     )
 
 
-# Per-table inserters in FK-creation order. Each function inserts exactly 2
-# rows. ``Initial_Setting`` is included so the migrator's skip path is
-# exercised.
+# Per-table inserters in FK-creation order. Most tables get exactly 2 rows;
+# Insurance_Journal carries a 3rd ('expect') and Estate_Journal a 3rd/4th
+# ('marketValue') row to exercise the value-history diversion.
+# ``Initial_Setting`` is included so the migrator's skip path is exercised.
 INSERTERS = [
     ("Code_Data", _insert_code_data),
     ("Account", _insert_account),
