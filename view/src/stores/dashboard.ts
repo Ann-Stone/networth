@@ -8,6 +8,7 @@ import {
   getDashboardSummary,
   getTargets,
 } from '@/api/dashboard'
+import { getUncategorizedSummary } from '@/api/cashFlow'
 import type {
   DashboardGift,
   DashboardSummary,
@@ -215,6 +216,11 @@ export const useDashboardStore = defineStore('dashboard', () => {
     await giftsState.fetch(anchorYear.value)
   }
 
+  // Uncategorized journals ------------------------------------------------------
+  // Legacy 'undefined'/'No'/'' rows the reports can't bucket — powers the
+  // cleanup banner that deep-links into 月度帳務.
+  const uncategorizedState = useFetchState(() => getUncategorizedSummary())
+
   // Combined refetch ----------------------------------------------------------
   async function refetchAllForView() {
     await Promise.all([
@@ -258,6 +264,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
     giftsLoading: giftsState.loading,
     fetchGifts: giftsState.fetch,
     fetchGiftsForView,
+    // Uncategorized journals
+    uncategorized: uncategorizedState.data,
+    fetchUncategorized: uncategorizedState.fetch,
     // Combined
     refetchAllForView,
   }

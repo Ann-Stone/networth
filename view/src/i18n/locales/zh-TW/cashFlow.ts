@@ -96,4 +96,8 @@ export default {
   indexUpdated: '指數已更新（{count} 季）',
   indexUpdateFailed: '指數更新失敗，沿用既有資料',
   estateValueRecorded: '房產市值已登錄',
+  uncategorizedBanner: '本月有 {count} 筆未分類記錄，報表不會計入這些資料',
+  uncategorizedShowOnly: '只看未分類',
+  uncategorizedShowAll: '顯示全部',
+  uncategorizedTag: '未分類',
 }

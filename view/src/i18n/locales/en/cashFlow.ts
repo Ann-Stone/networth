@@ -96,4 +96,8 @@ export default {
   indexUpdated: 'Index updated ({count} quarters)',
   indexUpdateFailed: 'Index update failed; keeping existing data',
   estateValueRecorded: 'Property value recorded',
+  uncategorizedBanner: '{count} uncategorized entries this month — reports exclude them',
+  uncategorizedShowOnly: 'Show uncategorized only',
+  uncategorizedShowAll: 'Show all',
+  uncategorizedTag: 'Uncategorized',
 }

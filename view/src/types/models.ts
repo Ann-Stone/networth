@@ -214,6 +214,18 @@ export interface JournalListResponse {
   gain_loss: number
 }
 
+// GET /monthly-report/journals/uncategorized-summary — journals whose
+// action_main_type falls outside every report bucket (see utils/journalTypes.ts).
+export interface UncategorizedMonthCount {
+  vesting_month: string         // YYYYMM
+  count: number
+}
+
+export interface UncategorizedSummary {
+  total: number
+  months: UncategorizedMonthCount[]  // newest first; zero months omitted
+}
+
 // ─── Monthly Report — Journal + Stock_Detail composite endpoint ──────────────
 // POST /monthly-report/journals/stock-transaction writes a Journal row and a
 // Stock_Detail row in a single transaction. excute_price is filled by the

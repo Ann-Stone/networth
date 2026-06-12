@@ -10,6 +10,7 @@ from app.models.monthly_report.analytics import (
     ExpenditureRatioResponse,
     InvestRatioResponse,
     LiabilityResponse,
+    UncategorizedSummaryResponse,
 )
 from app.models.assets.estate import EstateJournalRead
 from app.models.assets.insurance import InsuranceJournalRead
@@ -45,6 +46,7 @@ from app.services.monthly_report_service import (
     compute_gain_loss,
     compute_invest_ratio,
     compute_liability,
+    compute_uncategorized_summary,
     create_journal,
     create_journal_with_estate_transaction,
     create_journal_with_insurance_transaction,
@@ -58,6 +60,26 @@ from app.services.monthly_report_service import (
 )
 
 router = APIRouter()
+
+
+# NOTE: must be declared before the catch-all ``/{vesting_month}`` route, or
+# FastAPI would try to parse "uncategorized-summary" as a month.
+@router.get(
+    "/uncategorized-summary",
+    summary="Count uncategorized journals across all months",
+    description=(
+        "Return the total number of Journal rows whose action_main_type falls "
+        "outside every report bucket (expense/income/invest/transfer — e.g. "
+        "legacy 'undefined'/'No'/'' values), plus a per-month breakdown "
+        "ordered newest first. Months with zero uncategorized rows are omitted."
+    ),
+    response_model=ApiResponse[UncategorizedSummaryResponse],
+    responses={500: INTERNAL_ERROR},
+)
+def get_uncategorized_summary(
+    session: Session = Depends(get_session),
+) -> ApiResponse[UncategorizedSummaryResponse]:
+    return ApiResponse(data=compute_uncategorized_summary(session))
 
 
 @router.get(

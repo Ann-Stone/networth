@@ -24,6 +24,9 @@ let journals: Journal[] = [
   { distinct_number: 5, vesting_month: CURRENT_MONTH, spend_date: '20260520', spend_way: 'BANK_CTBC', spend_way_type: 'account',     spend_way_table: 'Account',     action_main: 'INV',  action_main_type: 'Invest',   action_main_table: 'Code_Data', action_sub: 'INV_STK',  action_sub_type: 'Invest',   action_sub_table: 'Code_Data', spending: -15000, invoice_number: null, note: '台股定期定額' },
   { distinct_number: 6, vesting_month: CURRENT_MONTH, spend_date: '20260518', spend_way: 'BANK_CTBC', spend_way_type: 'account',     spend_way_table: 'Account',     action_main: 'FIX',  action_main_type: 'Fixed',    action_main_table: 'Code_Data', action_sub: 'FIX_UTL',  action_sub_type: 'Fixed',    action_sub_table: 'Code_Data', spending: -2400, invoice_number: null, note: '電費' },
   { distinct_number: 7, vesting_month: '202604',     spend_date: '20260418', spend_way: 'BANK_CTBC', spend_way_type: 'account',     spend_way_table: 'Account',     action_main: 'INC',  action_main_type: 'Income',   action_main_table: 'Code_Data', action_sub: 'INC_SAL',  action_sub_type: 'Income',   action_sub_table: 'Code_Data', spending: 80000, invoice_number: null, note: '4 月薪資' },
+  // Legacy e-invoice import shape: never classified → uncategorized banner/tag demo.
+  { distinct_number: 8, vesting_month: CURRENT_MONTH, spend_date: '20260515', spend_way: 'CC_VISA',   spend_way_type: 'credit_card', spend_way_table: 'Credit_Card', action_main: 'undefined', action_main_type: 'undefined', action_main_table: 'Code_Data', action_sub: '', action_sub_type: '', action_sub_table: '', spending: -320, invoice_number: 'CD-87654321', note: '超商' },
+  { distinct_number: 9, vesting_month: '202604',     spend_date: '20260422', spend_way: 'CC_VISA',   spend_way_type: 'credit_card', spend_way_table: 'Credit_Card', action_main: 'No',        action_main_type: 'No',        action_main_table: 'Code_Data', action_sub: '', action_sub_type: '', action_sub_table: '', spending: -150, invoice_number: 'CD-11223344', note: '飲料店' },
 ]
 let journalSeq = journals.length
 
@@ -31,6 +34,21 @@ function listForMonth(month: string): JournalListResponse {
   const items = journals.filter((j) => j.vesting_month === month)
   const gain_loss = items.reduce((sum, j) => sum + j.spending, 0)
   return { items, gain_loss }
+}
+
+// Mirrors api journal_types.is_uncategorized — anything outside the report buckets.
+const KNOWN_MAIN_TYPES = new Set(['fixed', 'floating', 'income', 'passive', 'invest', 'transfer'])
+
+function uncategorizedSummary() {
+  const perMonth = new Map<string, number>()
+  for (const j of journals) {
+    if (KNOWN_MAIN_TYPES.has((j.action_main_type ?? '').trim().toLowerCase())) continue
+    perMonth.set(j.vesting_month, (perMonth.get(j.vesting_month) ?? 0) + 1)
+  }
+  const months = [...perMonth.entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([vesting_month, count]) => ({ vesting_month, count }))
+  return { total: months.reduce((sum, m) => sum + m.count, 0), months }
 }
 
 // ─── Analytics fixtures ──────────────────────────────────────────────────────
@@ -174,6 +192,8 @@ export const monthlyReportHandlers = [
   http.get('*/monthly-report/journals/:month/expenditure-ratio',  () => ok(expenditureRatio())),
   http.get('*/monthly-report/journals/:month/invest-ratio',       () => ok(investRatio())),
   http.get('*/monthly-report/journals/:month/liability',          () => ok(liability())),
+  // Static path must precede the ':month' catch-all (same rule as the FastAPI router).
+  http.get('*/monthly-report/journals/uncategorized-summary', () => ok(uncategorizedSummary())),
   http.get('*/monthly-report/journals/:month', ({ params }) => ok(listForMonth(String(params.month)))),
   http.post('*/monthly-report/journals', async ({ request }) => {
     const body = (await request.json()) as JournalCreate

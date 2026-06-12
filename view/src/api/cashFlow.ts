@@ -26,12 +26,17 @@ import type {
   EstateValueCreate,
   EstateValueSuggestion,
   IndexRefreshResult,
+  UncategorizedSummary,
 } from '@/types/models'
 
 // ─── Journals ────────────────────────────────────────────────────────────────
 
 export function getJournals(vestingMonth: string): Promise<JournalListResponse> {
   return request.get(`/monthly-report/journals/${vestingMonth}`)
+}
+
+export function getUncategorizedSummary(): Promise<UncategorizedSummary> {
+  return request.get('/monthly-report/journals/uncategorized-summary')
 }
 
 export function createJournal(data: JournalCreate): Promise<Journal> {

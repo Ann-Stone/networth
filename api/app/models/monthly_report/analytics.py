@@ -151,3 +151,38 @@ class LiabilityResponse(SQLModel):
     model_config = ConfigDict(
         json_schema_extra={"example": {"items": [_LIABILITY_ITEM_EXAMPLE]}}
     )
+
+
+# ---------- Uncategorized journals ----------
+
+_UNCATEGORIZED_MONTH_EXAMPLE = {"vesting_month": "202405", "count": 87}
+
+
+class UncategorizedMonthCount(SQLModel):
+    vesting_month: str = Field(
+        ..., description="YYYYMM the uncategorized rows belong to", schema_extra={"examples": ["202405"]}
+    )
+    count: int = Field(
+        ..., description="Uncategorized journal rows in the month", schema_extra={"examples": [87]}
+    )
+
+    model_config = ConfigDict(json_schema_extra={"example": _UNCATEGORIZED_MONTH_EXAMPLE})
+
+
+class UncategorizedSummaryResponse(SQLModel):
+    total: int = Field(
+        ...,
+        description="Uncategorized journal rows across all months (action_main_type outside every report bucket)",
+        schema_extra={"examples": [2330]},
+    )
+    months: list[UncategorizedMonthCount] = Field(
+        ...,
+        description="Per-month breakdown, newest month first; months with zero rows omitted",
+        schema_extra={"examples": [[_UNCATEGORIZED_MONTH_EXAMPLE]]},
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"total": 2330, "months": [_UNCATEGORIZED_MONTH_EXAMPLE]}
+        }
+    )
