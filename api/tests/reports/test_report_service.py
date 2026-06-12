@@ -18,6 +18,7 @@ from app.models.settings.account import Account
 from app.models.settings.budget import Budget
 from app.models.settings.code_data import CodeData
 from app.models.settings.credit_card import CreditCard
+from app.services.fx_lookup import fx_rate_for_month
 from app.services.report_service import (
     get_asset_breakdown,
     get_balance_sheet,
@@ -27,25 +28,24 @@ from app.services.report_service import (
     get_expenditure_composition,
     get_expenditure_trend,
     get_income_expense_report,
-    get_latest_fx_rate,
     journal_amount_twd,
     list_journals_by_range,
 )
 
 
-def test_get_latest_fx_rate_fallback(session: Session) -> None:
+def test_fx_rate_for_month_fallback(session: Session) -> None:
     # No row at all → 1.0
-    assert get_latest_fx_rate(session, "USD", "202604") == 1.0
+    assert fx_rate_for_month(session, "USD", "202604") == 1.0
     # Row outside the window → fallback
     session.add(FXRate(import_date="20270101", code="USD", buy_rate=33.0))
     session.commit()
-    assert get_latest_fx_rate(session, "USD", "202604") == 33.0
+    assert fx_rate_for_month(session, "USD", "202604") == 33.0
     # Row inside window beats fallback
     session.add(FXRate(import_date="20260415", code="USD", buy_rate=31.5))
     session.commit()
-    assert get_latest_fx_rate(session, "USD", "202604") == 31.5
+    assert fx_rate_for_month(session, "USD", "202604") == 31.5
     # Base currency short-circuits to 1.0
-    assert get_latest_fx_rate(session, "TWD", "202604") == 1.0
+    assert fx_rate_for_month(session, "TWD", "202604") == 1.0
 
 
 def _seed_balance_fixture(session: Session) -> None:

@@ -15,7 +15,6 @@ from app.models.assets.loan import Loan, LoanJournal
 from app.models.assets.other_asset import OtherAsset
 from app.models.assets.stock import StockJournal
 from app.models.assets.stock_category import StockCategory
-from app.models.dashboard.fx_rate import FXRate
 from app.models.monthly_report.account_balance import AccountBalance
 from app.models.monthly_report.credit_card_balance import CreditCardBalance
 from app.models.monthly_report.estate_net_value_history import EstateNetValueHistory
@@ -75,6 +74,7 @@ from app.services.expense_netting import (
     floor_expense,
     floor_income,
 )
+from app.services.fx_lookup import BASE_CURRENCY, fx_rate_for_month
 from app.services.journal_types import (
     ACTIVE_INCOME_TYPES,
     EXPENSE_MAIN_TYPES,
@@ -85,33 +85,7 @@ from app.services.journal_types import (
     TRANSFER_MAIN_TYPES,
     norm_type,
 )
-from app.services.month_utils import month_end, shift_month
-
-BASE_CURRENCY = "TWD"
-
-
-def get_latest_fx_rate(session: Session, currency: str, as_of_month: str) -> float:
-    """Return latest ``FXRate.buy_rate`` with ``import_date <= month-end(as_of_month)``.
-
-    Falls back to the most recent prior row of any date for the currency.
-    Returns ``1.0`` when ``currency`` is the base currency or no row exists.
-    """
-    if not currency or currency == BASE_CURRENCY:
-        return 1.0
-    in_window = (
-        select(FXRate)
-        .where(FXRate.code == currency)
-        .where(FXRate.import_date <= month_end(as_of_month))
-        .order_by(FXRate.import_date.desc())
-    )
-    row = session.exec(in_window).first()
-    if row is not None:
-        return row.buy_rate
-    fallback = (
-        select(FXRate).where(FXRate.code == currency).order_by(FXRate.import_date.desc())
-    )
-    row = session.exec(fallback).first()
-    return row.buy_rate if row is not None else 1.0
+from app.services.month_utils import shift_month
 
 
 def _latest_per_entity(rows, key):
@@ -259,7 +233,7 @@ def journal_amount_twd(
         fx_cache = {}
     key = (fx_code, journal.vesting_month)
     if key not in fx_cache:
-        fx_cache[key] = get_latest_fx_rate(session, fx_code, journal.vesting_month)
+        fx_cache[key] = fx_rate_for_month(session, fx_code, journal.vesting_month)
     return journal.spending * fx_cache[key]
 
 
@@ -817,7 +791,7 @@ def _loanjournal_amount_twd(
         return row.excute_price
     key = (fx_code, month)
     if key not in fx_cache:
-        fx_cache[key] = get_latest_fx_rate(session, fx_code, month)
+        fx_cache[key] = fx_rate_for_month(session, fx_code, month)
     return row.excute_price * fx_cache[key]
 
 

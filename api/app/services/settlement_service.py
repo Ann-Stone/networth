@@ -17,7 +17,6 @@ from app.models.assets.estate import Estate, EstateJournal
 from app.models.assets.insurance import Insurance, InsuranceJournal
 from app.models.assets.loan import Loan, LoanJournal
 from app.models.assets.stock import StockDetail, StockJournal
-from app.models.dashboard.fx_rate import FXRate
 from app.models.monthly_report.account_balance import AccountBalance
 from app.models.monthly_report.credit_card_balance import CreditCardBalance
 from app.models.monthly_report.estate_net_value_history import EstateNetValueHistory
@@ -31,12 +30,10 @@ from app.models.monthly_report.stock_net_value_history import StockNetValueHisto
 from app.models.settings.account import Account
 from app.models.settings.credit_card import CreditCard
 from app.services.estate_value_service import select_month_market_value
+from app.services.fx_lookup import BASE_CURRENCY, fx_rate_for_month
 from app.services.insurance_value_service import select_month_surrender_value
 from app.services.month_utils import month_end, previous_month
 from app.services.stock_service import select_month_close_price
-
-
-BASE_CURRENCY = "TWD"
 
 
 # ---------- Helpers ----------
@@ -67,34 +64,6 @@ def query_has_record_flags(session: Session, vesting_month: str) -> dict[str, bo
     return flags
 
 
-def select_fx_rate_for_month(
-    session: Session, fx_code: str, vesting_month: str
-) -> float:
-    """Largest ``import_date <= YYYYMM31``; fallback to latest prior row.
-
-    Raises ``ValueError`` when no row exists for the currency. The base
-    currency short-circuits to 1.0.
-    """
-    if fx_code == BASE_CURRENCY:
-        return 1.0
-    in_window = (
-        select(FXRate)
-        .where(FXRate.code == fx_code)
-        .where(FXRate.import_date <= month_end(vesting_month))
-        .order_by(FXRate.import_date.desc())
-    )
-    row = session.exec(in_window).first()
-    if row is not None:
-        return row.buy_rate
-    fallback = (
-        select(FXRate).where(FXRate.code == fx_code).order_by(FXRate.import_date.desc())
-    )
-    row = session.exec(fallback).first()
-    if row is None:
-        raise ValueError(f"No FXRate available for currency {fx_code}")
-    return row.buy_rate
-
-
 # ---------- Per-asset-type steps ----------
 
 
@@ -120,7 +89,7 @@ def run_estate_step(session: Session, vesting_month: str) -> int:
         market_value = logged.market_value if logged is not None else cost
         # FX: estate carries its own currency (overseas property may be USD/JPY/...).
         fx_code = estate.fx_code or BASE_CURRENCY
-        fx_rate = select_fx_rate_for_month(session, fx_code, vesting_month)
+        fx_rate = fx_rate_for_month(session, fx_code, vesting_month, on_missing="raise")
         session.add(
             EstateNetValueHistory(
                 vesting_month=vesting_month,
@@ -172,7 +141,7 @@ def run_insurance_step(session: Session, vesting_month: str) -> int:
             select(Account).where(Account.account_id == policy.in_account)
         ).first()
         fx_code = account.fx_code if account is not None else BASE_CURRENCY
-        fx_rate = select_fx_rate_for_month(session, fx_code, vesting_month)
+        fx_rate = fx_rate_for_month(session, fx_code, vesting_month, on_missing="raise")
         session.add(
             InsuranceNetValueHistory(
                 vesting_month=vesting_month,
@@ -214,7 +183,7 @@ def run_loan_step(session: Session, vesting_month: str) -> int:
             select(Account).where(Account.account_id == loan.account_id)
         ).first()
         fx_code = account.fx_code if account is not None else BASE_CURRENCY
-        fx_rate = select_fx_rate_for_month(session, fx_code, vesting_month)
+        fx_rate = fx_rate_for_month(session, fx_code, vesting_month, on_missing="raise")
         session.add(
             LoanBalance(
                 vesting_month=vesting_month,
@@ -270,7 +239,7 @@ def run_stock_step(session: Session, vesting_month: str) -> int:
             ).first()
             if account is not None and account.fx_code:
                 fx_code = account.fx_code
-        fx_rate = select_fx_rate_for_month(session, fx_code, vesting_month)
+        fx_rate = fx_rate_for_month(session, fx_code, vesting_month, on_missing="raise")
         session.add(
             StockNetValueHistory(
                 vesting_month=vesting_month,
@@ -331,7 +300,9 @@ def run_account_balance_step(session: Session, vesting_month: str) -> int:
                 else:
                     balance -= j.spending
         balance = round(balance, 2)
-        fx_rate = select_fx_rate_for_month(session, account.fx_code, vesting_month)
+        fx_rate = fx_rate_for_month(
+            session, account.fx_code, vesting_month, on_missing="raise"
+        )
         session.add(
             AccountBalance(
                 vesting_month=vesting_month,
@@ -376,7 +347,9 @@ def run_credit_card_balance_step(session: Session, vesting_month: str) -> int:
             ):
                 balance += j.spending
         balance = round(balance, 2)
-        fx_rate = select_fx_rate_for_month(session, card.fx_code, vesting_month)
+        fx_rate = fx_rate_for_month(
+            session, card.fx_code, vesting_month, on_missing="raise"
+        )
         session.add(
             CreditCardBalance(
                 vesting_month=vesting_month,

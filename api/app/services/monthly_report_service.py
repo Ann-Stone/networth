@@ -7,7 +7,6 @@ from datetime import datetime
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
-from app.models.dashboard.fx_rate import FXRate
 from app.models.monthly_report.analytics import (
     ExpenditureBudgetResponse,
     ExpenditureBudgetRow,
@@ -39,6 +38,7 @@ from app.models.settings.budget import Budget
 from app.models.settings.code_data import CodeData
 from app.models.settings.credit_card import CreditCard
 from app.services.expense_netting import floor_expense, floor_income
+from app.services.fx_lookup import BASE_CURRENCY, fx_rate_for_month
 from app.services.journal_types import (
     EXPENSE_MAIN_TYPES,
     INCOME_MAIN_TYPES,
@@ -46,9 +46,6 @@ from app.services.journal_types import (
     TRANSFER_MAIN_TYPES,
     norm_type,
 )
-from app.services.month_utils import month_end
-
-BASE_CURRENCY = "TWD"
 
 
 def normalize_spend_date(value: str) -> str:
@@ -78,27 +75,6 @@ def list_journals_by_month(session: Session, vesting_month: str) -> list[Journal
         .order_by(Journal.spend_date.asc(), Journal.distinct_number.asc())
     )
     return list(session.exec(statement).all())
-
-
-def _latest_fx_rate(session: Session, fx_code: str, vesting_month: str) -> float:
-    if fx_code == BASE_CURRENCY:
-        return 1.0
-    statement = (
-        select(FXRate)
-        .where(FXRate.code == fx_code)
-        .where(FXRate.import_date <= month_end(vesting_month))
-        .order_by(FXRate.import_date.desc())
-    )
-    row = session.exec(statement).first()
-    if row is None:
-        # Fall back to the most recent prior row of any date.
-        any_row = session.exec(
-            select(FXRate).where(FXRate.code == fx_code).order_by(FXRate.import_date.desc())
-        ).first()
-        if any_row is None:
-            return 1.0
-        return any_row.buy_rate
-    return row.buy_rate
 
 
 def _account_by_spend_way(session: Session, spend_way: str) -> Account | None:
@@ -136,7 +112,7 @@ def compute_gain_loss(session: Session, journals: list[Journal]) -> float:
         if fx_code != BASE_CURRENCY:
             key = (fx_code, j.vesting_month)
             if key not in fx_cache:
-                fx_cache[key] = _latest_fx_rate(session, fx_code, j.vesting_month)
+                fx_cache[key] = fx_rate_for_month(session, fx_code, j.vesting_month)
             rate = fx_cache[key]
         total += j.spending * rate
     return round(total, 2)
