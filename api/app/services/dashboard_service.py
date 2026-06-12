@@ -35,17 +35,15 @@ from app.services.expense_netting import (
     floor_expense,
     floor_income,
 )
+from app.services.journal_types import (
+    EXPENSE_MAIN_TYPES,
+    INCOME_MAIN_TYPES,
+    norm_type,
+)
 from app.services.month_utils import iter_months
 from app.services.report_service import journal_amount_twd
 
 GIFT_THRESHOLD = 2_200_000
-EXPENSE_MAIN_TYPES = frozenset({"fixed", "floating"})
-INCOME_MAIN_TYPES = frozenset({"income", "passive"})
-
-
-def _norm_type(action_main_type: str | None) -> str:
-    """Lowercase/trim an action_main_type for case-insensitive comparison."""
-    return (action_main_type or "").strip().lower()
 
 
 # ---------- Period helpers ----------
@@ -84,7 +82,7 @@ def get_spending_summary(session: Session, period: str) -> SummaryRead:
     )
     sums = {m: 0.0 for m in months}
     for (month, cat), value in net.items():
-        if month in sums and _norm_type(cat_type[cat]) in EXPENSE_MAIN_TYPES:
+        if month in sums and norm_type(cat_type[cat]) in EXPENSE_MAIN_TYPES:
             sums[month] += floor_expense(value)
     return SummaryRead(
         type=SummaryType.spending,
@@ -120,7 +118,7 @@ def get_freedom_ratio_summary(session: Session, period: str) -> SummaryRead:
     for (month, cat), value in net.items():
         if month not in income:
             continue
-        if _norm_type(cat_type[cat]) in INCOME_MAIN_TYPES:
+        if norm_type(cat_type[cat]) in INCOME_MAIN_TYPES:
             income[month] += floor_income(value)
         if cat in fixed_codes:
             fixed[month] += floor_expense(value)
@@ -160,7 +158,7 @@ def get_work_freedom_ratio_summary(session: Session, period: str) -> SummaryRead
     for (month, cat), value in net.items():
         if month not in passive:
             continue
-        t = _norm_type(cat_type[cat])
+        t = norm_type(cat_type[cat])
         if t == "passive":
             passive[month] += floor_income(value)
         elif t == "income":

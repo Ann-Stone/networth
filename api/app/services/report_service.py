@@ -75,39 +75,19 @@ from app.services.expense_netting import (
     floor_expense,
     floor_income,
 )
+from app.services.journal_types import (
+    ACTIVE_INCOME_TYPES,
+    EXPENSE_MAIN_TYPES,
+    INCOME_MAIN_TYPES,
+    INVEST_MAIN_TYPES,
+    PASSIVE_INCOME_TYPES,
+    REALIZED_GAIN_NAMES,
+    TRANSFER_MAIN_TYPES,
+    norm_type,
+)
 from app.services.month_utils import month_end, shift_month
 
 BASE_CURRENCY = "TWD"
-
-# Canonical action_main_type buckets, matched case-insensitively via _norm_type.
-# The value's casing is inconsistent across the codebase and legacy data — the
-# reports/dashboard domains use "Fixed"/"Income"/"Invest"/"Transfer" while the
-# monthly domain and some imports use lowercase. Always normalize before
-# comparing, or filters silently miss rows on real (capitalized) data.
-EXPENSE_MAIN_TYPES = frozenset({"fixed", "floating"})
-# ``passive`` (passive income: dividends/interest/rent) is income too — the
-# dashboard already counts it (Income + Passive); including it here keeps
-# total_income / savings-rate consistent across the reports and cash flow.
-INCOME_MAIN_TYPES = frozenset({"income", "passive"})
-INVEST_MAIN_TYPES = frozenset({"invest"})
-TRANSFER_MAIN_TYPES = frozenset({"transfer"})
-
-# Comprehensive income statement (綜合損益表) splits INCOME_MAIN_TYPES into active
-# (本業) vs passive (孳息) so dividends land in the investment section, not本業.
-ACTIVE_INCOME_TYPES = frozenset({"income"})
-PASSIVE_INCOME_TYPES = frozenset({"passive"})
-# Realized capital-gain sub-categories, matched by Code_Data.name (names survive
-# code_id re-imports; see view/src/constants/noteHints.ts). These journals are
-# usually typed ``invest`` (so excluded from income/passive anyway), but the
-# income-statement service excludes them by *code* before the income/expense
-# netting so a 資本利得 row can never be double-counted regardless of its type.
-# Confirm/extend against Code_Data for the live DB.
-REALIZED_GAIN_NAMES = frozenset({"資本利得", "期貨"})
-
-
-def _norm_type(action_main_type: str | None) -> str:
-    """Lowercase/trim an action_main_type for case-insensitive comparison."""
-    return (action_main_type or "").strip().lower()
 
 
 def get_latest_fx_rate(session: Session, currency: str, as_of_month: str) -> float:
@@ -333,7 +313,7 @@ def get_expenditure_trend(
     )
     sums: dict[str, float] = {p: 0.0 for p in periods}
     for (bucket, cat), value in net.items():
-        if bucket in sums and _norm_type(cat_type[cat]) in EXPENSE_MAIN_TYPES:
+        if bucket in sums and norm_type(cat_type[cat]) in EXPENSE_MAIN_TYPES:
             sums[bucket] += floor_expense(value)
 
     return ExpenditureTrendRead(
@@ -358,7 +338,7 @@ def get_income_expense_report(
     so a 代買 reimbursed in a later month still offsets in the annual totals).
     The summary therefore can differ from the sum of the points when an offset
     spans months — it is the netted-over-the-year truth. Invest and transfer rows
-    are excluded; ``action_main_type`` is matched case-insensitively (``_norm_type``).
+    are excluded; ``action_main_type`` is matched case-insensitively (``norm_type``).
     """
     periods, bucket_of, start_vm, end_vm = _period_window(type, vesting_month)
     journals = list_journals_by_range(session, start_vm, end_vm)
@@ -377,7 +357,7 @@ def get_income_expense_report(
         window_net[cat] += value
         if bucket not in income:
             continue
-        t = _norm_type(cat_type[cat])
+        t = norm_type(cat_type[cat])
         if t in INCOME_MAIN_TYPES:
             income[bucket] += floor_income(value)
         elif t == "fixed":
@@ -408,7 +388,7 @@ def get_income_expense_report(
     total_income = 0.0
     total_expense = 0.0
     for cat, value in window_net.items():
-        t = _norm_type(cat_type[cat])
+        t = norm_type(cat_type[cat])
         if t in INCOME_MAIN_TYPES:
             total_income += floor_income(value)
         elif t in EXPENSE_MAIN_TYPES:
@@ -534,7 +514,7 @@ def get_income_statement(
         window_net[cat] += value
         if bucket not in active:
             continue
-        t = _norm_type(cat_type[cat])
+        t = norm_type(cat_type[cat])
         if t in ACTIVE_INCOME_TYPES:
             active[bucket] += floor_income(value)
         elif t in PASSIVE_INCOME_TYPES:
@@ -583,7 +563,7 @@ def get_income_statement(
     # ---- Summary: net each category across the whole window before flooring ----
     s_active = s_fixed = s_floating = s_dividend = 0.0
     for cat, value in window_net.items():
-        t = _norm_type(cat_type[cat])
+        t = norm_type(cat_type[cat])
         if t in ACTIVE_INCOME_TYPES:
             s_active += floor_income(value)
         elif t in PASSIVE_INCOME_TYPES:
@@ -646,7 +626,7 @@ def get_expenditure_composition(
     cat_type: dict[str, str] = {}
     sub_net: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     for j in journals:
-        if _norm_type(j.action_main_type) not in EXPENSE_MAIN_TYPES:
+        if norm_type(j.action_main_type) not in EXPENSE_MAIN_TYPES:
             continue
         amount = journal_amount_twd(session, j, fx_cache)  # signed
         cat = j.action_main
@@ -708,7 +688,7 @@ def get_expenditure_composition(
         )
 
     fixed_total = sum(
-        v for c, v in cat_amount.items() if _norm_type(cat_type[c]) == "fixed"
+        v for c, v in cat_amount.items() if norm_type(cat_type[c]) == "fixed"
     )
     return ExpenditureCompositionRead(
         total=round(total, 2),
@@ -737,7 +717,7 @@ def get_budget_variance(session: Session, year: str) -> BudgetVarianceRead:
     name_by_code: dict[str, str] = {}
     type_by_code: dict[str, str] = {}
     for b in budgets:
-        if _norm_type(b.code_type) not in EXPENSE_MAIN_TYPES:
+        if norm_type(b.code_type) not in EXPENSE_MAIN_TYPES:
             continue
         if b.annual_amount is not None:
             expected = b.annual_amount
@@ -755,7 +735,7 @@ def get_budget_variance(session: Session, year: str) -> BudgetVarianceRead:
     net_by_code: dict[str, float] = defaultdict(float)
     months_with_data: set[int] = set()
     for j in journals:
-        if _norm_type(j.action_main_type) not in EXPENSE_MAIN_TYPES:
+        if norm_type(j.action_main_type) not in EXPENSE_MAIN_TYPES:
             continue
         net_by_code[j.action_main] += journal_amount_twd(session, j, fx_cache)  # signed
         vm = j.vesting_month or ""
@@ -875,7 +855,7 @@ def get_cash_flow(
         b = bucket_of(j.vesting_month)
         if b not in income:
             continue
-        t = _norm_type(j.action_main_type)
+        t = norm_type(j.action_main_type)
         amount = journal_amount_twd(session, j, fx_cache)
         if t in INCOME_MAIN_TYPES:
             income[b] += amount
@@ -1004,7 +984,7 @@ def get_expense_insights(
     def expense_by_code(journals: list[Journal]) -> dict[str, float]:
         net: dict[str, float] = defaultdict(float)
         for j in journals:
-            if _norm_type(j.action_main_type) not in EXPENSE_MAIN_TYPES:
+            if norm_type(j.action_main_type) not in EXPENSE_MAIN_TYPES:
                 continue
             net[j.action_main] += journal_amount_twd(session, j, fx_cache)  # signed
         return {code: floor_expense(value) for code, value in net.items()}
@@ -1039,7 +1019,7 @@ def get_expense_insights(
     # reimbursed 代買, or a mis-typed inflow) is not an expense, so exclude it.
     expense_txns: list[tuple[Journal, float]] = []
     for j in current_journals:
-        if _norm_type(j.action_main_type) not in EXPENSE_MAIN_TYPES:
+        if norm_type(j.action_main_type) not in EXPENSE_MAIN_TYPES:
             continue
         amount = journal_amount_twd(session, j, fx_cache)
         if amount < 0:
