@@ -567,7 +567,6 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import dayjs from 'dayjs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, Edit, Delete, TrendCharts, Wallet, House, Refresh } from '@element-plus/icons-vue'
@@ -587,6 +586,9 @@ import InsuranceDetailFormFields, {
 import EstateDetailFormFields, {
   type EstateDetailFormState,
 } from '@/components/forms/EstateDetailFormFields.vue'
+import { useDateStringModel } from '@/composables/useDateStringModel'
+import { useMonthDatePicker } from '@/composables/useMonthDatePicker'
+import { formatYyyymmddDisplay, todayYyyymmdd } from '@/utils/dateFormat'
 import { useCashFlowStore } from '@/stores/cashFlow'
 import {
   createJournal,
@@ -626,18 +628,14 @@ const store = useCashFlowStore()
 const { t } = useI18n()
 
 // YYYYMMDD → YYYY-MM-DD for display.
-function formatDate(yyyymmdd: string): string {
-  return dayjs(yyyymmdd, 'YYYYMMDD').format('YYYY-MM-DD')
-}
+const formatDate = formatYyyymmddDisplay
 
-const selectedMonthDate = ref<Date>(dayjs(store.selectedMonth, 'YYYYMM').toDate())
-
-watch(selectedMonthDate, (date) => {
-  if (!date) return
-  const next = dayjs(date).format('YYYYMM')
-  if (next === store.selectedMonth) return
-  store.selectedMonth = next
-  store.fetchJournals()
+const { selectedMonthDate } = useMonthDatePicker({
+  current: () => store.selectedMonth,
+  onChange: (month) => {
+    store.selectedMonth = month
+    store.fetchJournals()
+  },
 })
 
 const totalIncome = computed(() =>
@@ -887,7 +885,7 @@ type JournalFormState = JournalCreate & { distinct_number?: number; action_sub?:
 function emptyForm(): JournalFormState {
   return {
     vesting_month: store.selectedMonth,
-    spend_date: dayjs().format('YYYYMMDD'),
+    spend_date: todayYyyymmdd(),
     spend_way: '',
     spend_way_type: 'account',
     spend_way_table: 'Account',
@@ -909,12 +907,12 @@ const formData = ref<JournalFormState>(emptyForm())
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
 
-const formDateValue = computed<Date | null>({
-  get: () => (formData.value.spend_date ? dayjs(formData.value.spend_date, 'YYYYMMDD').toDate() : null),
-  set: (date) => {
-    formData.value.spend_date = date ? dayjs(date).format('YYYYMMDD') : ''
+const formDateValue = useDateStringModel(
+  () => formData.value.spend_date,
+  (date) => {
+    formData.value.spend_date = date ?? ''
   },
-})
+)
 
 const formRules = computed<FormRules>(() => ({
   spend_date: [{ required: true, message: t('validation.pickDate'), trigger: 'change' }],
@@ -1343,7 +1341,7 @@ interface StockPriceFormState {
 function emptyStockPriceForm(): StockPriceFormState {
   return {
     stock_code: '',
-    fetch_date: dayjs().format('YYYYMMDD'),
+    fetch_date: todayYyyymmdd(),
     open_price: 0,
     highest_price: 0,
     lowest_price: 0,
@@ -1354,15 +1352,12 @@ function emptyStockPriceForm(): StockPriceFormState {
 
 const stockPriceForm = ref<StockPriceFormState>(emptyStockPriceForm())
 
-const stockPriceFormDate = computed<Date | null>({
-  get: () =>
-    stockPriceForm.value.fetch_date
-      ? dayjs(stockPriceForm.value.fetch_date, 'YYYYMMDD').toDate()
-      : null,
-  set: (date) => {
-    stockPriceForm.value.fetch_date = date ? dayjs(date).format('YYYYMMDD') : ''
+const stockPriceFormDate = useDateStringModel(
+  () => stockPriceForm.value.fetch_date,
+  (date) => {
+    stockPriceForm.value.fetch_date = date ?? ''
   },
-})
+)
 
 const stockPriceRules = computed<FormRules>(() => ({
   stock_code: [{ required: true, message: t('validation.enterCode'), trigger: 'blur' }],

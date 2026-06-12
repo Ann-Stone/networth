@@ -40,9 +40,9 @@ from app.services.settlement_service import (
     run_insurance_step,
     run_loan_step,
     run_stock_step,
-    select_fx_rate_for_month,
     settle,
 )
+from app.services.fx_lookup import fx_rate_for_month
 
 GOLDEN_PATH = Path(__file__).resolve().parent.parent / "fixtures" / "settlement_golden.json"
 VM = "202603"
@@ -286,12 +286,12 @@ def test_has_record_flags(settlement_fixture_session: Session) -> None:
 
 def test_fx_rate_lookup_fallback(settlement_fixture_session: Session) -> None:
     s = settlement_fixture_session
-    assert select_fx_rate_for_month(s, "TWD", VM) == 1.0
-    assert select_fx_rate_for_month(s, "USD", VM) == 32.0
+    assert fx_rate_for_month(s, "TWD", VM, on_missing="raise") == 1.0
+    assert fx_rate_for_month(s, "USD", VM, on_missing="raise") == 32.0
     # Future month — fallback to most recent prior row.
-    assert select_fx_rate_for_month(s, "USD", "202612") == 32.0
+    assert fx_rate_for_month(s, "USD", "202612", on_missing="raise") == 32.0
     with pytest.raises(ValueError):
-        select_fx_rate_for_month(s, "EUR", VM)
+        fx_rate_for_month(s, "EUR", VM, on_missing="raise")
 
 
 # ---- 4-7: per-step ----

@@ -1056,6 +1056,8 @@ import EstateDetailFormFields, {
   estateDetailFullRules,
 } from '@/components/forms/EstateDetailFormFields.vue'
 import { useCrudDialog } from '@/composables/useCrudDialog'
+import { useDateStringModel } from '@/composables/useDateStringModel'
+import { todayYyyymmdd } from '@/utils/dateFormat'
 import { useOtherAssetsStore } from '@/stores/otherAssets'
 import { useSettingStore } from '@/stores/setting'
 import {
@@ -1265,7 +1267,7 @@ function emptyStockDetailForm(stockId: string): StockDetailFormState {
     excute_type: 'buy',
     excute_amount: 0,
     excute_price: 0,
-    excute_date: dayjs().format('YYYYMMDD'),
+    excute_date: todayYyyymmdd(),
     account_id: '',
     account_name: '',
     memo: null,
@@ -1385,7 +1387,7 @@ function emptyEstateForm(): EstateAssetCreate {
     estate_address: '',
     asset_id: estatesAssetId.value,
     fx_code: 'TWD',
-    obtain_date: dayjs().format('YYYYMMDD'),
+    obtain_date: todayYyyymmdd(),
     loan_id: null,
     estate_status: 'live',
     region: null,
@@ -1469,15 +1471,12 @@ const estateMemoProxy = computed<string>({
   },
 })
 
-const estateFormObtainDate = computed<Date | null>({
-  get: () =>
-    estateForm.value.obtain_date
-      ? dayjs(estateForm.value.obtain_date, 'YYYYMMDD').toDate()
-      : null,
-  set: (date) => {
-    estateForm.value.obtain_date = date ? dayjs(date).format('YYYYMMDD') : ''
+const estateFormObtainDate = useDateStringModel(
+  () => estateForm.value.obtain_date,
+  (date) => {
+    estateForm.value.obtain_date = date ?? ''
   },
-})
+)
 
 const estateDetailsByEstate = shallowReactive(new Map<string, EstateJournal[]>())
 const estateDetailsLoadingByEstate = shallowReactive(new Map<string, boolean>())
@@ -1511,7 +1510,7 @@ function emptyEstateDetailForm(estateId: string): EstateDetailFormState {
     estate_id: estateId,
     estate_excute_type: 'tax',
     excute_price: 0,
-    excute_date: dayjs().format('YYYYMMDD'),
+    excute_date: todayYyyymmdd(),
     memo: null,
   }
 }
@@ -1605,7 +1604,7 @@ function emptyInsuranceForm(): InsuranceAssetCreate {
     asset_id: insurancesAssetId.value,
     in_account: '',
     out_account: '',
-    start_date: dayjs().format('YYYYMMDD'),
+    start_date: todayYyyymmdd(),
     end_date: dayjs().add(1, 'year').format('YYYYMMDD'),
     pay_type: 'annual',
     pay_day: '',
@@ -1672,25 +1671,19 @@ const {
   },
 })
 
-const insuranceFormStartDate = computed<Date | null>({
-  get: () =>
-    insuranceForm.value.start_date
-      ? dayjs(insuranceForm.value.start_date, 'YYYYMMDD').toDate()
-      : null,
-  set: (date) => {
-    insuranceForm.value.start_date = date ? dayjs(date).format('YYYYMMDD') : ''
+const insuranceFormStartDate = useDateStringModel(
+  () => insuranceForm.value.start_date,
+  (date) => {
+    insuranceForm.value.start_date = date ?? ''
   },
-})
+)
 
-const insuranceFormEndDate = computed<Date | null>({
-  get: () =>
-    insuranceForm.value.end_date
-      ? dayjs(insuranceForm.value.end_date, 'YYYYMMDD').toDate()
-      : null,
-  set: (date) => {
-    insuranceForm.value.end_date = date ? dayjs(date).format('YYYYMMDD') : ''
+const insuranceFormEndDate = useDateStringModel(
+  () => insuranceForm.value.end_date,
+  (date) => {
+    insuranceForm.value.end_date = date ?? ''
   },
-})
+)
 
 const insuranceDetailsByPolicy = shallowReactive(new Map<string, InsuranceJournal[]>())
 const insuranceDetailsLoadingByPolicy = shallowReactive(new Map<string, boolean>())
@@ -1724,7 +1717,7 @@ function emptyInsuranceDetailForm(insuranceId: string): InsuranceDetailFormState
     insurance_id: insuranceId,
     insurance_excute_type: 'pay',
     excute_price: 0,
-    excute_date: dayjs().format('YYYYMMDD'),
+    excute_date: todayYyyymmdd(),
     memo: null,
   }
 }
@@ -1802,7 +1795,7 @@ function emptyLoanForm(): LoanAssetCreate {
     account_name: '',
     interest_rate: 0,
     period: 12,
-    apply_date: dayjs().format('YYYYMMDD'),
+    apply_date: todayYyyymmdd(),
     grace_expire_date: null,
     pay_day: 1,
     amount: 0,
@@ -1871,23 +1864,20 @@ const {
   },
 })
 
-const loanFormApplyDate = computed<Date | null>({
-  get: () =>
-    loanForm.value.apply_date ? dayjs(loanForm.value.apply_date, 'YYYYMMDD').toDate() : null,
-  set: (date) => {
-    loanForm.value.apply_date = date ? dayjs(date).format('YYYYMMDD') : ''
+const loanFormApplyDate = useDateStringModel(
+  () => loanForm.value.apply_date,
+  (date) => {
+    loanForm.value.apply_date = date ?? ''
   },
-})
+)
 
-const loanFormGraceDate = computed<Date | null>({
-  get: () =>
-    loanForm.value.grace_expire_date
-      ? dayjs(loanForm.value.grace_expire_date, 'YYYYMMDD').toDate()
-      : null,
-  set: (date) => {
-    loanForm.value.grace_expire_date = date ? dayjs(date).format('YYYYMMDD') : null
+// Cleared grace date stays null (optional field), unlike the ''-coerced ones.
+const loanFormGraceDate = useDateStringModel(
+  () => loanForm.value.grace_expire_date,
+  (date) => {
+    loanForm.value.grace_expire_date = date
   },
-})
+)
 
 const loanDetailsByLoan = shallowReactive(new Map<string, LoanJournal[]>())
 const loanDetailsLoadingByLoan = shallowReactive(new Map<string, boolean>())
@@ -1921,7 +1911,7 @@ function emptyLoanDetailForm(loanId: string): LoanDetailFormState {
     loan_id: loanId,
     loan_excute_type: 'principal',
     excute_price: 0,
-    excute_date: dayjs().format('YYYYMMDD'),
+    excute_date: todayYyyymmdd(),
     memo: null,
   }
 }
@@ -1983,15 +1973,12 @@ const loanDetailMemoProxy = computed<string>({
   },
 })
 
-const loanDetailFormDate = computed<Date | null>({
-  get: () =>
-    loanDetailForm.value.excute_date
-      ? dayjs(loanDetailForm.value.excute_date, 'YYYYMMDD').toDate()
-      : null,
-  set: (date) => {
-    loanDetailForm.value.excute_date = date ? dayjs(date).format('YYYYMMDD') : ''
+const loanDetailFormDate = useDateStringModel(
+  () => loanDetailForm.value.excute_date,
+  (date) => {
+    loanDetailForm.value.excute_date = date ?? ''
   },
-})
+)
 
 function openCreateLoanDetail(loan: LoanAsset) {
   loanDetailParent.value = loan

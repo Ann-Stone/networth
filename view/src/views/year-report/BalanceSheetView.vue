@@ -60,13 +60,7 @@
               </el-table-column>
               <el-table-column :label="t('balanceSheet.share')" width="84" align="right">
                 <template #default="{ row }">
-                  <span
-                    v-if="row.share != null"
-                    class="tabular-nums text-sm text-on-surface-variant"
-                  >
-                    {{ row.share.toFixed(1) }}%
-                  </span>
-                  <span v-else class="text-on-surface-variant/40">—</span>
+                  <SharePercent :value="row.share" class="text-sm text-on-surface-variant" />
                 </template>
               </el-table-column>
             </el-table>
@@ -108,13 +102,7 @@
               </el-table-column>
               <el-table-column :label="t('balanceSheet.share')" width="84" align="right">
                 <template #default="{ row }">
-                  <span
-                    v-if="row.share != null"
-                    class="tabular-nums text-sm text-on-surface-variant"
-                  >
-                    {{ row.share.toFixed(1) }}%
-                  </span>
-                  <span v-else class="text-on-surface-variant/40">—</span>
+                  <SharePercent :value="row.share" class="text-sm text-on-surface-variant" />
                 </template>
               </el-table-column>
             </el-table>
@@ -126,14 +114,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import SharePercent from '@/components/ui/SharePercent.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'
+import { useYearDatePicker } from '@/composables/useYearDatePicker'
 import {
   buildAssetTree,
   buildLiabilityTree,
@@ -144,14 +134,9 @@ import {
 const store = useYearReportStore()
 const { t } = useI18n()
 
-const selectedYearDate = ref<Date>(new Date(store.selectedYear, 0, 1))
-
-watch(selectedYearDate, (date) => {
-  if (!date) return
-  const year = date.getFullYear()
-  if (year !== store.selectedYear) {
-    void store.fetchBalanceReport(year)
-  }
+const { selectedYearDate } = useYearDatePicker({
+  current: () => store.selectedYear,
+  onChange: (year) => void store.fetchBalanceReport(year),
 })
 
 onMounted(() => {

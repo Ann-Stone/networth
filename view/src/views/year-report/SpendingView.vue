@@ -100,13 +100,7 @@
               </el-table-column>
               <el-table-column :label="t('spending.share')" width="84" align="right">
                 <template #default="{ row }">
-                  <span
-                    v-if="row.share != null"
-                    class="tabular-nums text-sm text-on-surface-variant"
-                  >
-                    {{ row.share.toFixed(1) }}%
-                  </span>
-                  <span v-else class="text-on-surface-variant/40">—</span>
+                  <SharePercent :value="row.share" class="text-sm text-on-surface-variant" />
                 </template>
               </el-table-column>
             </el-table>
@@ -312,16 +306,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import SharePercent from '@/components/ui/SharePercent.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import WaterfallChart from '@/components/charts/WaterfallChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'
 import { useMoney } from '@/composables/useMoney'
+import { useYearDatePicker } from '@/composables/useYearDatePicker'
 import { buildExpenditureTree } from './expenditureTree'
 import type { CashFlowActivity } from '@/types/models'
 
@@ -330,7 +326,6 @@ const { t } = useI18n()
 const { format: formatMoney } = useMoney()
 
 const activeType = ref<'monthly' | 'yearly'>('monthly')
-const selectedYearDate = ref<Date>(new Date(store.selectedYear, 0, 1))
 
 function reload() {
   void store.fetchIncomeExpenseReport(activeType.value, store.selectedYear)
@@ -344,13 +339,12 @@ function handleTypeChange() {
   reload()
 }
 
-watch(selectedYearDate, (date) => {
-  if (!date) return
-  const year = date.getFullYear()
-  if (year !== store.selectedYear) {
+const { selectedYearDate } = useYearDatePicker({
+  current: () => store.selectedYear,
+  onChange: (year) => {
     store.selectedYear = year
     reload()
-  }
+  },
 })
 
 onMounted(reload)

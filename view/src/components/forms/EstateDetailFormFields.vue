@@ -11,7 +11,7 @@
 -->
 <script setup lang="ts">
 import { computed } from 'vue'
-import dayjs from 'dayjs'
+import { useDateStringModel } from '@/composables/useDateStringModel'
 
 export interface EstateDetailFormState {
   distinct_number?: number
@@ -39,18 +39,12 @@ const form = computed({
   set: (v) => emit('update:modelValue', v),
 })
 
-const formDate = computed<Date | null>({
-  get: () =>
-    form.value.excute_date
-      ? dayjs(form.value.excute_date, 'YYYYMMDD').toDate()
-      : null,
-  set: (date) => {
-    form.value = {
-      ...form.value,
-      excute_date: date ? dayjs(date).format('YYYYMMDD') : '',
-    }
+const formDate = useDateStringModel(
+  () => form.value.excute_date,
+  (date) => {
+    form.value = { ...form.value, excute_date: date ?? '' }
   },
-})
+)
 
 const isCashflow = computed(() => props.mode === 'cashflow-sync')
 </script>
@@ -106,6 +100,7 @@ const isCashflow = computed(() => props.mode === 'cashflow-sync')
 
 <script lang="ts">
 import type { FormRules } from 'element-plus'
+import { requiredRule } from '@/utils/formRules'
 
 type TranslateFn = (key: string) => string
 
@@ -114,15 +109,15 @@ type TranslateFn = (key: string) => string
 // caller wraps these in a `computed`).
 export function estateDetailFullRules(t: TranslateFn): FormRules {
   return {
-    excute_date: [{ required: true, message: t('validation.pickDate'), trigger: 'change' }],
-    estate_excute_type: [{ required: true, message: t('validation.pickType'), trigger: 'change' }],
-    excute_price: [{ required: true, message: t('validation.enterAmount'), trigger: 'blur' }],
+    excute_date: requiredRule(t('validation.pickDate')),
+    estate_excute_type: requiredRule(t('validation.pickType')),
+    excute_price: requiredRule(t('validation.enterAmount'), 'blur'),
   }
 }
 
 export function estateDetailCashflowRules(t: TranslateFn): FormRules {
   return {
-    estate_excute_type: [{ required: true, message: t('validation.pickType'), trigger: 'change' }],
+    estate_excute_type: requiredRule(t('validation.pickType')),
   }
 }
 </script>

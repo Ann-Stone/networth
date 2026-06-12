@@ -283,7 +283,7 @@ def _has_stock_month_row(session: Session, stock_code: str, period: str) -> bool
 def _catch_up_fx() -> None:
     """Record today's FX rate at its true date, at most once per calendar day.
 
-    Settlement's ``select_fx_rate_for_month`` (latest import_date <= month-end)
+    Settlement's ``fx_rate_for_month`` (latest import_date <= month-end)
     then uses the most recent real rate on or before month-end — no look-ahead,
     no fabricated month-end quote.
     """

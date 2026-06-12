@@ -25,6 +25,7 @@ from app.models.dashboard.house_price_index import (
     HousePriceIndex,
     IndexRefreshResult,
 )
+from app.services.month_utils import month_end
 
 # --- Source config (data.gov.tw). -----------------------------------------------
 # region label → (dataset id, CSV 類別 row to keep or None = keep all). The 內政部
@@ -45,10 +46,6 @@ INDEX_SOURCES: dict[str, tuple[str, str | None]] = {
 }
 _DATASET_META_URL = "https://data.gov.tw/api/v2/rest/dataset/{id}"
 _HTTP_TIMEOUT = 15
-
-
-def _month_end(yyyymm: str) -> str:
-    return f"{yyyymm}31"
 
 
 def _quarter_of_month(month: int) -> int:
@@ -235,7 +232,7 @@ def suggest_estate_values(
             for j in session.exec(
                 select(EstateJournal)
                 .where(EstateJournal.estate_id == estate.estate_id)
-                .where(EstateJournal.excute_date <= _month_end(vesting_month))
+                .where(EstateJournal.excute_date <= month_end(vesting_month))
             ).all()
         )
         obtain_q = quarter_of_yyyymmdd(estate.obtain_date)

@@ -92,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
@@ -101,12 +101,13 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import WaterfallChart from '@/components/charts/WaterfallChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'
+import { useYearDatePicker } from '@/composables/useYearDatePicker'
+import { buildCashFlowTree } from './cashFlowStatementTree'
 
 const store = useYearReportStore()
 const { t } = useI18n()
 
 const activeType = ref<'monthly' | 'yearly'>('monthly')
-const selectedYearDate = ref<Date>(new Date(store.selectedYear, 0, 1))
 
 function reload() {
   void store.fetchCashFlow(activeType.value, store.selectedYear)
@@ -116,13 +117,12 @@ function handleTypeChange() {
   reload()
 }
 
-watch(selectedYearDate, (date) => {
-  if (!date) return
-  const year = date.getFullYear()
-  if (year !== store.selectedYear) {
+const { selectedYearDate } = useYearDatePicker({
+  current: () => store.selectedYear,
+  onChange: (year) => {
     store.selectedYear = year
     reload()
-  }
+  },
 })
 
 onMounted(reload)
@@ -167,20 +167,5 @@ const waterfallItems = computed(() => [
   { name: t('cashFlowStatement.seriesFinancing'), value: nets.value.financing },
 ])
 
-const breakdownTree = computed(() => {
-  const s = summary.value
-  return [
-    ...s.activities.map((a) => ({
-      key: a.key,
-      label: a.label,
-      amount: a.net,
-      children: a.items.map((it, i) => ({
-        key: `${a.key}-${i}`,
-        label: it.label,
-        amount: it.amount,
-      })),
-    })),
-    { key: 'net_change', label: t('cashFlowStatement.netChange'), amount: s.net_change },
-  ]
-})
+const breakdownTree = computed(() => buildCashFlowTree(summary.value, t))
 </script>

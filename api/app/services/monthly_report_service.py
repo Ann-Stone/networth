@@ -7,7 +7,6 @@ from datetime import datetime
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
-from app.models.dashboard.fx_rate import FXRate
 from app.models.monthly_report.analytics import (
     ExpenditureBudgetResponse,
     ExpenditureBudgetRow,
@@ -39,25 +38,14 @@ from app.models.settings.budget import Budget
 from app.models.settings.code_data import CodeData
 from app.models.settings.credit_card import CreditCard
 from app.services.expense_netting import floor_expense, floor_income
-
-BASE_CURRENCY = "TWD"
-
-# Canonical action_main_type buckets, matched case-insensitively via _norm_type.
-# Real production data capitalizes these values ("Invest"/"Transfer"/"Fixed"/
-# "Income") while seeded/imported data is lowercase. Always normalize before
-# comparing — a raw ``in {"invest", "transfer"}`` check silently misses rows on
-# real data, leaking invest/transfer into the expenditure aggregates below.
-# Mirrors the frozensets in ``report_service`` (kept local so the lower-level
-# monthly domain does not import the higher-level reports domain).
-INVEST_MAIN_TYPES = frozenset({"invest"})
-TRANSFER_MAIN_TYPES = frozenset({"transfer"})
-EXPENSE_MAIN_TYPES = frozenset({"fixed", "floating"})
-INCOME_MAIN_TYPES = frozenset({"income", "passive"})
-
-
-def _norm_type(action_main_type: str | None) -> str:
-    """Lowercase/trim an action_main_type for case-insensitive comparison."""
-    return (action_main_type or "").strip().lower()
+from app.services.fx_lookup import BASE_CURRENCY, fx_rate_for_month
+from app.services.journal_types import (
+    EXPENSE_MAIN_TYPES,
+    INCOME_MAIN_TYPES,
+    INVEST_MAIN_TYPES,
+    TRANSFER_MAIN_TYPES,
+    norm_type,
+)
 
 
 def normalize_spend_date(value: str) -> str:
@@ -80,10 +68,6 @@ def normalize_spend_date(value: str) -> str:
     return parsed.strftime("%Y%m%d")
 
 
-def _month_end(vesting_month: str) -> str:
-    return f"{vesting_month}31"
-
-
 def list_journals_by_month(session: Session, vesting_month: str) -> list[Journal]:
     statement = (
         select(Journal)
@@ -91,27 +75,6 @@ def list_journals_by_month(session: Session, vesting_month: str) -> list[Journal
         .order_by(Journal.spend_date.asc(), Journal.distinct_number.asc())
     )
     return list(session.exec(statement).all())
-
-
-def _latest_fx_rate(session: Session, fx_code: str, vesting_month: str) -> float:
-    if fx_code == BASE_CURRENCY:
-        return 1.0
-    statement = (
-        select(FXRate)
-        .where(FXRate.code == fx_code)
-        .where(FXRate.import_date <= _month_end(vesting_month))
-        .order_by(FXRate.import_date.desc())
-    )
-    row = session.exec(statement).first()
-    if row is None:
-        # Fall back to the most recent prior row of any date.
-        any_row = session.exec(
-            select(FXRate).where(FXRate.code == fx_code).order_by(FXRate.import_date.desc())
-        ).first()
-        if any_row is None:
-            return 1.0
-        return any_row.buy_rate
-    return row.buy_rate
 
 
 def _account_by_spend_way(session: Session, spend_way: str) -> Account | None:
@@ -149,7 +112,7 @@ def compute_gain_loss(session: Session, journals: list[Journal]) -> float:
         if fx_code != BASE_CURRENCY:
             key = (fx_code, j.vesting_month)
             if key not in fx_cache:
-                fx_cache[key] = _latest_fx_rate(session, fx_code, j.vesting_month)
+                fx_cache[key] = fx_rate_for_month(session, fx_code, j.vesting_month)
             rate = fx_cache[key]
         total += j.spending * rate
     return round(total, 2)
@@ -519,9 +482,9 @@ def compute_expenditure_ratio(session: Session, vesting_month: str) -> Expenditu
     sub_net: dict[str, float] = defaultdict(float)
     sub_is_income: dict[str, bool] = {}
     for j in journals:
-        if _norm_type(j.action_main_type) in excluded:
+        if norm_type(j.action_main_type) in excluded:
             continue
-        is_income = _norm_type(j.action_main_type) in INCOME_MAIN_TYPES
+        is_income = norm_type(j.action_main_type) in INCOME_MAIN_TYPES
         main_net[j.action_main] += j.spending
         main_type.setdefault(j.action_main, j.action_main_type)
         # The inner pie groups by action_sub_type and floors by the *main*
@@ -536,7 +499,7 @@ def compute_expenditure_ratio(session: Session, vesting_month: str) -> Expenditu
 
     outer: dict[str, float] = defaultdict(float)
     for cat, value in main_net.items():
-        amount = floored(_norm_type(main_type[cat]) in INCOME_MAIN_TYPES, value)
+        amount = floored(norm_type(main_type[cat]) in INCOME_MAIN_TYPES, value)
         if amount > 0.005:
             outer[main_type[cat]] += amount
     inner: dict[str, float] = defaultdict(float)
@@ -554,7 +517,7 @@ def compute_invest_ratio(session: Session, vesting_month: str) -> InvestRatioRes
     journals = list_journals_by_month(session, vesting_month)
     items: dict[str, float] = {}
     for j in journals:
-        if _norm_type(j.action_main_type) not in INVEST_MAIN_TYPES:
+        if norm_type(j.action_main_type) not in INVEST_MAIN_TYPES:
             continue
         key = j.action_sub_type or j.action_main_type
         items[key] = items.get(key, 0.0) + abs(j.spending)
@@ -586,7 +549,7 @@ def compute_expenditure_budget(
         if b.category_code in event_codes:
             continue
         amt = float(getattr(b, budget_field) or 0.0)
-        key = _norm_type(b.code_type)
+        key = norm_type(b.code_type)
         expected_by_type[key] = expected_by_type.get(key, 0.0) + amt
         label_by_type.setdefault(key, b.code_type or key)
 
@@ -603,7 +566,7 @@ def compute_expenditure_budget(
     actual_by_type: dict[str, float] = defaultdict(float)
     for cat, value in cat_net.items():
         raw_type = cat_type[cat]
-        key = _norm_type(raw_type)
+        key = norm_type(raw_type)
         amount = floor_income(value) if key in INCOME_MAIN_TYPES else floor_expense(value)
         actual_by_type[key] += amount
         label_by_type.setdefault(key, raw_type or key)

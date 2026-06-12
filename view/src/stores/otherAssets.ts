@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { useFetchState } from '@/composables/useFetchState'
 import {
   getEstateDetails,
   getEstates,
@@ -27,137 +28,73 @@ export const useOtherAssetsStore = defineStore('otherAssets', () => {
   const activeTab = ref<string>('stocks')
 
   // Stocks
-  const stocks = ref<StockAsset[]>([])
-  const stocksLoading = ref(false)
-  async function fetchStocks(assetId: string) {
-    stocksLoading.value = true
-    try {
-      stocks.value = await getStocks({ asset_id: assetId })
-    } finally {
-      stocksLoading.value = false
-    }
-  }
-
-  const stockDetails = ref<StockJournal[]>([])
-  const stockDetailsLoading = ref(false)
-  async function fetchStockDetails(stockId: string) {
-    stockDetailsLoading.value = true
-    try {
-      stockDetails.value = await getStockDetails(stockId)
-    } finally {
-      stockDetailsLoading.value = false
-    }
-  }
+  const stocks = useFetchState(
+    (assetId: string) => getStocks({ asset_id: assetId }),
+    [] as StockAsset[],
+  )
+  const stockDetails = useFetchState(
+    (stockId: string) => getStockDetails(stockId),
+    [] as StockJournal[],
+  )
 
   // Estates
-  const estates = ref<EstateAsset[]>([])
-  const estatesLoading = ref(false)
-  async function fetchEstates(assetId: string) {
-    estatesLoading.value = true
-    try {
-      estates.value = await getEstates({ asset_id: assetId })
-    } finally {
-      estatesLoading.value = false
-    }
-  }
-
-  const estateDetails = ref<EstateJournal[]>([])
-  const estateDetailsLoading = ref(false)
-  async function fetchEstateDetails(estateId: string) {
-    estateDetailsLoading.value = true
-    try {
-      estateDetails.value = await getEstateDetails(estateId)
-    } finally {
-      estateDetailsLoading.value = false
-    }
-  }
+  const estates = useFetchState(
+    (assetId: string) => getEstates({ asset_id: assetId }),
+    [] as EstateAsset[],
+  )
+  const estateDetails = useFetchState(
+    (estateId: string) => getEstateDetails(estateId),
+    [] as EstateJournal[],
+  )
 
   // Insurances
-  const insurances = ref<InsuranceAsset[]>([])
-  const insurancesLoading = ref(false)
-  async function fetchInsurances(assetId: string) {
-    insurancesLoading.value = true
-    try {
-      insurances.value = await getInsurances({ asset_id: assetId })
-    } finally {
-      insurancesLoading.value = false
-    }
-  }
-
-  const insuranceDetails = ref<InsuranceJournal[]>([])
-  const insuranceDetailsLoading = ref(false)
-  async function fetchInsuranceDetails(insuranceId: string) {
-    insuranceDetailsLoading.value = true
-    try {
-      insuranceDetails.value = await getInsuranceDetails(insuranceId)
-    } finally {
-      insuranceDetailsLoading.value = false
-    }
-  }
+  const insurances = useFetchState(
+    (assetId: string) => getInsurances({ asset_id: assetId }),
+    [] as InsuranceAsset[],
+  )
+  const insuranceDetails = useFetchState(
+    (insuranceId: string) => getInsuranceDetails(insuranceId),
+    [] as InsuranceJournal[],
+  )
 
   // Loans
-  const loans = ref<LoanAsset[]>([])
-  const loansLoading = ref(false)
-  async function fetchLoans() {
-    loansLoading.value = true
-    try {
-      loans.value = await getLoans()
-    } finally {
-      loansLoading.value = false
-    }
-  }
-
-  const loanDetails = ref<LoanJournal[]>([])
-  const loanDetailsLoading = ref(false)
-  async function fetchLoanDetails(loanId: string) {
-    loanDetailsLoading.value = true
-    try {
-      loanDetails.value = await getLoanDetails(loanId)
-    } finally {
-      loanDetailsLoading.value = false
-    }
-  }
+  const loans = useFetchState(() => getLoans(), [] as LoanAsset[])
+  const loanDetails = useFetchState(
+    (loanId: string) => getLoanDetails(loanId),
+    [] as LoanJournal[],
+  )
 
   // Other assets
-  const otherAssets = ref<OtherAsset[]>([])
-  const otherAssetsLoading = ref(false)
-  async function fetchOtherAssets() {
-    otherAssetsLoading.value = true
-    try {
-      otherAssets.value = await getOtherAssets()
-    } finally {
-      otherAssetsLoading.value = false
-    }
-  }
+  const otherAssets = useFetchState(() => getOtherAssets(), [] as OtherAsset[])
 
   return {
     activeTab,
-    stocks,
-    stocksLoading,
-    fetchStocks,
-    stockDetails,
-    stockDetailsLoading,
-    fetchStockDetails,
-    estates,
-    estatesLoading,
-    fetchEstates,
-    estateDetails,
-    estateDetailsLoading,
-    fetchEstateDetails,
-    insurances,
-    insurancesLoading,
-    fetchInsurances,
-    insuranceDetails,
-    insuranceDetailsLoading,
-    fetchInsuranceDetails,
-    loans,
-    loansLoading,
-    fetchLoans,
-    loanDetails,
-    loanDetailsLoading,
-    fetchLoanDetails,
-    otherAssets,
-    otherAssetsLoading,
-    fetchOtherAssets,
+    stocks: stocks.data,
+    stocksLoading: stocks.loading,
+    fetchStocks: stocks.fetch,
+    stockDetails: stockDetails.data,
+    stockDetailsLoading: stockDetails.loading,
+    fetchStockDetails: stockDetails.fetch,
+    estates: estates.data,
+    estatesLoading: estates.loading,
+    fetchEstates: estates.fetch,
+    estateDetails: estateDetails.data,
+    estateDetailsLoading: estateDetails.loading,
+    fetchEstateDetails: estateDetails.fetch,
+    insurances: insurances.data,
+    insurancesLoading: insurances.loading,
+    fetchInsurances: insurances.fetch,
+    insuranceDetails: insuranceDetails.data,
+    insuranceDetailsLoading: insuranceDetails.loading,
+    fetchInsuranceDetails: insuranceDetails.fetch,
+    loans: loans.data,
+    loansLoading: loans.loading,
+    fetchLoans: loans.fetch,
+    loanDetails: loanDetails.data,
+    loanDetailsLoading: loanDetails.loading,
+    fetchLoanDetails: loanDetails.fetch,
+    otherAssets: otherAssets.data,
+    otherAssetsLoading: otherAssets.loading,
+    fetchOtherAssets: otherAssets.fetch,
   }
 })

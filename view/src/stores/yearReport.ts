@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { useFetchState } from '@/composables/useFetchState'
 import {
   getAssetsReport,
   getBalanceReport,
@@ -12,204 +13,95 @@ import {
   getIncomeStatement,
   getStockAllocation,
 } from '@/api/yearReport'
-import type {
-  AssetReport,
-  BalanceReport,
-  BudgetVariance,
-  CashFlow,
-  ExpenditureComposition,
-  ExpenditureReport,
-  ExpenseInsights,
-  IncomeExpenseReport,
-  IncomeStatementReport,
-  StockAllocationReport,
-} from '@/types/models'
 
 export const useYearReportStore = defineStore('yearReport', () => {
   const selectedYear = ref<number>(new Date().getFullYear())
 
+  // Sync the year selection, then return the anchor year for the request.
+  function anchorYear(year?: number): number {
+    if (year != null) selectedYear.value = year
+    return year ?? selectedYear.value
+  }
+
+  // API anchor is vesting_month YYYYMM; annual reports anchor on December
+  // of selectedYear when only a year is supplied.
+  function anchorMonth(year?: number): string {
+    return `${anchorYear(year)}12`
+  }
+
   // Balance report — API takes no year param; year is selection state only.
-  const balanceReport = ref<BalanceReport | null>(null)
-  const balanceLoading = ref(false)
-  async function fetchBalanceReport(year?: number) {
-    if (year != null) selectedYear.value = year
-    balanceLoading.value = true
-    try {
-      balanceReport.value = await getBalanceReport()
-    } finally {
-      balanceLoading.value = false
-    }
-  }
+  const balance = useFetchState((year?: number) => {
+    anchorYear(year)
+    return getBalanceReport()
+  })
 
-  // Expenditure report — API anchor is vesting_month YYYYMM; we anchor on
-  // December of selectedYear when only year is supplied.
-  const expenditureReport = ref<ExpenditureReport | null>(null)
-  const expenditureLoading = ref(false)
-  async function fetchExpenditureReport(type: string, year?: number) {
-    if (year != null) selectedYear.value = year
-    const anchorYear = year ?? selectedYear.value
-    const vestingMonth = `${anchorYear}12`
-    expenditureLoading.value = true
-    try {
-      expenditureReport.value = await getExpenditureReport(type, {
-        vesting_month: vestingMonth,
-      })
-    } finally {
-      expenditureLoading.value = false
-    }
-  }
+  const expenditure = useFetchState((type: string, year?: number) =>
+    getExpenditureReport(type, { vesting_month: anchorMonth(year) }),
+  )
 
-  // Income vs expense report — same anchor convention as expenditure
-  // (December of selectedYear when only a year is supplied).
-  const incomeExpenseReport = ref<IncomeExpenseReport | null>(null)
-  const incomeExpenseLoading = ref(false)
-  async function fetchIncomeExpenseReport(type: string, year?: number) {
-    if (year != null) selectedYear.value = year
-    const anchorYear = year ?? selectedYear.value
-    const vestingMonth = `${anchorYear}12`
-    incomeExpenseLoading.value = true
-    try {
-      incomeExpenseReport.value = await getIncomeExpenseReport(type, {
-        vesting_month: vestingMonth,
-      })
-    } finally {
-      incomeExpenseLoading.value = false
-    }
-  }
+  const incomeExpense = useFetchState((type: string, year?: number) =>
+    getIncomeExpenseReport(type, { vesting_month: anchorMonth(year) }),
+  )
 
-  // Comprehensive income statement (本業/投資/綜合損益) — same anchor convention.
-  const incomeStatementReport = ref<IncomeStatementReport | null>(null)
-  const incomeStatementLoading = ref(false)
-  async function fetchIncomeStatement(type: string, year?: number) {
-    if (year != null) selectedYear.value = year
-    const anchorYear = year ?? selectedYear.value
-    const vestingMonth = `${anchorYear}12`
-    incomeStatementLoading.value = true
-    try {
-      incomeStatementReport.value = await getIncomeStatement(type, {
-        vesting_month: vestingMonth,
-      })
-    } finally {
-      incomeStatementLoading.value = false
-    }
-  }
+  // Comprehensive income statement (本業/投資/綜合損益).
+  const incomeStatement = useFetchState((type: string, year?: number) =>
+    getIncomeStatement(type, { vesting_month: anchorMonth(year) }),
+  )
 
-  // Expenditure composition tree — same anchor convention as income/expense.
-  const compositionReport = ref<ExpenditureComposition | null>(null)
-  const compositionLoading = ref(false)
-  async function fetchExpenditureComposition(type: string, year?: number) {
-    if (year != null) selectedYear.value = year
-    const anchorYear = year ?? selectedYear.value
-    const vestingMonth = `${anchorYear}12`
-    compositionLoading.value = true
-    try {
-      compositionReport.value = await getExpenditureComposition(type, {
-        vesting_month: vestingMonth,
-      })
-    } finally {
-      compositionLoading.value = false
-    }
-  }
+  const composition = useFetchState((type: string, year?: number) =>
+    getExpenditureComposition(type, { vesting_month: anchorMonth(year) }),
+  )
 
   // Budget vs actual variance — annual, keyed by year only.
-  const budgetReport = ref<BudgetVariance | null>(null)
-  const budgetLoading = ref(false)
-  async function fetchBudgetVariance(year?: number) {
-    if (year != null) selectedYear.value = year
-    const anchorYear = year ?? selectedYear.value
-    budgetLoading.value = true
-    try {
-      budgetReport.value = await getBudgetVariance(anchorYear)
-    } finally {
-      budgetLoading.value = false
-    }
-  }
+  const budget = useFetchState((year?: number) => getBudgetVariance(anchorYear(year)))
 
-  // Cash-flow statement (生活/投資/債務) — same anchor convention.
-  const cashFlowReport = ref<CashFlow | null>(null)
-  const cashFlowLoading = ref(false)
-  async function fetchCashFlow(type: string, year?: number) {
-    if (year != null) selectedYear.value = year
-    const anchorYear = year ?? selectedYear.value
-    const vestingMonth = `${anchorYear}12`
-    cashFlowLoading.value = true
-    try {
-      cashFlowReport.value = await getCashFlow(type, { vesting_month: vestingMonth })
-    } finally {
-      cashFlowLoading.value = false
-    }
-  }
+  // Cash-flow statement (生活/投資/債務).
+  const cashFlow = useFetchState((type: string, year?: number) =>
+    getCashFlow(type, { vesting_month: anchorMonth(year) }),
+  )
 
   // Expense insights — YoY + largest transactions, keyed by year.
-  const insightsReport = ref<ExpenseInsights | null>(null)
-  const insightsLoading = ref(false)
-  async function fetchExpenseInsights(year?: number) {
-    if (year != null) selectedYear.value = year
-    const anchorYear = year ?? selectedYear.value
-    insightsLoading.value = true
-    try {
-      insightsReport.value = await getExpenseInsights(anchorYear)
-    } finally {
-      insightsLoading.value = false
-    }
-  }
+  const insights = useFetchState((year?: number) => getExpenseInsights(anchorYear(year)))
 
   // Assets report — API takes no year param.
-  const assetsReport = ref<AssetReport | null>(null)
-  const assetsLoading = ref(false)
-  async function fetchAssetsReport(year?: number) {
-    if (year != null) selectedYear.value = year
-    assetsLoading.value = true
-    try {
-      assetsReport.value = await getAssetsReport()
-    } finally {
-      assetsLoading.value = false
-    }
-  }
+  const assets = useFetchState((year?: number) => {
+    anchorYear(year)
+    return getAssetsReport()
+  })
 
-  // Stock allocation by category — API takes no year param.
-  const stockAllocation = ref<StockAllocationReport | null>(null)
-  const stockAllocationLoading = ref(false)
-  async function fetchStockAllocation() {
-    stockAllocationLoading.value = true
-    try {
-      stockAllocation.value = await getStockAllocation()
-    } finally {
-      stockAllocationLoading.value = false
-    }
-  }
+  const stockAllocationState = useFetchState(() => getStockAllocation())
 
   return {
     selectedYear,
-    balanceReport,
-    balanceLoading,
-    fetchBalanceReport,
-    expenditureReport,
-    expenditureLoading,
-    fetchExpenditureReport,
-    incomeExpenseReport,
-    incomeExpenseLoading,
-    fetchIncomeExpenseReport,
-    incomeStatementReport,
-    incomeStatementLoading,
-    fetchIncomeStatement,
-    compositionReport,
-    compositionLoading,
-    fetchExpenditureComposition,
-    budgetReport,
-    budgetLoading,
-    fetchBudgetVariance,
-    cashFlowReport,
-    cashFlowLoading,
-    fetchCashFlow,
-    insightsReport,
-    insightsLoading,
-    fetchExpenseInsights,
-    assetsReport,
-    assetsLoading,
-    fetchAssetsReport,
-    stockAllocation,
-    stockAllocationLoading,
-    fetchStockAllocation,
+    balanceReport: balance.data,
+    balanceLoading: balance.loading,
+    fetchBalanceReport: balance.fetch,
+    expenditureReport: expenditure.data,
+    expenditureLoading: expenditure.loading,
+    fetchExpenditureReport: expenditure.fetch,
+    incomeExpenseReport: incomeExpense.data,
+    incomeExpenseLoading: incomeExpense.loading,
+    fetchIncomeExpenseReport: incomeExpense.fetch,
+    incomeStatementReport: incomeStatement.data,
+    incomeStatementLoading: incomeStatement.loading,
+    fetchIncomeStatement: incomeStatement.fetch,
+    compositionReport: composition.data,
+    compositionLoading: composition.loading,
+    fetchExpenditureComposition: composition.fetch,
+    budgetReport: budget.data,
+    budgetLoading: budget.loading,
+    fetchBudgetVariance: budget.fetch,
+    cashFlowReport: cashFlow.data,
+    cashFlowLoading: cashFlow.loading,
+    fetchCashFlow: cashFlow.fetch,
+    insightsReport: insights.data,
+    insightsLoading: insights.loading,
+    fetchExpenseInsights: insights.fetch,
+    assetsReport: assets.data,
+    assetsLoading: assets.loading,
+    fetchAssetsReport: assets.fetch,
+    stockAllocation: stockAllocationState.data,
+    stockAllocationLoading: stockAllocationState.loading,
+    fetchStockAllocation: stockAllocationState.fetch,
   }
 })
