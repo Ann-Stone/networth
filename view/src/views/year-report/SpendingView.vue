@@ -100,13 +100,7 @@
               </el-table-column>
               <el-table-column :label="t('spending.share')" width="84" align="right">
                 <template #default="{ row }">
-                  <span
-                    v-if="row.share != null"
-                    class="tabular-nums text-sm text-on-surface-variant"
-                  >
-                    {{ row.share.toFixed(1) }}%
-                  </span>
-                  <span v-else class="text-on-surface-variant/40">—</span>
+                  <SharePercent :value="row.share" class="text-sm text-on-surface-variant" />
                 </template>
               </el-table-column>
             </el-table>
@@ -318,6 +312,7 @@ import SectionHeader from '@/components/ui/SectionHeader.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import SharePercent from '@/components/ui/SharePercent.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import WaterfallChart from '@/components/charts/WaterfallChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'

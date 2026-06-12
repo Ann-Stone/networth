@@ -42,7 +42,7 @@
               </el-table-column>
               <el-table-column :label="t('asset.share')" width="120" align="right">
                 <template #default="{ row }">
-                  <span class="text-on-surface tabular-nums">{{ row.share.toFixed(1) }}%</span>
+                  <SharePercent :value="row.share" class="text-on-surface" />
                 </template>
               </el-table-column>
             </el-table>
@@ -64,7 +64,7 @@
               </el-table-column>
               <el-table-column :label="t('asset.share')" width="120" align="right">
                 <template #default="{ row }">
-                  <span class="text-on-surface tabular-nums">{{ row.share.toFixed(1) }}%</span>
+                  <SharePercent :value="row.share" class="text-on-surface" />
                 </template>
               </el-table-column>
             </el-table>
@@ -82,6 +82,7 @@ import SectionHeader from '@/components/ui/SectionHeader.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import MoneyDisplay from '@/components/ui/MoneyDisplay.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import SharePercent from '@/components/ui/SharePercent.vue'
 import DonutChart from '@/components/charts/DonutChart.vue'
 import { useYearReportStore } from '@/stores/yearReport'
 import { useMoney } from '@/composables/useMoney'
