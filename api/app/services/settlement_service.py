@@ -125,11 +125,15 @@ def run_insurance_step(session: Session, vesting_month: str) -> int:
         cost = 0.0
         surrender = 0.0
         for r in rows:
-            if r.insurance_excute_type == "premium":
+            if r.insurance_excute_type == "pay":        # 扣款 (premium payment)
                 cost += r.excute_price
                 surrender += r.excute_price
-            elif r.insurance_excute_type == "claim":
+            elif r.insurance_excute_type == "cash":     # 配息 (dividend received)
+                cost -= r.excute_price
+            elif r.insurance_excute_type == "return":   # 贖回 (redemption)
                 surrender -= r.excute_price
+            # "expect" is legacy-only (migrated into Insurance_Value_History);
+            # any straggler row is ignored here.
         # Prefer a user-recorded surrender value (解約金) for the month; only fall
         # back to the net-premium estimate when none has been entered. This is
         # what lets the policy show real cash-value growth instead of cost.

@@ -56,7 +56,7 @@ def test_assets_models_roundtrip(session: Session) -> None:
     )
     inj = InsuranceJournal(
         insurance_id="INS-001",
-        insurance_excute_type="premium",
+        insurance_excute_type="pay",
         excute_price=1200.0,
         excute_date="20260115",
         memo="Annual premium",
