@@ -95,7 +95,7 @@ Example:
     "distinct_number": 1,
     "excute_date": "20260115",
     "excute_price": 1200.0,
-    "insurance_excute_type": "premium",
+    "insurance_excute_type": "pay",
     "insurance_id": "INS-001",
     "memo": "Annual premium"
   },
@@ -154,7 +154,7 @@ Example:
       "distinct_number": 1,
       "excute_date": "20260115",
       "excute_price": 1200.0,
-      "insurance_excute_type": "premium",
+      "insurance_excute_type": "pay",
       "insurance_id": "INS-001",
       "memo": "Annual premium"
     }
@@ -223,7 +223,7 @@ Example:
     "distinct_number": 1,
     "excute_date": "20260115",
     "excute_price": 1200.0,
-    "insurance_excute_type": "premium",
+    "insurance_excute_type": "pay",
     "insurance_id": "INS-001",
     "memo": "Annual premium"
   },

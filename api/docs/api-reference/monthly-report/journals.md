@@ -109,6 +109,53 @@ Example:
 | 422 | Validation error — request payload failed Pydantic validation | `{"status": 0, "error": [{"type": "missing", "loc": ["body", "field_name"], "msg": "Field required", "input": {}}], "msg": "fail"}` |
 | 500 | Unhandled server error — wrapped by global exception handler | `{"status": 0, "error": "RuntimeError: unexpected failure", "msg": "fail"}` |
 
+### GET /monthly-report/journals/uncategorized-summary
+
+**Count uncategorized journals across all months**
+
+Return the total number of Journal rows whose action_main_type falls outside every report bucket (expense/income/invest/transfer — e.g. legacy 'undefined'/'No'/'' values), plus a per-month breakdown ordered newest first. Months with zero uncategorized rows are omitted.
+
+#### Response (200)
+
+Envelope:
+
+| name | type | required | description |
+| --- | --- | --- | --- |
+| status | integer | no | 1 = success, 0 = fail |
+| data |  | no | Response payload. Shape depends on the endpoint. |
+| msg | string | no | Human-readable status message |
+
+data:
+
+| name | type | required | description |
+| --- | --- | --- | --- |
+| total | integer | yes | Uncategorized journal rows across all months (action_main_type outside every report bucket) |
+| months | array<UncategorizedMonthCount> | yes | Per-month breakdown, newest month first; months with zero rows omitted |
+
+Example:
+
+```json
+{
+  "status": 1,
+  "data": {
+    "months": [
+      {
+        "count": 87,
+        "vesting_month": "202405"
+      }
+    ],
+    "total": 2330
+  },
+  "msg": "success"
+}
+```
+
+#### Errors
+
+| status | description | example |
+| --- | --- | --- |
+| 500 | Unhandled server error — wrapped by global exception handler | `{"status": 0, "error": "RuntimeError: unexpected failure", "msg": "fail"}` |
+
 ### DELETE /monthly-report/journals/{journal_id}
 
 **Delete a journal entry**
