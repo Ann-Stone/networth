@@ -36,4 +36,7 @@ export default {
     '<b>Financial Freedom</b><br/>Formula: (total income − fixed expense) ÷ total income<br/>Monthly: trailing 12-month sum<br/>Yearly: year-to-date<br/>The share of income left after fixed costs — higher means more capacity to absorb surprises',
   workFreedomTooltip:
     '<b>Work Freedom</b><br/>Formula: passive income ÷ (passive + active income)<br/>Monthly: trailing 12-month sum<br/>Yearly: year-to-date<br/>How much of income comes from passive sources — higher means closer to not needing to work',
+  uncategorizedTitle: '{total} uncategorized journal entries — reports exclude them',
+  uncategorizedHint: 'Click a month to clean it up:',
+  uncategorizedMore: '…and {count} more months',
 }

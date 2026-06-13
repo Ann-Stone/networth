@@ -35,7 +35,26 @@
       <el-skeleton v-if="store.journalsLoading" :rows="5" animated />
       <EmptyState v-else-if="store.journals.length === 0" :message="t('cashFlow.noJournals')" />
       <template v-else>
-        <el-table :data="store.journals" stripe border style="width: 100%">
+        <el-alert v-if="uncategorizedCount > 0" type="warning" :closable="false" show-icon>
+          <template #title>
+            <div class="flex flex-wrap items-center gap-3">
+              <span>{{ t('cashFlow.uncategorizedBanner', { count: uncategorizedCount }) }}</span>
+              <el-button
+                size="small"
+                type="warning"
+                :plain="!showUncategorizedOnly"
+                @click="showUncategorizedOnly = !showUncategorizedOnly"
+              >
+                {{
+                  showUncategorizedOnly
+                    ? t('cashFlow.uncategorizedShowAll')
+                    : t('cashFlow.uncategorizedShowOnly')
+                }}
+              </el-button>
+            </div>
+          </template>
+        </el-alert>
+        <el-table :data="displayedJournals" stripe border style="width: 100%">
           <el-table-column prop="spend_date" :label="t('cashFlow.colDate')" width="110" />
           <el-table-column :label="t('cashFlow.colAccount')" min-width="140">
             <template #default="{ row }">
@@ -44,7 +63,10 @@
           </el-table-column>
           <el-table-column :label="t('cashFlow.colCategory')" width="140">
             <template #default="{ row }">
-              <span>{{ actionMainLabel(row) }}</span>
+              <el-tag v-if="isUncategorized(row.action_main_type)" type="warning" size="small">
+                {{ t('cashFlow.uncategorizedTag') }}
+              </el-tag>
+              <span v-else>{{ actionMainLabel(row) }}</span>
             </template>
           </el-table-column>
           <el-table-column :label="t('cashFlow.colSubCategory')" width="140">
@@ -567,6 +589,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, Edit, Delete, TrendCharts, Wallet, House, Refresh } from '@element-plus/icons-vue'
@@ -589,6 +612,7 @@ import EstateDetailFormFields, {
 import { useDateStringModel } from '@/composables/useDateStringModel'
 import { useMonthDatePicker } from '@/composables/useMonthDatePicker'
 import { formatYyyymmddDisplay, todayYyyymmdd } from '@/utils/dateFormat'
+import { isUncategorized } from '@/utils/journalTypes'
 import { useCashFlowStore } from '@/stores/cashFlow'
 import {
   createJournal,
@@ -625,7 +649,15 @@ import { translateGroupLabel } from '@/constants/selectionLabels'
 import type { CodeDataWithSub, Journal, JournalCreate, SelectionGroup } from '@/types/models'
 
 const store = useCashFlowStore()
+const route = useRoute()
 const { t } = useI18n()
+
+// Deep link from the dashboard cleanup banner: ?month=YYYYMM&uncategorized=1
+// jumps straight to that month with the uncategorized filter on. Applied in
+// setup (not onMounted) so useMonthDatePicker below initializes its picker
+// model from the deep-linked month.
+const deepLinkMonth = typeof route.query.month === 'string' ? route.query.month : ''
+if (/^\d{6}$/.test(deepLinkMonth)) store.selectedMonth = deepLinkMonth
 
 // YYYYMMDD → YYYY-MM-DD for display.
 const formatDate = formatYyyymmddDisplay
@@ -636,6 +668,27 @@ const { selectedMonthDate } = useMonthDatePicker({
     store.selectedMonth = month
     store.fetchJournals()
   },
+})
+
+// ─── Uncategorized journals (legacy 'undefined'/'No'/'' rows) ───────────────
+const showUncategorizedOnly = ref(false)
+
+const uncategorizedCount = computed(
+  () => store.journals.filter((j) => isUncategorized(j.action_main_type)).length,
+)
+
+// Falls back to the full list when nothing is uncategorized, so a stale
+// toggle (or a deep link into an already-clean month) can't blank the table.
+const displayedJournals = computed(() =>
+  showUncategorizedOnly.value && uncategorizedCount.value > 0
+    ? store.journals.filter((j) => isUncategorized(j.action_main_type))
+    : store.journals,
+)
+
+// When the last uncategorized row of the month gets classified, drop the
+// filter so the table doesn't strand the user on an empty list.
+watch(uncategorizedCount, (count) => {
+  if (count === 0) showUncategorizedOnly.value = false
 })
 
 const totalIncome = computed(() =>
@@ -1546,6 +1599,7 @@ async function submitEstateValue() {
 }
 
 onMounted(() => {
+  if (route.query.uncategorized === '1') showUncategorizedOnly.value = true
   store.fetchJournals()
   store.fetchStockPrices()
   store.fetchInsuranceValues()

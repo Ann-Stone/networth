@@ -83,6 +83,42 @@ Semantic changes worth auditing
   schema stores only ``in_account`` / ``out_account`` as the business
   ``Account.account_id`` strings, resolved from the legacy integer
   ``in_account_id`` / ``out_account_id`` via the Account lookup map.
+- ``Loan.interest_rate``: legacy stores the percent form (1.31 = 1.31%);
+  the new schema is the decimal form (0.0131) — divided by 100 here.
+- ``Alarm.alarm_date`` / ``due_date``: legacy 'MM/DD' anchors (and any
+  longer date strings) are truncated to the BE-028 format — 'MMDD' for
+  yearly, 'DD' for monthly, due_date 'YYYYMM'.
+- ``Insurance.pay_type``: legacy cadence words remapped to the new
+  convention (month→monthly, season→quarterly, year→annual).
+- ``Journal.spend_way_type``: legacy 'Credit_Card' → 'credit_card' (the
+  settlement and journal services match the lowercase form); all other
+  values (normal/finance/cash/...) pass through untouched because the
+  settlement cross-currency logic depends on them.
+- ``Credit_Card.limit_date`` → ``card_expiry``: non-'YYYY/MM' values
+  (some legacy rows hold full datetime strings) are parsed and
+  reformatted to 'YYYY/MM'.
+
+Diverted value-history rows
+---------------------------
+The legacy app recorded appraisals as journal rows; the new settlement
+sums *all* journal rows into cost and reads appraisals from dedicated
+tables instead. Two diversions keep cost clean:
+
+- ``Estate_Journal`` rows with ``estate_excute_type='marketValue'`` →
+  ``Estate_Value_History`` (one row per estate+month, latest wins).
+- ``Insurance_Journal`` rows with ``insurance_excute_type='expect'`` →
+  ``Insurance_Value_History`` (same collapse rule).
+
+Diverted rows still count toward the source-row validation
+(``inserted + diverted == source``); the side-table insert counts appear
+in the output dict under their ``__tablename__``.
+
+Stock_Category seeding
+----------------------
+``Stock_Category`` seeds (SC-001 成長型 / SC-002 債券 / SC-003 類現金)
+normally come from alembic revision ``c5d9f2a1b3e7``, which never re-runs
+after a wipe because ``alembic_version`` stays stamped at head. The
+orchestrator re-seeds them when the table is empty.
 
 Safety
 ------
@@ -99,7 +135,7 @@ import logging
 import re
 import sqlite3
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -111,10 +147,13 @@ import app.models  # noqa: F401  registers tables on SQLModel.metadata
 from app.config import settings as app_settings
 from app.database import SQLITE_PREFIX, _resolve_sqlite_url
 from app.models.assets.estate import Estate, EstateJournal
+from app.models.assets.estate_value_history import EstateValueHistory
 from app.models.assets.insurance import Insurance, InsuranceJournal
+from app.models.assets.insurance_value_history import InsuranceValueHistory
 from app.models.assets.loan import Loan, LoanJournal
 from app.models.assets.other_asset import OtherAsset
 from app.models.assets.stock import StockDetail, StockJournal
+from app.models.assets.stock_category import StockCategory
 from app.models.dashboard.fx_rate import FXRate
 from app.models.dashboard.stock_price_history import StockPriceHistory
 from app.models.dashboard.target_setting import TargetSetting
@@ -173,6 +212,24 @@ class MigrationCountMismatch(RuntimeError):
     """Raised when a migrator's inserted count differs from the source count."""
 
 
+@dataclass(frozen=True)
+class MigratorResult:
+    """Outcome of one migrator.
+
+    ``inserted`` counts rows written to the primary target table.
+    ``diverted`` counts legacy rows intentionally redirected away from it —
+    still accounted for by the orchestrator's source-count validation
+    (``inserted + diverted == source``). ``extra`` maps side-target
+    ``__tablename__`` → rows inserted there; may be smaller than
+    ``diverted`` when several diverted rows collapse into one month.
+    Migrators that divert nothing keep returning a plain ``int``.
+    """
+
+    inserted: int
+    diverted: int = 0
+    extra: dict[str, int] = field(default_factory=dict)
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -223,6 +280,58 @@ def _to_yyyymm(value: Any) -> str | None:
     if re.fullmatch(r"\d{6}", s):
         return s
     return dateutil.parser.parse(s).strftime("%Y%m")
+
+
+def _legacy_alarm_date(value: Any, alarm_type: Any) -> str:
+    """Normalize a legacy alarm anchor to the BE-028 format.
+
+    Yearly rows → ``MMDD``, monthly rows → ``DD``. Real legacy data stores
+    ``MM/DD`` (e.g. ``05/31``); stripping non-digits and keeping the trailing
+    anchor also covers already-normalized and ``YYYYMMDD``-shaped inputs.
+    """
+    digits = re.sub(r"\D", "", str(value or ""))
+    if str(alarm_type or "").strip().upper() == "M":
+        return digits[-2:]
+    return digits[-4:]
+
+
+def _legacy_card_expiry(value: Any) -> str | None:
+    """Normalize legacy ``limit_date`` (card expiry) to ``YYYY/MM``.
+
+    Most legacy rows already hold ``YYYY/MM``; a few hold full datetime
+    strings, which are parsed and reformatted.
+    """
+    s = _opt_str(value)
+    if s is None:
+        return None
+    if re.fullmatch(r"\d{4}/\d{2}", s):
+        return s
+    return dateutil.parser.parse(s).strftime("%Y/%m")
+
+
+# Legacy premium-cadence words → new convention (see Insurance model docs).
+# "once" (躉繳) has no new-world equivalent and passes through unchanged.
+_PAY_TYPE_MAP = {"month": "monthly", "season": "quarterly", "year": "annual"}
+
+
+def _divert_latest_per_month(
+    rows: list[sqlite3.Row], id_field: str
+) -> list[tuple[str, str, sqlite3.Row]]:
+    """Pick the latest row per ``(business_id, excute_date month)``.
+
+    Value-history tables hold one row per (id, vesting_month); when the
+    legacy journal recorded several appraisals in the same month, the most
+    recent ``excute_date`` wins (ties broken by ``distinct_number``).
+    Returns ``(business_id, vesting_month, row)`` winners.
+    """
+    winners: dict[tuple[str, str], tuple[tuple[str, int], sqlite3.Row]] = {}
+    for row in rows:
+        date8 = _to_yyyymmdd(row["excute_date"]) or ""
+        key = (_str(row[id_field]), date8[:6])
+        rank = (date8, int(row["distinct_number"]))
+        if key not in winners or rank > winners[key][0]:
+            winners[key] = (rank, row)
+    return [(eid, month, row) for (eid, month), (_rank, row) in winners.items()]
 
 
 def _opt_int(value: Any) -> int | None:
@@ -427,11 +536,12 @@ def migrate_credit_cards(src: sqlite3.Connection, session: Session) -> int:
     count = 0
     for row in src.execute("SELECT * FROM Credit_Card"):
         # Legacy semantic mismatch: legacy `limit_date` stored card
-        # expiration ("YYYY/MM"), but the new schema's `limit_date` means
-        # "payment due day of month" (int 1-31). Reroute the legacy value
-        # into the new `card_expiry` column and leave `limit_date` NULL
+        # expiration ("YYYY/MM", a few rows as full datetime strings), but
+        # the new schema's `limit_date` means "payment due day of month"
+        # (int 1-31). Reroute the legacy value into the new `card_expiry`
+        # column (normalized to "YYYY/MM") and leave `limit_date` NULL
         # for the user to fill in via UI later.
-        legacy_limit = _opt_str(row["limit_date"])
+        legacy_limit = _legacy_card_expiry(row["limit_date"])
         session.merge(CreditCard(
             credit_card_id=_str(row["credit_card_id"]),
             card_name=row["card_name"],
@@ -467,14 +577,16 @@ def migrate_budgets(src: sqlite3.Connection, session: Session) -> int:
 
 
 def migrate_alarms(src: sqlite3.Connection, session: Session) -> int:
+    """Migrate ``Alarm``. Legacy 'MM/DD' anchors → BE-028 'MMDD'/'DD';
+    ``due_date`` datetime strings → 'YYYYMM' cutoff."""
     count = 0
     for row in src.execute("SELECT * FROM Alarm"):
         session.merge(Alarm(
             alarm_id=int(row["alarm_id"]),
             alarm_type=row["alarm_type"],
-            alarm_date=_to_yyyymmdd(row["alarm_date"]) or str(row["alarm_date"]),
+            alarm_date=_legacy_alarm_date(row["alarm_date"], row["alarm_type"]),
             content=row["content"],
-            due_date=_to_yyyymmdd(row["due_date"]),
+            due_date=_to_yyyymm(row["due_date"]),
         ))
         count += 1
     session.commit()
@@ -513,7 +625,9 @@ def migrate_loans(src: sqlite3.Connection, session: Session, *, maps: LookupMaps
             loan_type=row["loan_type"],
             account_id=account_id_str,
             account_name=row["account_name"],
-            interest_rate=float(row["interest_rate"]),
+            # IMPL-NOTE: legacy stores the percent form (1.31 = 1.31%); the
+            # new schema is decimal (0.0131) and the UI renders rate * 100.
+            interest_rate=float(row["interest_rate"]) / 100.0,
             period=int(row["period"]),
             apply_date=_to_yyyymmdd(row["apply_date"]) or "",
             grace_expire_date=_to_yyyymmdd(row["grace_expire_date"]),
@@ -643,7 +757,7 @@ def migrate_insurance(src: sqlite3.Connection, session: Session, *, maps: Lookup
             out_account=out_account,
             start_date=_to_yyyymmdd(row["start_date"]) or "",
             end_date=_to_yyyymmdd(row["expected_end_date"]) or "",
-            pay_type=row["pay_type"],
+            pay_type=_PAY_TYPE_MAP.get(row["pay_type"], row["pay_type"]),
             pay_day=_opt_str(row["pay_day"]) or "",
             expected_spend=float(row["expected_spend"]) if row["expected_spend"] is not None else 0.0,
             has_closed=row["has_closed"],
@@ -653,9 +767,22 @@ def migrate_insurance(src: sqlite3.Connection, session: Session, *, maps: Lookup
     return count
 
 
-def migrate_insurance_journals(src: sqlite3.Connection, session: Session) -> int:
-    count = 0
+def migrate_insurance_journals(
+    src: sqlite3.Connection, session: Session
+) -> MigratorResult:
+    """Migrate ``Insurance_Journal``; divert ``expect`` rows.
+
+    Legacy recorded a policy's 預期價值 as ``insurance_excute_type='expect'``
+    journal rows. The new settlement reads policy values from
+    ``Insurance_Value_History`` instead, so those rows become value-history
+    entries (latest per policy+month wins) and are excluded from the journal.
+    """
+    inserted = 0
+    expect_rows: list[sqlite3.Row] = []
     for row in src.execute("SELECT * FROM Insurance_Journal"):
+        if row["insurance_excute_type"] == "expect":
+            expect_rows.append(row)
+            continue
         session.merge(InsuranceJournal(
             distinct_number=int(row["distinct_number"]),
             insurance_id=_str(row["insurance_id"]),
@@ -664,9 +791,24 @@ def migrate_insurance_journals(src: sqlite3.Connection, session: Session) -> int
             excute_date=_to_yyyymmdd(row["excute_date"]) or "",
             memo=_opt_str(row["memo"]),
         ))
-        count += 1
+        inserted += 1
+    history = 0
+    for insurance_id, vesting_month, row in _divert_latest_per_month(
+        expect_rows, "insurance_id"
+    ):
+        session.merge(InsuranceValueHistory(
+            insurance_id=insurance_id,
+            vesting_month=vesting_month,
+            surrender_value=float(row["excute_price"]),
+            memo=_opt_str(row["memo"]),
+        ))
+        history += 1
     session.commit()
-    return count
+    return MigratorResult(
+        inserted=inserted,
+        diverted=len(expect_rows),
+        extra={"Insurance_Value_History": history},
+    )
 
 
 def migrate_insurance_net_value_history(src: sqlite3.Connection, session: Session) -> int:
@@ -707,9 +849,23 @@ def migrate_estate(src: sqlite3.Connection, session: Session) -> int:
     return count
 
 
-def migrate_estate_journals(src: sqlite3.Connection, session: Session) -> int:
-    count = 0
+def migrate_estate_journals(
+    src: sqlite3.Connection, session: Session
+) -> MigratorResult:
+    """Migrate ``Estate_Journal``; divert ``marketValue`` rows.
+
+    Legacy recorded appraisals as ``estate_excute_type='marketValue'``
+    journal rows. The new settlement sums *all* EstateJournal rows into
+    cost and reads appraisals from ``Estate_Value_History`` instead, so
+    those rows become value-history entries (latest per estate+month wins)
+    and are excluded from the journal to keep cost clean.
+    """
+    inserted = 0
+    market_rows: list[sqlite3.Row] = []
     for row in src.execute("SELECT * FROM Estate_Journal"):
+        if row["estate_excute_type"] == "marketValue":
+            market_rows.append(row)
+            continue
         session.merge(EstateJournal(
             distinct_number=int(row["distinct_number"]),
             estate_id=_str(row["estate_id"]),
@@ -718,9 +874,24 @@ def migrate_estate_journals(src: sqlite3.Connection, session: Session) -> int:
             excute_date=_to_yyyymmdd(row["excute_date"]) or "",
             memo=_opt_str(row["memo"]),
         ))
-        count += 1
+        inserted += 1
+    history = 0
+    for estate_id, vesting_month, row in _divert_latest_per_month(
+        market_rows, "estate_id"
+    ):
+        session.merge(EstateValueHistory(
+            estate_id=estate_id,
+            vesting_month=vesting_month,
+            market_value=float(row["excute_price"]),
+            memo=_opt_str(row["memo"]),
+        ))
+        history += 1
     session.commit()
-    return count
+    return MigratorResult(
+        inserted=inserted,
+        diverted=len(market_rows),
+        extra={"Estate_Value_History": history},
+    )
 
 
 def migrate_estate_net_value_history(src: sqlite3.Connection, session: Session) -> int:
@@ -744,15 +915,26 @@ def migrate_estate_net_value_history(src: sqlite3.Connection, session: Session) 
 
 
 def migrate_journals(src: sqlite3.Connection, session: Session) -> int:
-    """Preserves ``invoice_number``; normalizes dates to YYYYMMDD / YYYYMM."""
+    """Preserves ``invoice_number``; normalizes dates to YYYYMMDD / YYYYMM.
+
+    ``spend_way_type='Credit_Card'`` is lowered to ``'credit_card'`` (the
+    settlement and journal services match the lowercase form). Every other
+    value passes through verbatim — the settlement cross-currency transfer
+    logic depends on the raw ``normal``/``finance`` account subtypes, and
+    ``action_main_type`` is intentionally untouched (uncategorized legacy
+    rows stay uncategorized).
+    """
     count = 0
     for row in src.execute("SELECT * FROM Journal"):
+        spend_way_type = row["spend_way_type"]
+        if spend_way_type == "Credit_Card":
+            spend_way_type = "credit_card"
         session.merge(Journal(
             distinct_number=int(row["distinct_number"]),
             vesting_month=_to_yyyymm(row["vesting_month"]) or str(row["vesting_month"]),
             spend_date=_to_yyyymmdd(row["spend_date"]) or "",
             spend_way=_str(row["spend_way"]),
-            spend_way_type=row["spend_way_type"],
+            spend_way_type=spend_way_type,
             spend_way_table=row["spend_way_table"],
             action_main=_str(row["action_main"]),
             action_main_type=row["action_main_type"],
@@ -845,6 +1027,37 @@ def migrate_target_settings(src: sqlite3.Connection, session: Session) -> int:
     return count
 
 
+# Mirrors the seed data in alembic revision c5d9f2a1b3e7.
+STOCK_CATEGORY_SEED = (
+    ("SC-001", "成長型", 1),
+    ("SC-002", "債券", 2),
+    ("SC-003", "類現金", 3),
+)
+
+
+def seed_stock_categories(session: Session) -> int:
+    """Re-seed the ``Stock_Category`` dictionary after a wipe.
+
+    The seeds normally come from alembic revision ``c5d9f2a1b3e7``, which
+    never re-runs here because ``alembic_version`` survives the wipe at
+    head. Idempotent: any existing row suppresses seeding.
+    """
+    existing = session.exec(
+        select(func.count()).select_from(StockCategory)
+    ).one()
+    if int(existing[0] if isinstance(existing, tuple) else existing):
+        return 0
+    for category_id, name, index in STOCK_CATEGORY_SEED:
+        session.add(StockCategory(
+            category_id=category_id,
+            name=name,
+            in_use="Y",
+            category_index=index,
+        ))
+    session.commit()
+    return len(STOCK_CATEGORY_SEED)
+
+
 # ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
@@ -860,10 +1073,12 @@ def _source_count(src: sqlite3.Connection, table: str) -> int:
 
 
 def run_migration(src: sqlite3.Connection, engine, *, wipe: bool = True) -> dict[str, int]:
-    """Run every migrator in FK-safe order; return per-legacy-table inserted counts.
+    """Run every migrator in FK-safe order; return per-table inserted counts.
 
-    Raises ``MigrationCountMismatch`` if any migrator's inserted count
-    differs from the legacy source count.
+    Keys are legacy table names (primary-target inserted rows) plus the
+    side-target ``__tablename__``s fed by diversions and the re-seeded
+    ``Stock_Category``. Raises ``MigrationCountMismatch`` when a migrator's
+    ``inserted + diverted`` differs from the legacy source count.
     """
     if wipe:
         _reset_target(engine)
@@ -875,6 +1090,7 @@ def run_migration(src: sqlite3.Connection, engine, *, wipe: bool = True) -> dict
     counts: dict[str, int] = {}
     with Session(engine) as session:
         maps = _load_lookup_maps(src)
+        counts["Stock_Category"] = seed_stock_categories(session)
 
         # FK-safe order. The mapping value is the migrator callable; some
         # migrators need the lookup maps and are wrapped in lambdas.
@@ -910,15 +1126,26 @@ def run_migration(src: sqlite3.Connection, engine, *, wipe: bool = True) -> dict
                 logger.warning("Legacy table missing, skipping: %s", legacy_table)
                 counts[legacy_table] = 0
                 continue
-            inserted = migrator(src, session)
+            raw = migrator(src, session)
+            result = raw if isinstance(raw, MigratorResult) else MigratorResult(inserted=raw)
             expected = _source_count(src, legacy_table)
-            if inserted != expected:
+            if result.inserted + result.diverted != expected:
                 raise MigrationCountMismatch(
-                    f"{legacy_table}: migrator inserted {inserted}, "
-                    f"source has {expected}"
+                    f"{legacy_table}: migrator inserted {result.inserted} "
+                    f"+ diverted {result.diverted}, source has {expected}"
                 )
-            counts[legacy_table] = inserted
-            logger.info("%s: %d rows migrated", legacy_table, inserted)
+            counts[legacy_table] = result.inserted
+            for side_table, n in result.extra.items():
+                counts[side_table] = counts.get(side_table, 0) + n
+                if n != result.diverted:
+                    logger.info(
+                        "%s: %d diverted row(s) collapsed into %d %s row(s)",
+                        legacy_table, result.diverted, n, side_table,
+                    )
+            logger.info(
+                "%s: %d rows migrated (%d diverted)",
+                legacy_table, result.inserted, result.diverted,
+            )
 
     return counts
 

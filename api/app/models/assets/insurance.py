@@ -26,7 +26,7 @@ _INSURANCE_EXAMPLE = {
 _INSURANCE_JOURNAL_EXAMPLE = {
     "distinct_number": 1,
     "insurance_id": "INS-001",
-    "insurance_excute_type": "premium",
+    "insurance_excute_type": "pay",
     "excute_price": 1200.0,
     "excute_date": "20260115",
     "memo": "Annual premium",
@@ -113,7 +113,7 @@ class InsuranceJournal(SQLModel, table=True):
 
     distinct_number: int | None = Field(default=None, primary_key=True, description="Autoincrement PK", schema_extra={"examples": [1]})
     insurance_id: str = Field(..., description="FK reference to Insurance.insurance_id", schema_extra={"examples": ["INS-001"]})
-    insurance_excute_type: str = Field(..., description="Premium / claim execution type", schema_extra={"examples": ["premium"]})
+    insurance_excute_type: str = Field(..., description="Execution type: pay (扣款) / cash (配息) / return (贖回) / expect (legacy 預期價值)", schema_extra={"examples": ["pay"]})
     excute_price: float = Field(..., description="Amount", schema_extra={"examples": [1200.0]})
     excute_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20260115"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Annual premium"]})
@@ -145,7 +145,7 @@ class InsuranceJournalUpdate(SQLModel):
 class InsuranceJournalRead(SQLModel):
     distinct_number: int = Field(..., description="Autoincrement PK", schema_extra={"examples": [1]})
     insurance_id: str = Field(..., description="FK to Insurance.insurance_id", schema_extra={"examples": ["INS-001"]})
-    insurance_excute_type: str = Field(..., description="Execution type", schema_extra={"examples": ["premium"]})
+    insurance_excute_type: str = Field(..., description="Execution type", schema_extra={"examples": ["pay"]})
     excute_price: float = Field(..., description="Amount", schema_extra={"examples": [1200.0]})
     excute_date: str = Field(..., description="YYYYMMDD", schema_extra={"examples": ["20260115"]})
     memo: str | None = Field(default=None, description="Free-form memo", schema_extra={"examples": ["Annual premium"]})

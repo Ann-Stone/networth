@@ -33,7 +33,7 @@ Frontend tickets that touch a single resource (`/settings/accounts`, `/assets/st
 | `balance` | [api-reference/monthly-report/balance.md](api-reference/monthly-report/balance.md) | [openapi/monthly-report/balance.json](openapi/monthly-report/balance.json) | 1 |
 | `estate-values` | [api-reference/monthly-report/estate-values.md](api-reference/monthly-report/estate-values.md) | [openapi/monthly-report/estate-values.json](openapi/monthly-report/estate-values.json) | 4 |
 | `insurance-values` | [api-reference/monthly-report/insurance-values.md](api-reference/monthly-report/insurance-values.md) | [openapi/monthly-report/insurance-values.json](openapi/monthly-report/insurance-values.json) | 2 |
-| `journals` | [api-reference/monthly-report/journals.md](api-reference/monthly-report/journals.md) | [openapi/monthly-report/journals.json](openapi/monthly-report/journals.json) | 4 |
+| `journals` | [api-reference/monthly-report/journals.md](api-reference/monthly-report/journals.md) | [openapi/monthly-report/journals.json](openapi/monthly-report/journals.json) | 5 |
 | `journals-analytics` | [api-reference/monthly-report/journals-analytics.md](api-reference/monthly-report/journals-analytics.md) | [openapi/monthly-report/journals-analytics.json](openapi/monthly-report/journals-analytics.json) | 4 |
 | `journals-transactions` | [api-reference/monthly-report/journals-transactions.md](api-reference/monthly-report/journals-transactions.md) | [openapi/monthly-report/journals-transactions.json](openapi/monthly-report/journals-transactions.json) | 6 |
 | `stock-prices` | [api-reference/monthly-report/stock-prices.md](api-reference/monthly-report/stock-prices.md) | [openapi/monthly-report/stock-prices.json](openapi/monthly-report/stock-prices.json) | 2 |

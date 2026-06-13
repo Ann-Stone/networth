@@ -99,7 +99,7 @@ def test_settlement_uses_recorded_surrender_value(session: Session) -> None:
     session.add(_policy())
     session.add(
         InsuranceJournal(
-            insurance_id="INS-1", insurance_excute_type="premium",
+            insurance_id="INS-1", insurance_excute_type="pay",
             excute_price=1200.0, excute_date="20260115",
         )
     )
@@ -122,7 +122,7 @@ def test_settlement_falls_back_to_premiums_without_record(session: Session) -> N
     session.add(_policy())
     session.add(
         InsuranceJournal(
-            insurance_id="INS-1", insurance_excute_type="premium",
+            insurance_id="INS-1", insurance_excute_type="pay",
             excute_price=1200.0, excute_date="20260115",
         )
     )
@@ -132,3 +132,29 @@ def test_settlement_falls_back_to_premiums_without_record(session: Session) -> N
     session.commit()
     row = session.exec(select(InsuranceNetValueHistory)).first()
     assert row.surrender_value == 1200.0  # net-premium estimate (no record)
+
+
+def test_settlement_insurance_journal_type_semantics(session: Session) -> None:
+    """pay adds to cost+surrender, cash reduces cost, return reduces
+    surrender, expect is ignored entirely."""
+    session.add(_policy())
+    for excute_type, price, date in (
+        ("pay", 1200.0, "20250115"),
+        ("pay", 1200.0, "20260115"),
+        ("cash", 100.0, "20260201"),
+        ("return", 300.0, "20260210"),
+        ("expect", 99999.0, "20260215"),
+    ):
+        session.add(
+            InsuranceJournal(
+                insurance_id="INS-1", insurance_excute_type=excute_type,
+                excute_price=price, excute_date=date,
+            )
+        )
+    session.commit()
+
+    run_insurance_step(session, "202603")
+    session.commit()
+    row = session.exec(select(InsuranceNetValueHistory)).first()
+    assert row.cost == 2300.0  # 1200 + 1200 - 100 (配息)
+    assert row.surrender_value == 2100.0  # 1200 + 1200 - 300 (贖回)

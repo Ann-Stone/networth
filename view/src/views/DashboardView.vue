@@ -28,6 +28,30 @@
       />
     </section>
 
+    <section v-if="(store.uncategorized?.total ?? 0) > 0" class="shrink-0">
+      <el-alert type="warning" :closable="false" show-icon>
+        <template #title>
+          {{ t('dashboard.uncategorizedTitle', { total: store.uncategorized?.total ?? 0 }) }}
+        </template>
+        <div class="flex flex-wrap items-center gap-2 pt-1">
+          <span class="text-xs">{{ t('dashboard.uncategorizedHint') }}</span>
+          <el-tag
+            v-for="m in uncategorizedMonths"
+            :key="m.vesting_month"
+            type="warning"
+            size="small"
+            class="cursor-pointer"
+            @click="goCleanUpMonth(m.vesting_month)"
+          >
+            {{ m.vesting_month.slice(0, 4) }}/{{ m.vesting_month.slice(4) }} · {{ m.count }}
+          </el-tag>
+          <span v-if="uncategorizedMoreCount > 0" class="text-xs">
+            {{ t('dashboard.uncategorizedMore', { count: uncategorizedMoreCount }) }}
+          </span>
+        </div>
+      </el-alert>
+    </section>
+
     <section class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 shrink-0">
       <el-skeleton
         v-if="store.summariesLoading.asset_debt_trend"
@@ -282,6 +306,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Edit, Delete, Check, FolderOpened, RefreshLeft } from '@element-plus/icons-vue'
@@ -300,7 +325,27 @@ import type { TargetSetting } from '@/types/models'
 
 const store = useDashboardStore()
 const appStore = useAppStore()
+const router = useRouter()
 const { t } = useI18n()
+
+// Uncategorized-journal cleanup banner ----------------------------------------
+// Show the newest months first; cap the chip row so years of backlog don't
+// flood the dashboard.
+const UNCATEGORIZED_CHIP_LIMIT = 12
+
+const uncategorizedMonths = computed(
+  () => store.uncategorized?.months.slice(0, UNCATEGORIZED_CHIP_LIMIT) ?? [],
+)
+const uncategorizedMoreCount = computed(() =>
+  Math.max((store.uncategorized?.months.length ?? 0) - UNCATEGORIZED_CHIP_LIMIT, 0),
+)
+
+function goCleanUpMonth(month: string) {
+  router.push({
+    path: '/monthly-report/cash-flow',
+    query: { month, uncategorized: '1' },
+  })
+}
 
 // View-mode + anchor controls -------------------------------------------------
 // Local refs bound to the radio/picker. Whenever the user changes a control, we
@@ -544,5 +589,6 @@ function giftRateClass(rate: number): string {
 onMounted(() => {
   store.refetchAllForView()
   store.fetchTargets()
+  store.fetchUncategorized()
 })
 </script>

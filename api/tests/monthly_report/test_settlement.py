@@ -102,7 +102,7 @@ def _seed(session: Session) -> None:
         )
     )
 
-    # Insurance: USD policy, 2 premium payments (1200 each = 2400 cost)
+    # Insurance: USD policy, 2 'pay' (扣款) journals (1200 each = 2400 cost)
     session.add(
         Insurance(
             insurance_id="INS-1", insurance_name="Whole life", asset_id="AC-INS",
@@ -113,13 +113,13 @@ def _seed(session: Session) -> None:
     )
     session.add(
         InsuranceJournal(
-            insurance_id="INS-1", insurance_excute_type="premium",
+            insurance_id="INS-1", insurance_excute_type="pay",
             excute_price=1200.0, excute_date="20250115",
         )
     )
     session.add(
         InsuranceJournal(
-            insurance_id="INS-1", insurance_excute_type="premium",
+            insurance_id="INS-1", insurance_excute_type="pay",
             excute_price=1200.0, excute_date="20260115",
         )
     )

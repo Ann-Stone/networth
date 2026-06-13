@@ -78,6 +78,44 @@
         ]
       }
     },
+    "/monthly-report/journals/uncategorized-summary": {
+      "get": {
+        "description": "Return the total number of Journal rows whose action_main_type falls outside every report bucket (expense/income/invest/transfer — e.g. legacy 'undefined'/'No'/'' values), plus a per-month breakdown ordered newest first. Months with zero uncategorized rows are omitted.",
+        "operationId": "get_uncategorized_summary_monthly_report_journals_uncategorized_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_UncategorizedSummaryResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "RuntimeError: unexpected failure",
+                  "msg": "fail",
+                  "status": 0
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unhandled server error — wrapped by global exception handler"
+          }
+        },
+        "summary": "Count uncategorized journals across all months",
+        "tags": [
+          "monthly_report",
+          "monthly-report"
+        ]
+      }
+    },
     "/monthly-report/journals/{journal_id}": {
       "delete": {
         "description": "Delete a Journal identified by distinct_number.",
@@ -342,11 +380,14 @@
   "x-schema-files": [
     "schemas/ApiResponse_JournalMonthRead_.json",
     "schemas/ApiResponse_JournalRead_.json",
+    "schemas/ApiResponse_UncategorizedSummaryResponse_.json",
     "schemas/ApiResponse_dict_.json",
     "schemas/JournalCreate.json",
     "schemas/JournalMonthRead.json",
     "schemas/JournalRead.json",
-    "schemas/JournalUpdate.json"
+    "schemas/JournalUpdate.json",
+    "schemas/UncategorizedMonthCount.json",
+    "schemas/UncategorizedSummaryResponse.json"
   ],
   "x-shared-file": "_shared.json"
 }

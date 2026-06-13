@@ -16,6 +16,8 @@ from app.models.monthly_report.analytics import (
     InvestRatioResponse,
     LiabilityItem,
     LiabilityResponse,
+    UncategorizedMonthCount,
+    UncategorizedSummaryResponse,
 )
 from app.models.assets.estate import Estate, EstateJournal
 from app.models.assets.insurance import Insurance, InsuranceJournal
@@ -44,6 +46,7 @@ from app.services.journal_types import (
     INCOME_MAIN_TYPES,
     INVEST_MAIN_TYPES,
     TRANSFER_MAIN_TYPES,
+    is_uncategorized,
     norm_type,
 )
 
@@ -510,6 +513,31 @@ def compute_expenditure_ratio(session: Session, vesting_month: str) -> Expenditu
     return ExpenditureRatioResponse(
         outer=[ExpenditureRatioItem(name=k, value=round(v, 2)) for k, v in outer.items()],
         inner=[ExpenditureRatioItem(name=k, value=round(v, 2)) for k, v in inner.items()],
+    )
+
+
+def compute_uncategorized_summary(session: Session) -> UncategorizedSummaryResponse:
+    """Count journals whose action_main_type falls outside every report bucket.
+
+    Legacy e-invoice imports left thousands of rows typed 'undefined'/'No'/'' —
+    invisible to the type-bucketed reports until the user classifies them. The
+    summary powers the dashboard cleanup card and the ledger banner: total
+    across all months plus a per-month breakdown (newest first, zero months
+    omitted).
+    """
+    rows = session.exec(
+        select(Journal.vesting_month, Journal.action_main_type)
+    ).all()
+    per_month: dict[str, int] = defaultdict(int)
+    for vesting_month, action_main_type in rows:
+        if is_uncategorized(action_main_type):
+            per_month[vesting_month] += 1
+    months = [
+        UncategorizedMonthCount(vesting_month=m, count=per_month[m])
+        for m in sorted(per_month, reverse=True)
+    ]
+    return UncategorizedSummaryResponse(
+        total=sum(per_month.values()), months=months
     )
 
 

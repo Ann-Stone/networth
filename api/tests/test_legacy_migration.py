@@ -40,10 +40,13 @@ from scripts.migrate_from_legacy import (
     run_migration,
 )
 from app.models.assets.estate import Estate, EstateJournal
+from app.models.assets.estate_value_history import EstateValueHistory
 from app.models.assets.insurance import Insurance, InsuranceJournal
+from app.models.assets.insurance_value_history import InsuranceValueHistory
 from app.models.assets.loan import Loan, LoanJournal
 from app.models.assets.other_asset import OtherAsset
 from app.models.assets.stock import StockDetail, StockJournal
+from app.models.assets.stock_category import StockCategory
 from app.models.dashboard.fx_rate import FXRate
 from app.models.dashboard.stock_price_history import StockPriceHistory
 from app.models.dashboard.target_setting import TargetSetting
@@ -256,7 +259,8 @@ def test_camel_to_snake_normalization() -> None:
 
 def test_end_to_end_row_counts_match(legacy_conn, target_engine) -> None:
     counts = run_migration(legacy_conn, target_engine, wipe=True)
-    # Every retained table inserted exactly 2 rows from the fixture.
+    # Every retained table inserted exactly 2 rows into its primary target
+    # (Estate_Journal/Insurance_Journal divert their extra appraisal rows).
     for table_name in (
         "Code_Data", "Account", "Credit_Card", "Budget", "Alarm",
         "Other_Asset", "Loan", "Loan_Journal", "Loan_Balance",
@@ -267,6 +271,10 @@ def test_end_to_end_row_counts_match(legacy_conn, target_engine) -> None:
         "FX_Rate", "Stock_Price_History", "Target_Setting",
     ):
         assert counts.get(table_name) == 2, f"{table_name} count mismatch: {counts.get(table_name)}"
+    # Diversion side-targets and the re-seeded Stock_Category also report.
+    assert counts.get("Estate_Value_History") == 1
+    assert counts.get("Insurance_Value_History") == 1
+    assert counts.get("Stock_Category") == 3
 
 
 def test_orchestrator_raises_on_count_mismatch(legacy_conn, target_engine, monkeypatch) -> None:
@@ -287,7 +295,8 @@ def test_golden_fixture_migration(legacy_conn, target_engine) -> None:
     """Holistic check: full migration against the hand-crafted fixture."""
     counts = run_migration(legacy_conn, target_engine, wipe=True)
 
-    # Every retained table → exactly 2 rows.
+    # Every retained table → exactly 2 primary-target rows, plus the
+    # diversion side-targets and the re-seeded Stock_Category.
     expected = {name: 2 for name in (
         "Code_Data", "Account", "Credit_Card", "Budget", "Alarm",
         "Other_Asset", "Loan", "Loan_Journal", "Loan_Balance",
@@ -297,6 +306,9 @@ def test_golden_fixture_migration(legacy_conn, target_engine) -> None:
         "Journal", "Account_Balance", "Credit_Card_Balance",
         "FX_Rate", "Stock_Price_History", "Target_Setting",
     )}
+    expected["Estate_Value_History"] = 1
+    expected["Insurance_Value_History"] = 1
+    expected["Stock_Category"] = 3
     assert counts == expected
 
     # carrier_no must not appear in the target schema.
@@ -337,6 +349,132 @@ def test_golden_fixture_migration(legacy_conn, target_engine) -> None:
 
         # Loan.repayed semantics: legacy 'N' flag → new 0.0 float.
         assert loan_one.repayed == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Format normalizations for current-schema conventions
+# ---------------------------------------------------------------------------
+
+def test_alarm_dates_normalized(legacy_conn, target_engine) -> None:
+    """Legacy 'MM/DD' anchors → BE-028 'MMDD'/'DD'; due_date → YYYYMM."""
+    run_migration(legacy_conn, target_engine, wipe=True)
+    with Session(target_engine) as session:
+        yearly = session.exec(select(Alarm).where(Alarm.alarm_id == 1)).one()
+        assert yearly.alarm_type == "Y"
+        assert yearly.alarm_date == "0531"
+        assert yearly.due_date == "202207"
+        monthly = session.exec(select(Alarm).where(Alarm.alarm_id == 2)).one()
+        assert monthly.alarm_type == "M"
+        assert monthly.alarm_date == "15"
+        assert monthly.due_date is None
+
+
+def test_loan_interest_rate_percent_to_decimal(legacy_conn, target_engine) -> None:
+    """Legacy percent form (1.31 = 1.31%) → new decimal form (0.0131)."""
+    run_migration(legacy_conn, target_engine, wipe=True)
+    with Session(target_engine) as session:
+        rates = {
+            loan.loan_id: loan.interest_rate
+            for loan in session.exec(select(Loan)).all()
+        }
+    assert rates["1"] == pytest.approx(0.0131)
+    assert rates["2"] == pytest.approx(0.025)
+
+
+def test_credit_card_expiry_normalized(legacy_conn, target_engine) -> None:
+    """All card_expiry values land as 'YYYY/MM', even datetime-string input."""
+    run_migration(legacy_conn, target_engine, wipe=True)
+    with Session(target_engine) as session:
+        cards = {c.credit_card_id: c for c in session.exec(select(CreditCard)).all()}
+    for card in cards.values():
+        assert re.fullmatch(r"\d{4}/\d{2}", card.card_expiry), card.card_expiry
+        assert card.limit_date is None
+    assert cards["1"].card_expiry == "2026/08"
+    assert cards["2"].card_expiry == "2022/07"
+
+
+def test_insurance_pay_type_normalized(legacy_conn, target_engine) -> None:
+    """Legacy cadence words remap: year → annual, month → monthly."""
+    run_migration(legacy_conn, target_engine, wipe=True)
+    with Session(target_engine) as session:
+        policies = {i.insurance_id: i for i in session.exec(select(Insurance)).all()}
+    assert policies["1"].pay_type == "annual"
+    assert policies["1"].pay_day == "01/15"
+    assert policies["2"].pay_type == "monthly"
+    assert policies["2"].pay_day == "20"
+
+
+def test_journal_spend_way_type_normalized(legacy_conn, target_engine) -> None:
+    """'Credit_Card' lowers to 'credit_card'; other values pass through."""
+    run_migration(legacy_conn, target_engine, wipe=True)
+    with Session(target_engine) as session:
+        journals = {j.distinct_number: j for j in session.exec(select(Journal)).all()}
+    assert journals[1].spend_way_type == "account"
+    assert journals[2].spend_way_type == "credit_card"
+    assert all(j.spend_way_type != "Credit_Card" for j in journals.values())
+
+
+# ---------------------------------------------------------------------------
+# Appraisal-row diversion into the value-history tables
+# ---------------------------------------------------------------------------
+
+def test_estate_market_value_rows_diverted(legacy_conn, target_engine) -> None:
+    """'marketValue' journals become Estate_Value_History (latest per month)."""
+    run_migration(legacy_conn, target_engine, wipe=True)
+    with Session(target_engine) as session:
+        types = [j.estate_excute_type for j in session.exec(select(EstateJournal)).all()]
+        assert "marketValue" not in types
+        assert sorted(types) == ["fix", "tax"]
+        history = session.exec(select(EstateValueHistory)).all()
+        assert len(history) == 1
+        entry = history[0]
+        assert entry.estate_id == "1"
+        assert entry.vesting_month == "202503"
+        # Two same-month appraisals in the fixture — the later one wins.
+        assert entry.market_value == 500000.0
+        assert entry.memo == "newer appraisal"
+
+
+def test_insurance_expect_rows_diverted(legacy_conn, target_engine) -> None:
+    """'expect' journals become Insurance_Value_History entries."""
+    run_migration(legacy_conn, target_engine, wipe=True)
+    with Session(target_engine) as session:
+        types = [
+            j.insurance_excute_type
+            for j in session.exec(select(InsuranceJournal)).all()
+        ]
+        assert "expect" not in types
+        assert types == ["pay", "pay"]
+        history = session.exec(select(InsuranceValueHistory)).all()
+        assert len(history) == 1
+        entry = history[0]
+        assert entry.insurance_id == "1"
+        assert entry.vesting_month == "202602"
+        assert entry.surrender_value == 26000.0
+
+
+# ---------------------------------------------------------------------------
+# Stock_Category re-seeding after wipe
+# ---------------------------------------------------------------------------
+
+def test_stock_categories_seeded(legacy_conn, target_engine) -> None:
+    counts = run_migration(legacy_conn, target_engine, wipe=True)
+    assert counts["Stock_Category"] == 3
+    with Session(target_engine) as session:
+        rows = sorted(
+            session.exec(select(StockCategory)).all(),
+            key=lambda c: c.category_index,
+        )
+    assert [(c.category_id, c.name, c.in_use) for c in rows] == [
+        ("SC-001", "成長型", "Y"),
+        ("SC-002", "債券", "Y"),
+        ("SC-003", "類現金", "Y"),
+    ]
+    # Re-running with wipe re-seeds to exactly 3 again (idempotent).
+    counts2 = run_migration(legacy_conn, target_engine, wipe=True)
+    assert counts2["Stock_Category"] == 3
+    with Session(target_engine) as session:
+        assert _count(session, StockCategory) == 3
 
 
 # ---------------------------------------------------------------------------

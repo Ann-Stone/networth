@@ -34,6 +34,23 @@ PASSIVE_INCOME_TYPES = frozenset({"passive"})
 REALIZED_GAIN_NAMES = frozenset({"資本利得", "期貨"})
 
 
+# Every bucket the reports know how to place. Anything outside this union
+# (legacy 'undefined' / 'No' / '' rows from e-invoice imports the user never
+# classified) is invisible to type-bucketed reports.
+KNOWN_MAIN_TYPES = (
+    EXPENSE_MAIN_TYPES | INCOME_MAIN_TYPES | INVEST_MAIN_TYPES | TRANSFER_MAIN_TYPES
+)
+
+
 def norm_type(action_main_type: str | None) -> str:
     """Lowercase/trim an action_main_type for case-insensitive comparison."""
     return (action_main_type or "").strip().lower()
+
+
+def is_uncategorized(action_main_type: str | None) -> bool:
+    """True when the type falls outside every report bucket.
+
+    This is the single backend definition of "uncategorized"; the frontend
+    mirrors it in ``view/src/utils/journalTypes.ts`` — keep them in sync.
+    """
+    return norm_type(action_main_type) not in KNOWN_MAIN_TYPES
